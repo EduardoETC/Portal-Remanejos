@@ -447,8 +447,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 <div class="toast" id="toast"></div>
 
 <script>
-"""
-<script>
 const DB = [
   {id:1422,name:"Cine Cultura Maceio 2",city:"MACEIO",uf:"AL",pct:20,lat:-9.6658,lon:-35.735},
   {id:1418,name:"Cineart Maceio 8",city:"MACEIO",uf:"AL",pct:100,lat:-9.6658,lon:-35.735},
@@ -944,7 +942,6 @@ const DB = [
 ];
 
 
-
 // STATE
 var LOGGI   = JSON.parse(localStorage.getItem('etc_loggi')   || '{}');
 var EMPRESA = JSON.parse(localStorage.getItem('etc_empresa') || '{"nome":"ETC Filmes","addr":"Av. Escola Politecnica, 1700, Jaguare, Sao Paulo, SP, 05319-000","cep":"05319-000","contato":"ETC Filmes - Expedicao"}');
@@ -1009,8 +1006,8 @@ function handleUpload(input) {
       var rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
       var added = 0, dupes = 0;
       rows.forEach(function(r) {
-        if (!r['Cinema'] && !r['Codigo'] && !r['\\u00c3\\u00b3digo']) return; // skip empty
-        var codigo = String(r['Codigo'] || r['\\u00c3\\u00b3digo'] || '').trim();
+        if (!r['Cinema'] && !r['Codigo'] && !r['\u00c3\u00b3digo']) return; // skip empty
+        var codigo = String(r['Codigo'] || r['\u00c3\u00b3digo'] || '').trim();
         var material = String(r['Material'] || '').trim();
         // Check duplicate by codigo+material
         var isDupe = ENVIOS.some(function(e) {
@@ -1020,8 +1017,8 @@ function handleUpload(input) {
         ENVIOS.push({
           codigo:   codigo,
           cliente:  String(r['Cliente']  || '').trim(),
-          titulo:   String(r['Titulo']   || r['T\\u00edtulo'] || '').trim(),
-          tituloPN: String(r['Titulo Portugues'] || r['T\\u00edtulo Portugu\\u00eas'] || '').trim(),
+          titulo:   String(r['Titulo']   || r['T\u00edtulo'] || '').trim(),
+          tituloPN: String(r['Titulo Portugues'] || r['T\u00edtulo Portugu\u00eas'] || '').trim(),
           exibidor: String(r['Exibidor'] || '').trim(),
           cinema:   String(r['Cinema']   || '').trim(),
           uf:       String(r['UF']       || '').trim(),
@@ -1030,7 +1027,7 @@ function handleUpload(input) {
           transp:   String(r['Logistica: Transp']  || '').trim(),
           saida:    String(r['Logistica: Saida']   || r['Primeira Saida'] || '').trim(),
           endereco: String(r['Cinema Endereco']    || '').trim(),
-          servico:  String(r['Codigo Servico']     || r['C\\u00f3digo Servi\\u00e7o'] || '').trim(),
+          servico:  String(r['Codigo Servico']     || r['C\u00f3digo Servi\u00e7o'] || '').trim(),
           status:   String(r['Status'] || '').trim(),
         });
         added++;
@@ -1147,12 +1144,14 @@ function renderTable() {
 }
 
 function exportCSV() {
-  var csv = 'Codigo,Cliente,Titulo,Titulo PT,Cinema,UF,Cidade,Material,Exibidor,Transportadora,Data Saida,Status,Endereco,Cod.Servico\n';
+  var csv = 'Codigo,Cliente,Titulo,Titulo PT,Cinema,UF,Cidade,Material,Exibidor,Transportadora,Data Saida,Status,Endereco,Cod.Servico
+';
   ENVIOS.forEach(function(r) {
-    csv += '"' + [r.codigo,r.cliente,r.titulo,r.tituloPN,r.cinema,r.uf,r.cidade,r.material,r.exibidor,r.transp,r.saida.split(' ')[0],r.status,r.endereco,r.servico].join('","') + '"\n';
+    csv += '"' + [r.codigo,r.cliente,r.titulo,r.tituloPN,r.cinema,r.uf,r.cidade,r.material,r.exibidor,r.transp,r.saida.split(' ')[0],r.status,r.endereco,r.servico].join('","') + '"
+';
   });
   var a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], {type:'text/csv'}));
+  a.href = URL.createObjectURL(new Blob(['' + csv], {type:'text/csv'}));
   a.download = 'envios_' + new Date().toISOString().split('T')[0] + '.csv';
   a.click();
 }
@@ -1908,9 +1907,6 @@ function loggiFromDetail() {
 document.getElementById('f-saida').value = new Date().toISOString().split('T')[0];
 updateBadges();
 renderTable();
-</script>
-</body>
-</html>
 </script>
 </body>
 </html>
