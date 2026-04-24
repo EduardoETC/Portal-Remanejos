@@ -447,6 +447,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 <div class="toast" id="toast"></div>
 
 <script>
+/* ETC Filmes v191854 */
 const DB = [
   {id:1422,name:"Cine Cultura Maceio 2",city:"MACEIO",uf:"AL",pct:20,lat:-9.6658,lon:-35.735},
   {id:1418,name:"Cineart Maceio 8",city:"MACEIO",uf:"AL",pct:100,lat:-9.6658,lon:-35.735},
@@ -1144,11 +1145,9 @@ function renderTable() {
 }
 
 function exportCSV() {
-  var csv = 'Codigo,Cliente,Titulo,Titulo PT,Cinema,UF,Cidade,Material,Exibidor,Transportadora,Data Saida,Status,Endereco,Cod.Servico
-';
+  var csv = 'Codigo,Cliente,Titulo,Titulo PT,Cinema,UF,Cidade,Material,Exibidor,Transportadora,Data Saida,Status,Endereco,Cod.Servico\n';
   ENVIOS.forEach(function(r) {
-    csv += '"' + [r.codigo,r.cliente,r.titulo,r.tituloPN,r.cinema,r.uf,r.cidade,r.material,r.exibidor,r.transp,r.saida.split(' ')[0],r.status,r.endereco,r.servico].join('","') + '"
-';
+    csv += '"' + [r.codigo,r.cliente,r.titulo,r.tituloPN,r.cinema,r.uf,r.cidade,r.material,r.exibidor,r.transp,r.saida.split(' ')[0],r.status,r.endereco,r.servico].join('","') + '"\n';
   });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['' + csv], {type:'text/csv'}));
