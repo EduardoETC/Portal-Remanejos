@@ -3,65 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ETC Filmes — Remanejamento</title>
-<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+<title>ETC Filmes</title>
+<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;background:#f0efeb;color:#1a1a18;min-height:100vh}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:#f0efeb;color:#1a1a18;display:flex;min-height:100vh}
 
-/* NAV */
-nav{background:#1c1c1a;height:46px;display:flex;align-items:center;padding:0 20px;gap:4px;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.3)}
-.logo{color:#fff;font-weight:600;font-size:13px;margin-right:14px;flex-shrink:0}
-.logo span{color:rgba(255,255,255,.35);font-weight:400}
-.ntab{padding:5px 13px;border-radius:5px;border:none;background:none;color:rgba(255,255,255,.5);font-size:13px;font-family:inherit;cursor:pointer;transition:all .15s;font-weight:500}
-.ntab:hover{color:#fff;background:rgba(255,255,255,.08)}
-.ntab.active{color:#fff;background:rgba(255,255,255,.14)}
+/* SIDEBAR */
+.sidebar{width:220px;flex-shrink:0;background:#1c1c1a;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto}
+.sidebar-logo{padding:16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo h1{font-size:14px;font-weight:700;color:#fff}
+.sidebar-logo p{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
+.sidebar-section{padding:12px 14px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3)}
+.nav-btn{display:flex;align-items:center;gap:9px;width:calc(100% - 16px);margin:1px 8px;padding:8px 10px;background:none;border:none;cursor:pointer;border-radius:6px;color:rgba(255,255,255,.55);font-size:13px;font-family:inherit;text-align:left;transition:all .14s}
+.nav-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-btn.active{background:rgba(255,255,255,.14);color:#fff;font-weight:500}
+.nav-btn .icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:#1a4fff;color:#fff;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:700}
+.sidebar-footer{margin-top:auto;padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:rgba(255,255,255,.3)}
 
-/* VIEWS */
-.view{display:none}
-.view.active{display:block}
+/* MAIN */
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column}
+.view{display:none}.view.active{display:flex;flex-direction:column;flex:1}
 
 /* PAGE HEADER */
-.ph{background:#fff;border-bottom:1px solid #e0deda;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
-.ph-left h1{font-size:16px;font-weight:600}
-.ph-left p{font-size:12px;color:#888;margin-top:2px}
+.ph{background:#fff;border-bottom:1px solid #e0deda;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ph h1{font-size:16px;font-weight:600}
+.ph p{font-size:12px;color:#999;margin-top:2px}
 
 /* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:1px solid #d0cec9;background:#fff;color:#444;font-size:13px;font-family:inherit;font-weight:500;cursor:pointer;transition:all .15s;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:6px;border:1px solid #d0cec9;background:#fff;color:#444;font-size:13px;font-family:inherit;font-weight:500;cursor:pointer;transition:all .14s;white-space:nowrap}
 .btn:hover{border-color:#1a4fff;color:#1a4fff}
 .btn-primary{background:#1a4fff;color:#fff;border-color:#1a4fff}
 .btn-primary:hover{background:#1237cc;border-color:#1237cc;color:#fff}
-.btn-green{background:#1a8a4a;color:#fff;border-color:#1a8a4a}
-.btn-green:hover{background:#147a3f;color:#fff}
 .btn-orange{background:#e65100;color:#fff;border-color:#e65100}
 .btn-orange:hover{background:#bf4000;color:#fff}
-
-/* FILE INPUT — the reliable way */
-.file-label{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:1px solid #d0cec9;background:#fff;color:#444;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.btn-dark{background:#1c1c1a;color:#fff;border-color:#1c1c1a}
+.btn-dark:hover{background:#333;color:#fff}
+.file-label{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:6px;border:1px solid #d0cec9;background:#fff;color:#444;font-size:13px;font-weight:500;cursor:pointer;transition:all .14s}
 .file-label:hover{border-color:#1a4fff;color:#1a4fff}
-.file-label input[type=file]{display:none}
-
-/* DROP AREA */
-.drop-area{border:2px dashed #c8c6c0;border-radius:10px;padding:40px 24px;text-align:center;background:#fff;cursor:pointer;transition:all .15s;margin:20px 24px}
-.drop-area:hover{border-color:#1a4fff;background:#f0f3ff}
-.drop-area.has-file{border-color:#1a8a4a;border-style:solid;background:#f0faf4;cursor:default}
-.drop-icon{font-size:36px;margin-bottom:10px}
-.drop-title{font-size:15px;font-weight:600;margin-bottom:4px}
-.drop-sub{font-size:12px;color:#888}
-
-/* SEARCH */
-.search-wrap{padding:0 24px 12px}
-.search-input{width:100%;padding:8px 12px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;font-family:inherit;outline:none;background:#fff}
-.search-input:focus{border-color:#1a4fff;box-shadow:0 0 0 3px rgba(26,79,255,.08)}
+.file-label input{display:none}
 
 /* TABLE */
-.table-wrap{margin:0 24px 24px;background:#fff;border-radius:8px;border:1px solid #e0deda;overflow:hidden}
-.table-head{display:grid;padding:9px 14px;background:#f5f4f0;border-bottom:1px solid #e0deda;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em}
-.table-row{display:grid;padding:11px 14px;border-bottom:1px solid #ebebeb;align-items:center;cursor:pointer;transition:background .12s}
-.table-row:last-child{border-bottom:none}
-.table-row:hover{background:#f8f7f4}
+.table-wrap{background:#fff;border-radius:8px;border:1px solid #e0deda;overflow:hidden}
+.th{display:grid;padding:8px 14px;background:#f5f4f0;border-bottom:1px solid #ddd;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em}
+.tr{display:grid;padding:10px 14px;border-bottom:1px solid #f0efeb;align-items:center;cursor:pointer;transition:background .12s}
+.tr:last-child{border-bottom:none}
+.tr:hover{background:#f8f7f4}
 .cell-name{font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cell-sub{font-size:11px;color:#888;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell-sub{font-size:11px;color:#999;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* BADGES */
 .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
@@ -74,15 +64,12 @@ nav{background:#1c1c1a;height:46px;display:flex;align-items:center;padding:0 20p
 .badge-dark{background:#1c1c1a;color:#fff}
 
 /* SPLIT LAYOUT */
-.split{display:flex;height:calc(100vh - 46px)}
-.split-left{width:290px;flex-shrink:0;background:#fff;border-right:1px solid #e0deda;overflow-y:auto;display:flex;flex-direction:column}
-.split-right{flex:1;overflow-y:auto;background:#f0efeb;padding:20px 24px}
-
-/* FORM SECTIONS */
-.fsec{padding:14px 16px;border-bottom:1px solid #ebebeb}
-.fsec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:10px}
+.split{display:grid;grid-template-columns:280px 1fr;flex:1;overflow:hidden}
+.split-left{background:#fff;border-right:1px solid #e0deda;overflow-y:auto;display:flex;flex-direction:column}
+.split-right{overflow-y:auto;padding:20px 22px}
+.fsec{padding:14px 15px;border-bottom:1px solid #f0efeb}
+.fsec h3{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#aaa;margin-bottom:10px}
 .field{margin-bottom:10px}
-.field:last-child{margin-bottom:0}
 .field label{display:block;font-size:12px;font-weight:500;color:#555;margin-bottom:4px}
 .field input,.field select{width:100%;padding:7px 10px;border:1px solid #d0cec9;border-radius:6px;font-family:inherit;font-size:13px;color:#1a1a18;background:#fff;outline:none;transition:border-color .14s}
 .field input:focus,.field select:focus{border-color:#1a4fff;box-shadow:0 0 0 3px rgba(26,79,255,.08)}
@@ -90,81 +77,92 @@ nav{background:#1c1c1a;height:46px;display:flex;align-items:center;padding:0 20p
 
 /* SUGGEST */
 .sug-wrap{position:relative}
-.sug-list{position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1px solid #1a4fff;border-radius:6px;z-index:200;max-height:220px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12);display:none}
-.sug-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid #f0efeb;font-size:13px}
+.sug-box{position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1px solid #1a4fff;border-radius:6px;z-index:300;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12);display:none}
+.sug-item{padding:8px 11px;cursor:pointer;border-bottom:1px solid #f0efeb;font-size:13px}
 .sug-item:last-child{border-bottom:none}
-.sug-item:hover{background:#f0f3ff}
+.sug-item:hover{background:#eef1ff}
 .sug-name{font-weight:500}
-.sug-meta{font-size:11px;color:#888;margin-top:1px}
+.sug-meta{font-size:11px;color:#999;margin-top:1px}
 
-/* ROUTE CARD */
+/* ROUTE */
 .route-card{background:#fff;border-radius:8px;border:1px solid #e0deda;overflow:hidden;margin-bottom:14px}
 .route-header{background:#1c1c1a;padding:12px 16px;display:flex;align-items:center;gap:12px}
-.route-header-icon{width:32px;height:44px;background:rgba(255,255,255,.1);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.route-header-info{flex:1;min-width:0}
-.route-header-title{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.route-header-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px}
-.route-header-actions{display:flex;gap:6px;flex-shrink:0}
-
-/* ROUTE STEPS */
-.step{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #ebebeb}
+.rh-icon{width:32px;height:44px;background:rgba(255,255,255,.1);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.rh-info{flex:1;min-width:0}
+.rh-title{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rh-sub{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px}
+.rh-actions{display:flex;gap:6px;flex-shrink:0}
+.step{display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid #f0efeb}
 .step:last-child{border-bottom:none}
 .step-origin{background:#eef1ff}
 .step-best{background:#edf9f3}
-.step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.step-skip{opacity:.4}
+.step-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
 .sn-orig{background:#1c1c1a;color:#fff}
 .sn-100{background:#e5f5ec;color:#1a8a4a;border:1.5px solid #1a8a4a}
 .sn-80{background:#fdf4df;color:#996a00;border:1.5px solid #996a00}
 .sn-lo{background:#f0efeb;color:#888;border:1.5px solid #ccc}
 .step-info{flex:1;min-width:0}
 .step-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.step-meta{font-size:11px;color:#888;margin-top:1px}
-.step-skip{opacity:.4;}
-.step-skip .step-info{text-decoration:line-through;color:#aaa}
-.step-connector{display:flex;align-items:center;padding:3px 14px 3px 22px;border-bottom:1px solid #ebebeb}
-.connector-line{flex:1;border-top:1px dashed #ddd}
-.connector-label{font-size:10px;color:#aaa;margin:0 7px;white-space:nowrap}
-
-/* STATUS & TRANSP SELECTS */
-.sel-status{padding:3px 8px;border:1px solid #d0cec9;border-radius:5px;font-size:11px;font-family:monospace;background:#fff;cursor:pointer;outline:none}
+.step-meta{font-size:11px;color:#999;margin-top:1px}
+.conn{display:flex;align-items:center;padding:2px 14px 2px 20px;border-bottom:1px solid #f0efeb}
+.conn-line{flex:1;border-top:1px dashed #ddd}
+.conn-lbl{font-size:10px;color:#bbb;margin:0 7px;white-space:nowrap}
+.sel-status{padding:3px 7px;border:1px solid #d0cec9;border-radius:5px;font-size:11px;background:#fff;cursor:pointer;outline:none}
 .sel-status.ok{background:#e5f5ec;color:#1a8a4a;border-color:#1a8a4a}
 .sel-status.rota{background:#fdf4df;color:#996a00;border-color:#996a00}
 .sel-status.erro{background:#fdecea;color:#c0392b;border-color:#c0392b}
 .sel-transp{padding:3px 7px;border:1px solid #d0cec9;border-radius:5px;font-size:11px;font-family:inherit;background:#fff;cursor:pointer;outline:none;max-width:130px}
 
-/* EMPTY / WELCOME */
-.empty{text-align:center;padding:60px 30px;color:#aaa}
-.empty-icon{font-size:42px;margin-bottom:12px;opacity:.4}
-.empty h3{font-size:16px;font-weight:600;color:#555;margin-bottom:6px}
-.empty p{font-size:13px;color:#888;line-height:1.6;max-width:340px;margin:0 auto}
+/* SAVED CARDS */
+.saved-card{background:#fff;border:1px solid #e0deda;border-radius:8px;padding:11px 14px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:border-color .14s}
+.saved-card:hover{border-color:#1a4fff}
+.saved-card-info{flex:1;min-width:0}
+.saved-card-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.saved-card-meta{font-size:11px;color:#999;margin-top:2px}
+.saved-card-bar{height:3px;background:#e0deda;border-radius:2px;margin-top:5px;overflow:hidden}
+.saved-card-fill{height:100%;background:#1a4fff;border-radius:2px}
 
 /* MODAL */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center}
 .overlay.active{display:flex}
 .modal{background:#fff;border-radius:10px;width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,.18)}
-.modal-head{padding:16px 20px 13px;border-bottom:1px solid #ebebeb;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}
+.modal-lg{width:640px}
+.modal-head{padding:15px 20px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}
 .modal-head h3{font-size:15px;font-weight:600}
-.modal-head p{font-size:12px;color:#888;margin-top:2px}
+.modal-head p{font-size:12px;color:#999;margin-top:2px}
 .modal-body{padding:16px 20px;overflow-y:auto;flex:1}
-.modal-foot{padding:12px 20px;border-top:1px solid #ebebeb;display:flex;gap:7px;justify-content:flex-end;flex-shrink:0}
-.modal-close{background:none;border:1px solid #d0cec9;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px;color:#666;font-family:inherit}
+.modal-foot{padding:11px 20px;border-top:1px solid #eee;display:flex;gap:7px;justify-content:flex-end;flex-shrink:0}
+.modal-close{background:none;border:1px solid #d0cec9;border-radius:5px;padding:3px 9px;cursor:pointer;font-size:12px;color:#666;font-family:inherit}
 
-/* LOGGI MODAL */
-.loggi-row{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid rgba(230,81,0,.1);font-size:12px}
-.loggi-row:hover{background:rgba(230,81,0,.03)}
-.loggi-row:last-child{border-bottom:none}
-.loggi-num{width:22px;height:22px;border-radius:50%;background:rgba(230,81,0,.15);color:#bf4000;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
-.loggi-info{flex:1;min-width:0}
-.loggi-route{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.loggi-desc{font-size:10px;color:#888;margin-top:1px}
-.loggi-st{font-size:10px;font-family:monospace;padding:2px 7px;border-radius:8px;flex-shrink:0}
-.lst-pd{background:#f0efeb;color:#888}
-.lst-sn{background:#fff2e8;color:#e65100}
-.lst-ok{background:#e5f5ec;color:#1a8a4a}
-.lst-er{background:#fdecea;color:#c0392b}
-.loggi-track{font-size:10px;font-family:monospace;color:#1a4fff;text-decoration:none;display:block;margin-top:2px}
-.loggi-prog{height:3px;background:rgba(230,81,0,.15);border-radius:2px;margin:0 16px 10px}
-.loggi-prog-fill{height:100%;background:#e65100;border-radius:2px;transition:width .4s}
+/* LOGGI */
+.lg-row{display:flex;align-items:center;gap:8px;padding:9px 15px;border-bottom:1px solid rgba(230,81,0,.1);font-size:12px}
+.lg-row:hover{background:rgba(230,81,0,.03)}
+.lg-row:last-child{border-bottom:none}
+.lg-num{width:21px;height:21px;border-radius:50%;background:rgba(230,81,0,.15);color:#bf4000;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.lg-info{flex:1;min-width:0}
+.lg-route{font-weight:500;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg-desc{font-size:10px;color:#999;margin-top:1px}
+.lg-track{font-size:10px;font-family:monospace;color:#1a4fff;text-decoration:none;display:block;margin-top:2px}
+.lg-st{font-size:10px;font-family:monospace;padding:2px 7px;border-radius:8px;flex-shrink:0}
+.lg-pd{background:#f0efeb;color:#888}.lg-sn{background:#fff2e8;color:#e65100}.lg-ok{background:#e5f5ec;color:#1a8a4a}.lg-er{background:#fdecea;color:#c0392b}
+.lg-prog{height:3px;background:rgba(230,81,0,.15);border-radius:2px;margin:0 15px 9px}
+.lg-fill{height:100%;background:#e65100;border-radius:2px;transition:width .4s}
+
+/* NOTICE */
+.notice{border-radius:6px;padding:10px 13px;font-size:12px;margin-bottom:12px;display:flex;gap:8px;border:1px solid;line-height:1.5}
+.notice-info{background:#eaedff;color:#1237cc;border-color:rgba(26,79,255,.2)}
+.notice-warn{background:#fdf4df;color:#996a00;border-color:rgba(153,106,0,.2)}
+
+/* EMPTY */
+.empty{text-align:center;padding:50px 30px;color:#aaa}
+.empty-icon{font-size:38px;margin-bottom:10px;opacity:.3}
+.empty h3{font-size:15px;font-weight:600;color:#666;margin-bottom:6px}
+.empty p{font-size:13px;color:#999;line-height:1.6;max-width:320px;margin:0 auto}
+
+/* SEARCH */
+.search-input{width:100%;padding:8px 12px;border:1px solid #d0cec9;border-radius:6px;font-family:inherit;font-size:13px;outline:none;background:#fff;margin-bottom:12px}
+.search-input:focus{border-color:#1a4fff}
 
 /* TOAST */
 .toast{position:fixed;bottom:18px;right:18px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;z-index:9999;pointer-events:none;opacity:0;transform:translateY(6px);transition:all .22s;max-width:300px}
@@ -173,128 +171,109 @@ nav{background:#1c1c1a;height:46px;display:flex;align-items:center;padding:0 20p
 .toast.err{background:#c0392b;color:#fff}
 .toast.info{background:#1c1c1a;color:#fff}
 
-/* NOTICE */
-.notice{border-radius:6px;padding:10px 13px;font-size:12px;margin-bottom:12px;display:flex;gap:8px;border:1px solid;line-height:1.5}
-.notice.info{background:#eaedff;color:#1237cc;border-color:rgba(26,79,255,.2)}
-.notice.ok{background:#e5f5ec;color:#1a8a4a;border-color:rgba(26,138,74,.2)}
-.notice.warn{background:#fdf4df;color:#996a00;border-color:rgba(153,106,0,.2)}
-
-/* KPIS */
-.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
-.kpi{background:#fff;border-radius:8px;border:1px solid #e0deda;padding:12px 14px}
-.kpi-val{font-size:22px;font-weight:600;font-family:monospace;margin-bottom:2px}
-.kpi-lbl{font-size:11px;color:#888}
-
-/* CONFIG PAGE */
-.cfg-card{background:#fff;border:1px solid #e0deda;border-radius:8px;padding:18px;margin:20px 24px 0}
-.cfg-title{font-size:14px;font-weight:600;margin-bottom:14px}
-
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-thumb{background:#d0cec9;border-radius:3px}
 </style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
-  <div class="logo">ETC Filmes <span>· Remanejamento HD</span></div>
-  <button class="ntab active" id="tab-envios"  onclick="goTo('envios')">📋 Primeiros Envios</button>
-  <button class="ntab"        id="tab-prog"    onclick="goTo('prog')">⚡ Programar</button>
-  <button class="ntab"        id="tab-cfg"     onclick="goTo('cfg')">⚙ Loggi</button>
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h1>ETC Filmes</h1>
+    <p>Remanejamento HD</p>
+  </div>
+  <div class="sidebar-section">Principal</div>
+  <button class="nav-btn active" id="nb-envios" onclick="goTo('envios')">
+    <span class="icon">&#128203;</span> Primeiros Envios
+    <span class="nav-badge" id="badge-envios" style="display:none">0</span>
+  </button>
+  <button class="nav-btn" id="nb-prog" onclick="goTo('prog')">
+    <span class="icon">&#9889;</span> Programar
+  </button>
+  <div class="sidebar-section">Configuracao</div>
+  <button class="nav-btn" id="nb-upload" onclick="goTo('upload')">
+    <span class="icon">&#128228;</span> Upload Pedidos
+  </button>
+  <button class="nav-btn" id="nb-loggi" onclick="goTo('loggi')">
+    <span class="icon">&#128230;</span> Loggi
+  </button>
+  <div class="sidebar-footer" id="sidebar-footer">0 envios carregados</div>
 </nav>
 
-<!-- ═══ TELA 1: PRIMEIROS ENVIOS ═══════════════ -->
+<div class="main">
+
+<!-- VIEW: PRIMEIROS ENVIOS -->
 <div class="view active" id="view-envios">
-
   <div class="ph">
-    <div class="ph-left">
+    <div>
       <h1>Primeiros Envios</h1>
-      <p id="envios-info">Importe a planilha exportada do sistema desktop</p>
+      <p id="envios-info">Carregue pedidos pela aba "Upload Pedidos"</p>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <label class="file-label">
-        📂 Importar XLS
-        <input type="file" id="file-xls" accept=".xls,.xlsx" onchange="handleFile(this)">
-      </label>
-      <button class="btn" id="btn-csv" style="display:none" onclick="exportCSV()">⬇ CSV</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" id="btn-csv" style="display:none" onclick="exportCSV()">Exportar CSV</button>
     </div>
   </div>
-
-  <!-- DROP AREA -->
-  <div class="drop-area" id="drop-area">
-    <div class="drop-icon">📂</div>
-    <div class="drop-title">Arraste a planilha aqui</div>
-    <div class="drop-sub">ou use o botão "Importar XLS" acima · .xls ou .xlsx</div>
+  <div style="padding:16px 22px;flex:1">
+    <input class="search-input" id="search-q" placeholder="Buscar por filme, cinema, HD, exibidor..." oninput="renderTable()" style="display:none">
+    <div id="table-area">
+      <div class="empty">
+        <div class="empty-icon">&#128203;</div>
+        <h3>Nenhum pedido carregado</h3>
+        <p>Va em "Upload Pedidos" na barra lateral para importar a planilha do sistema legado.</p>
+      </div>
+    </div>
   </div>
-
-  <!-- SEARCH (hidden until data loaded) -->
-  <div class="search-wrap" id="search-wrap" style="display:none">
-    <input class="search-input" id="search-q" placeholder="Buscar por filme, cinema, HD, exibidor..." oninput="renderTable()">
-  </div>
-
-  <!-- TABLE -->
-  <div id="table-area"></div>
-
 </div>
 
-<!-- ═══ TELA 2: PROGRAMAR ═══════════════════════ -->
+<!-- VIEW: PROGRAMAR -->
 <div class="view" id="view-prog">
   <div class="split">
-
-    <!-- LEFT PANEL -->
     <div class="split-left">
 
-      <!-- From import list -->
-      <div class="fsec" id="fsec-import">
-        <div class="fsec-title">Selecionar envio importado</div>
+      <div class="fsec">
+        <h3>Pedidos importados</h3>
         <div id="import-list">
-          <div style="font-size:12px;color:#aaa">Importe uma planilha na aba "Primeiros Envios" para ver as saídas aqui.</div>
+          <div style="font-size:12px;color:#aaa">Importe pedidos via "Upload Pedidos".</div>
         </div>
       </div>
 
-      <!-- Film data -->
       <div class="fsec">
-        <div class="fsec-title">Dados do filme</div>
-        <div class="field"><label>Título</label><input id="f-titulo" placeholder="Ex: SHELTER — Missão Refúgio"></div>
+        <h3>Dados do filme</h3>
+        <div class="field"><label>Titulo</label><input id="f-titulo" placeholder="Ex: SHELTER -- Missao Refugio"></div>
         <div class="field"><label>Cliente</label><input id="f-cliente" placeholder="Ex: Diamond Films Brazil"></div>
         <div class="field-row">
           <div class="field"><label>Material (HD)</label><input id="f-material" placeholder="3598"></div>
-          <div class="field"><label>Cód. serviço</label><input id="f-servico" placeholder="67392"></div>
+          <div class="field"><label>Cod. servico</label><input id="f-servico" placeholder="67392"></div>
         </div>
       </div>
 
-      <!-- Origin -->
       <div class="fsec">
-        <div class="fsec-title">Cinema de origem (1º destino)</div>
+        <h3>Cinema de origem (1 destino)</h3>
         <div class="field sug-wrap">
           <label>Buscar cinema</label>
           <input id="f-origem" placeholder="Digite o nome..." oninput="suggestOrigin(this.value)" autocomplete="off">
-          <div class="sug-list" id="sug-origin"></div>
+          <div class="sug-box" id="sug-origin"></div>
         </div>
         <div id="origin-badge" style="display:none;margin-bottom:8px"></div>
         <div class="field-row">
-          <div class="field"><label>Data saída</label><input type="date" id="f-saida"></div>
+          <div class="field"><label>Data saida</label><input type="date" id="f-saida"></div>
           <div class="field"><label>Exibidor</label><input id="f-exibidor" placeholder="CNMK"></div>
         </div>
-        <div class="field"><label>Transportadora (saída)</label>
+        <div class="field"><label>Transportadora (saida)</label>
           <select id="f-transp-saida">
-            <option value="">— selecione —</option>
-            <option>Loggi</option>
-            <option>STM Serviços</option>
-            <option>BEM TRANSPORTES</option>
-            <option>Acordo ETC Filmes</option>
-            <option>Logcine Transportes</option>
-            <option>Portador Cinema</option>
-            <option>NTC</option>
+            <option value="">-- selecione --</option>
+            <option>Loggi</option><option>STM Servicos</option>
+            <option>BEM TRANSPORTES</option><option>Acordo ETC Filmes</option>
+            <option>Logcine Transportes</option><option>Portador Cinema</option><option>NTC</option>
           </select>
         </div>
       </div>
 
-      <!-- Filters -->
       <div class="fsec">
-        <div class="fsec-title">Filtros de rota</div>
+        <h3>Filtros de rota</h3>
         <div class="field-row">
-          <div class="field"><label>% mínimo</label>
+          <div class="field"><label>% minimo</label>
             <select id="f-pct">
               <option value="100">100% apenas</option>
               <option value="80" selected>80% ou mais</option>
@@ -302,116 +281,127 @@ nav{background:#1c1c1a;height:46px;display:flex;align-items:center;padding:0 20p
               <option value="0">Todos</option>
             </select>
           </div>
-          <div class="field"><label>Transportadora rem.</label>
+          <div class="field"><label>Transp. remanejamento</label>
             <select id="f-transp-rem">
-              <option value="">auto por região</option>
-              <option>Loggi</option>
-              <option>STM Serviços</option>
-              <option>BEM TRANSPORTES</option>
-              <option>Acordo ETC Filmes</option>
+              <option value="">auto por regiao</option>
+              <option>Loggi</option><option>STM Servicos</option>
+              <option>BEM TRANSPORTES</option><option>Acordo ETC Filmes</option>
             </select>
           </div>
         </div>
         <div class="field"><label>Prazo retorno</label><input type="date" id="f-prazo"></div>
-        <button class="btn btn-primary" style="width:100%;margin-top:4px;justify-content:center" onclick="gerarRota()">
-          ⚡ Gerar rota otimizada
-        </button>
-        <button class="btn" style="width:100%;margin-top:6px;justify-content:center" onclick="limpar()">
-          Limpar formulário
-        </button>
+        <button class="btn btn-primary" style="width:100%;margin-top:4px;justify-content:center" onclick="gerarRota()">Gerar rota otimizada</button>
+        <button class="btn" style="width:100%;margin-top:6px;justify-content:center" onclick="limpar()">Limpar formulario</button>
       </div>
 
-    </div><!-- /split-left -->
-
-    <!-- RIGHT PANEL -->
+    </div>
     <div class="split-right" id="prog-right">
       <div class="empty">
-        <div class="empty-icon">🎬</div>
+        <div class="empty-icon">&#127916;</div>
         <h3>Selecione o cinema de origem</h3>
-        <p>Escolha uma saída importada ou busque o cinema manualmente. O sistema vai sugerir a melhor rota.</p>
+        <p>Escolha um pedido importado ou busque o cinema manualmente.</p>
       </div>
     </div>
-
-  </div><!-- /split -->
+  </div>
 </div>
 
-<!-- ═══ TELA 3: CONFIG LOGGI ════════════════════ -->
-<div class="view" id="view-cfg">
+<!-- VIEW: UPLOAD -->
+<div class="view" id="view-upload">
   <div class="ph">
-    <div class="ph-left">
-      <h1>Integração Loggi</h1>
-      <p>Configure as credenciais da API corporativa</p>
+    <div>
+      <h1>Upload de Pedidos</h1>
+      <p>Importe planilhas do sistema legado. Os pedidos se acumulam entre uploads.</p>
     </div>
   </div>
-
-  <div class="cfg-card">
-    <div class="cfg-title">Credenciais API <span id="loggi-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ccc;margin-left:6px;vertical-align:middle"></span></div>
-    <div class="notice info"><span>ℹ</span><div>Acesse <strong>developers.loggi.com</strong> para obter o <code>client_id</code> e <code>client_secret</code> da sua conta corporativa.</div></div>
-    <div class="field-row">
-      <div class="field"><label>Client ID</label><input id="cfg-cid" placeholder="client_id"></div>
-      <div class="field"><label>Client Secret</label><input type="password" id="cfg-cs" placeholder="client_secret"></div>
+  <div style="padding:20px 22px">
+    <div style="background:#fff;border-radius:8px;border:1px solid #e0deda;padding:24px;max-width:560px;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:600;margin-bottom:6px">Importar planilha (.xls ou .xlsx)</div>
+      <div style="font-size:12px;color:#999;margin-bottom:16px">Os novos pedidos serao adicionados aos existentes. Pedidos com mesmo codigo serao ignorados.</div>
+      <label class="file-label">
+        Selecionar arquivo XLS
+        <input type="file" id="file-xls" accept=".xls,.xlsx" onchange="handleUpload(this)">
+      </label>
+      <div id="upload-msg" style="margin-top:12px;font-size:13px;color:#999"></div>
     </div>
-    <div class="field"><label>Bearer Token <span style="font-size:10px;color:#aaa;font-weight:400">(gerado automaticamente ou cole direto)</span></label>
-      <input type="password" id="cfg-token" placeholder="Bearer token...">
+    <div style="background:#fff;border-radius:8px;border:1px solid #e0deda;padding:16px;max-width:560px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:14px;font-weight:600">Pedidos carregados (<span id="upload-count">0</span>)</div>
+        <button class="btn" style="color:#c0392b;border-color:#c0392b" onclick="limparTodosPedidos()">Limpar todos</button>
+      </div>
+      <div id="upload-list" style="font-size:13px;color:#999">Nenhum pedido ainda.</div>
     </div>
-    <div class="field-row">
-      <div class="field"><label>Shop PK</label><input id="cfg-shopk" placeholder="Ex: 33552"></div>
-      <div class="field"><label>Telefone remetente</label><input id="cfg-phone" placeholder="11999990000"></div>
-    </div>
-    <div class="field"><label>Address ID — ETC Filmes <span style="font-size:10px;color:#aaa;font-weight:400">(após sincronizar com Loggi)</span></label>
-      <input id="cfg-etc-id" placeholder="ID do seu endereço na Loggi">
-    </div>
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="btn btn-primary" onclick="autenticarOAuth()">🔑 Autenticar OAuth</button>
-      <button class="btn" onclick="testarConexao()">↻ Testar conexão</button>
-      <button class="btn btn-primary" onclick="salvarCfg()">Salvar</button>
-    </div>
-    <div id="cfg-msg" style="font-size:12px;margin-top:10px;display:none"></div>
-  </div>
-
-  <div class="cfg-card" style="margin-top:14px">
-    <div class="cfg-title">Empresa remetente (ETC Filmes)</div>
-    <div class="field"><label>Nome</label><input id="cfg-emp-nome" value="ETC Filmes"></div>
-    <div class="field"><label>Endereço completo</label><input id="cfg-emp-addr" value="Av. Escola Politécnica, 1700, Jaguaré, São Paulo, SP, 05319-000"></div>
-    <div class="field-row">
-      <div class="field"><label>CEP</label><input id="cfg-emp-cep" value="05319-000"></div>
-      <div class="field"><label>Contato</label><input id="cfg-emp-contato" value="ETC Filmes — Expedição"></div>
-    </div>
-    <button class="btn btn-primary" style="margin-top:4px" onclick="salvarEmpresa()">Salvar empresa</button>
   </div>
 </div>
 
-<!-- MODAL: Confirmar programação -->
+<!-- VIEW: LOGGI CONFIG -->
+<div class="view" id="view-loggi">
+  <div class="ph"><div><h1>Integracao Loggi</h1><p>Credenciais da API corporativa</p></div></div>
+  <div style="padding:20px 22px;max-width:520px">
+    <div class="notice notice-info"><span>i</span><div>Acesse <strong>developers.loggi.com</strong> para obter o <code>client_id</code> e <code>client_secret</code>.</div></div>
+    <div style="background:#fff;border-radius:8px;border:1px solid #e0deda;padding:18px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Credenciais</div>
+      <div class="field-row">
+        <div class="field"><label>Client ID</label><input id="cfg-cid" placeholder="client_id"></div>
+        <div class="field"><label>Client Secret</label><input type="password" id="cfg-cs" placeholder="client_secret"></div>
+      </div>
+      <div class="field"><label>Bearer Token</label><input type="password" id="cfg-token" placeholder="Token gerado ou cole direto"></div>
+      <div class="field-row">
+        <div class="field"><label>Shop PK</label><input id="cfg-shopk" placeholder="33552"></div>
+        <div class="field"><label>Telefone remetente</label><input id="cfg-phone" placeholder="11999990000"></div>
+      </div>
+      <div class="field"><label>Address ID - ETC Filmes</label><input id="cfg-etc-id" placeholder="ID do seu endereco na Loggi"></div>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="btn btn-primary" onclick="autenticarOAuth()">Autenticar OAuth</button>
+        <button class="btn" onclick="testarConexao()">Testar conexao</button>
+        <button class="btn btn-dark" onclick="salvarCfg()">Salvar</button>
+      </div>
+      <div id="cfg-msg" style="font-size:12px;margin-top:10px;display:none"></div>
+    </div>
+    <div style="background:#fff;border-radius:8px;border:1px solid #e0deda;padding:18px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Empresa remetente</div>
+      <div class="field"><label>Nome</label><input id="cfg-emp-nome" value="ETC Filmes"></div>
+      <div class="field"><label>Endereco</label><input id="cfg-emp-addr" value="Av. Escola Politecnica, 1700, Jaguare, Sao Paulo, SP, 05319-000"></div>
+      <div class="field-row">
+        <div class="field"><label>CEP</label><input id="cfg-emp-cep" value="05319-000"></div>
+        <div class="field"><label>Contato</label><input id="cfg-emp-contato" value="ETC Filmes - Expedicao"></div>
+      </div>
+      <button class="btn btn-dark" style="margin-top:6px" onclick="salvarEmpresa()">Salvar empresa</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- MODALS -->
 <div class="overlay" id="modal-confirm">
   <div class="modal">
     <div class="modal-head">
-      <div><h3>Confirmar programação</h3><p id="mc-sub"></p></div>
-      <button class="modal-close" onclick="closeModal('modal-confirm')">✕</button>
+      <div><h3>Confirmar programacao</h3><p id="mc-sub"></p></div>
+      <button class="modal-close" onclick="closeModal('modal-confirm')">x</button>
     </div>
     <div class="modal-body" id="mc-body"></div>
     <div class="modal-foot">
       <button class="btn" onclick="closeModal('modal-confirm')">Cancelar</button>
-      <button class="btn" onclick="salvarProg(false)" style="background:#333;color:#fff;border-color:#333">✓ Salvar</button>
-      <button class="btn btn-orange" onclick="salvarProg(true)">📦 Salvar + Loggi</button>
+      <button class="btn btn-dark" onclick="salvarProg(false)">Salvar</button>
+      <button class="btn btn-orange" onclick="salvarProg(true)">Salvar + Loggi</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL: Loggi dispatch -->
-<div class="overlay" id="modal-loggi">
-  <div class="modal" style="width:640px;border-top:3px solid #e65100">
+<div class="overlay" id="modal-loggi-dispatch">
+  <div class="modal modal-lg" style="border-top:3px solid #e65100">
     <div class="modal-head" style="background:#fff8f5">
-      <div><h3 style="color:#e65100">Enviar pedidos — Loggi</h3><p id="ml-sub" style="color:#a03500"></p></div>
-      <button class="modal-close" onclick="closeModal('modal-loggi')">✕</button>
+      <div><h3 style="color:#e65100">Enviar pedidos Loggi</h3><p id="ml-sub" style="color:#a03500"></p></div>
+      <button class="modal-close" onclick="closeModal('modal-loggi-dispatch')">x</button>
     </div>
-    <div style="padding:11px 16px;background:#fff8f5;border-bottom:1px solid rgba(230,81,0,.1)" id="ml-pkg"></div>
+    <div style="padding:10px 15px;background:#fff8f5;border-bottom:1px solid rgba(230,81,0,.1)" id="ml-pkg"></div>
     <div id="ml-orders" style="max-height:340px;overflow-y:auto"></div>
-    <div class="loggi-prog" style="margin-top:0"><div class="loggi-prog-fill" id="ml-prog" style="width:0%"></div></div>
+    <div class="lg-prog"><div class="lg-fill" id="ml-prog" style="width:0%"></div></div>
     <div class="modal-foot" style="justify-content:space-between;border-top:1px solid rgba(230,81,0,.15)">
-      <span style="font-size:12px;color:#888" id="ml-count">0 enviados</span>
+      <span style="font-size:12px;color:#999" id="ml-count">0 enviados</span>
       <div style="display:flex;gap:7px">
-        <button class="btn" onclick="closeModal('modal-loggi')">Fechar</button>
-        <button class="btn btn-orange" id="btn-all" onclick="dispararTodos()">📦 Disparar todos</button>
+        <button class="btn" onclick="closeModal('modal-loggi-dispatch')">Fechar</button>
+        <button class="btn btn-orange" id="btn-all" onclick="dispararTodos()">Disparar todos</button>
       </div>
     </div>
   </div>
@@ -419,7 +409,8 @@ nav{background:#1c1c1a;height:46px;display:flex;align-items:center;padding:0 20p
 
 <div class="toast" id="toast"></div>
 
-<script charset="utf-8">
+<script>
+
 const DB = [
   {id:1422,name:"Cine Cultura Maceio 2",city:"MACEIO",uf:"AL",pct:20,lat:-9.6658,lon:-35.735},
   {id:1418,name:"Cineart Maceio 8",city:"MACEIO",uf:"AL",pct:100,lat:-9.6658,lon:-35.735},
@@ -428,7 +419,7 @@ const DB = [
   {id:1421,name:"Cinesercla Parque Shopping Maceio 3",city:"MACEIO",uf:"AL",pct:80,lat:-9.6658,lon:-35.735},
   {id:1428,name:"Cine Cultura Manaus 2",city:"MANAUS",uf:"AM",pct:40,lat:-3.1019,lon:-60.025},
   {id:1426,name:"Cineflix Manaus 5",city:"MANAUS",uf:"AM",pct:60,lat:-3.1019,lon:-60.025},
-  {id:1429,name:"Espaco Cinesescla Manaus 3",city:"MANAUS",uf:"AM",pct:20,lat:-3.1019,lon:-60.025},
+  {id:1429,name:"Espaço Cinesescla Manaus 3",city:"MANAUS",uf:"AM",pct:20,lat:-3.1019,lon:-60.025},
   {id:1400,name:"Kinoplex Amazonas 6",city:"MANAUS",uf:"AM",pct:100,lat:-3.1019,lon:-60.025},
   {id:1401,name:"Multiplex Millenium 8",city:"MANAUS",uf:"AM",pct:100,lat:-3.11,lon:-60.015},
   {id:1423,name:"Multiplex Studio 5",city:"MANAUS",uf:"AM",pct:100,lat:-3.1019,lon:-60.025},
@@ -915,203 +906,219 @@ const DB = [
 ];
 
 
-// -- STATE --------------------------------------
-let LOGGI   = JSON.parse(localStorage.getItem('etc_loggi')   || '{}');
-let EMPRESA = JSON.parse(localStorage.getItem('etc_empresa') || '{"nome":"ETC Filmes","addr":"Av. Escola Politecnica, 1700, Jaguare, Sao Paulo, SP, 05319-000","cep":"05319-000","contato":"ETC Filmes -- Expedicao"}');
-let SAVED   = JSON.parse(localStorage.getItem('etc_saved')   || '[]');
 
-let envios      = [];   // imported rows
-let origin      = null; // selected origin cinema
-let route       = [];   // calculated route
-let routeSt     = {};   // status per step
-let routeTr     = {};   // transp per step
-let loggiOrders = [];
-let routeIncl   = {};
-let loggiSt     = {};
+// STATE
+var LOGGI   = JSON.parse(localStorage.getItem('etc_loggi')   || '{}');
+var EMPRESA = JSON.parse(localStorage.getItem('etc_empresa') || '{"nome":"ETC Filmes","addr":"Av. Escola Politecnica, 1700, Jaguare, Sao Paulo, SP, 05319-000","cep":"05319-000","contato":"ETC Filmes - Expedicao"}');
+var SAVED   = JSON.parse(localStorage.getItem('etc_saved')   || '[]');
+var ENVIOS  = JSON.parse(localStorage.getItem('etc_envios')  || '[]');
 
-// -- NAV ----------------------------------------
+var origin     = null;
+var route      = [];
+var routeSt    = {};
+var routeTr    = {};
+var routeIncl  = {};
+var lgOrders   = [];
+var lgSt       = {};
+
+// NAV
 function goTo(v) {
-  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.ntab').forEach(b  => b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
   document.getElementById('view-' + v).classList.add('active');
-  document.getElementById('tab-'  + v).classList.add('active');
-  if (v === 'prog') renderImportList();
+  document.getElementById('nb-' + v).classList.add('active');
+  if (v === 'envios') renderTable();
+  if (v === 'prog')   renderImportList();
+  if (v === 'upload') renderUploadList();
+  updateBadges();
 }
 
 function openModal(id)  { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-function showToast(msg, type) {
-  const t = document.getElementById('toast');
+function toast(msg, type) {
+  var t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast show ' + (type || 'info');
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.className = 'toast', 3000);
+  clearTimeout(t._t);
+  t._t = setTimeout(function(){ t.className = 'toast'; }, 3000);
 }
 
-// -- FILE IMPORT --------------------------------
-function handleFile(input) {
-  const file = input.files && input.files[0];
+function updateBadges() {
+  var n = ENVIOS.length;
+  var badge = document.getElementById('badge-envios');
+  if (n > 0) { badge.textContent = n; badge.style.display = 'inline'; }
+  else badge.style.display = 'none';
+  document.getElementById('sidebar-footer').textContent = n + ' envios carregados';
+  document.getElementById('upload-count').textContent = n;
+}
+
+// XLS UPLOAD - accumulates, does not replace
+function handleUpload(input) {
+  var file = input.files && input.files[0];
   if (!file) return;
-  if (typeof XLSX === 'undefined') {
-    showToast('Carregando biblioteca XLS... tente novamente em 2 segundos.', 'info');
-    return;
-  }
-  const reader = new FileReader();
+  if (typeof XLSX === 'undefined') { toast('SheetJS nao carregado. Verifique conexao.', 'err'); return; }
+  var reader = new FileReader();
   reader.onload = function(e) {
     try {
-      const wb   = XLSX.read(e.target.result, { type: 'array' });
-      const ws   = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
-      if (!rows.length) { showToast('Planilha vazia.', 'err'); return; }
-
-      envios = rows
-        .filter(r => r['Cinema'] || r['Codigo'])
-        .map(r => ({
-          codigo:   clean(r['Codigo']),
-          cliente:  clean(r['Cliente']),
-          titulo:   clean(r['Titulo'] || r['Titulo']),
-          tituloPN: clean(r['Titulo Portugues'] || r['Titulo Portugues']),
-          exibidor: clean(r['Exibidor']),
-          cinema:   clean(r['Cinema']),
-          uf:       clean(r['UF']),
-          cidade:   clean(r['Cidade']),
-          material: clean(r['Material']),
-          transp:   clean(r['Logistica: Transp']),
-          saida:    clean(r['Logistica: Saida'] || r['Primeira Saida']),
-          endereco: clean(r['Cinema Endereco']),
-          servico:  clean(r['Codigo Servico'] || r['Codigo Servico']),
-          status:   clean(r['Status']),
-          cnpj:     clean(r['Cinema CNPJ']),
-        }));
-
-      // Update drop area
-      const da = document.getElementById('drop-area');
-      da.className = 'drop-area has-file';
-      da.innerHTML = '<div class="drop-icon" style="opacity:1">OK</div><div class="drop-title">' + envios.length + ' saidas importadas</div><div class="drop-sub">' + file.name + '</div>';
-
-      document.getElementById('envios-info').textContent =
-        envios.length + ' envios · ' + new Set(envios.map(e => e.titulo)).size + ' filmes';
-      document.getElementById('search-wrap').style.display = 'block';
-      document.getElementById('btn-csv').style.display     = 'inline-flex';
-
-      renderTable();
-      showToast(envios.length + ' envios importados!', 'ok');
+      var wb   = XLSX.read(e.target.result, { type: 'array' });
+      var ws   = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+      var added = 0, dupes = 0;
+      rows.forEach(function(r) {
+        if (!r['Cinema'] && !r['Codigo'] && !r['\\u00c3\\u00b3digo']) return; // skip empty
+        var codigo = String(r['Codigo'] || r['\\u00c3\\u00b3digo'] || '').trim();
+        var material = String(r['Material'] || '').trim();
+        // Check duplicate by codigo+material
+        var isDupe = ENVIOS.some(function(e) {
+          return e.codigo === codigo && e.material === material;
+        });
+        if (isDupe) { dupes++; return; }
+        ENVIOS.push({
+          codigo:   codigo,
+          cliente:  String(r['Cliente']  || '').trim(),
+          titulo:   String(r['Titulo']   || r['T\\u00edtulo'] || '').trim(),
+          tituloPN: String(r['Titulo Portugues'] || r['T\\u00edtulo Portugu\\u00eas'] || '').trim(),
+          exibidor: String(r['Exibidor'] || '').trim(),
+          cinema:   String(r['Cinema']   || '').trim(),
+          uf:       String(r['UF']       || '').trim(),
+          cidade:   String(r['Cidade']   || '').trim(),
+          material: material,
+          transp:   String(r['Logistica: Transp']  || '').trim(),
+          saida:    String(r['Logistica: Saida']   || r['Primeira Saida'] || '').trim(),
+          endereco: String(r['Cinema Endereco']    || '').trim(),
+          servico:  String(r['Codigo Servico']     || r['C\\u00f3digo Servi\\u00e7o'] || '').trim(),
+          status:   String(r['Status'] || '').trim(),
+        });
+        added++;
+      });
+      localStorage.setItem('etc_envios', JSON.stringify(ENVIOS));
+      updateBadges();
+      renderUploadList();
+      var msg = added + ' pedidos adicionados';
+      if (dupes > 0) msg += ' (' + dupes + ' duplicados ignorados)';
+      document.getElementById('upload-msg').textContent = msg;
+      document.getElementById('upload-msg').style.color = '#1a8a4a';
+      toast(msg, 'ok');
     } catch(err) {
-      showToast('Erro ao ler arquivo: ' + err.message, 'err');
-      console.error(err);
+      toast('Erro ao ler arquivo: ' + err.message, 'err');
     }
   };
   reader.readAsArrayBuffer(file);
   input.value = '';
 }
 
-function clean(v) { return String(v || '').trim(); }
+function limparTodosPedidos() {
+  if (!confirm('Limpar todos os ' + ENVIOS.length + ' pedidos?')) return;
+  ENVIOS = [];
+  localStorage.setItem('etc_envios', JSON.stringify(ENVIOS));
+  updateBadges();
+  renderUploadList();
+  renderTable();
+  toast('Pedidos limpos.', 'info');
+}
+
+function renderUploadList() {
+  var el = document.getElementById('upload-list');
+  if (!ENVIOS.length) { el.textContent = 'Nenhum pedido ainda.'; el.style.color = '#999'; return; }
+  el.style.color = '';
+  el.innerHTML = ENVIOS.map(function(r, i) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0efeb">'
+      + '<span class="badge badge-dark" style="font-family:monospace;font-size:11px;flex-shrink:0">#' + (r.material||'?') + '</span>'
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (r.tituloPN||r.titulo||'--') + '</div>'
+      + '<div style="font-size:11px;color:#999">' + r.cinema + '</div>'
+      + '</div>'
+      + '<button onclick="removerPedido(' + i + ')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:0 3px">x</button>'
+      + '</div>';
+  }).join('');
+}
+
+function removerPedido(i) {
+  ENVIOS.splice(i, 1);
+  localStorage.setItem('etc_envios', JSON.stringify(ENVIOS));
+  updateBadges();
+  renderUploadList();
+  toast('Pedido removido.', 'info');
+}
 
 function fmtDate(s) {
   if (!s) return '--';
-  const p = s.split(' ')[0].split('T')[0].split('-');
-  return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : s;
+  var p = s.split(' ')[0].split('T')[0].split('-');
+  return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : s;
 }
 
-// -- RENDER TABLE -------------------------------
+// TABLE (Primeiros Envios)
 function renderTable() {
-  const q = (document.getElementById('search-q').value || '').toLowerCase();
-  const list = envios.filter(r =>
-    !q ||
-    r.titulo.toLowerCase().includes(q)   ||
-    r.tituloPN.toLowerCase().includes(q) ||
-    r.cinema.toLowerCase().includes(q)   ||
-    r.material.includes(q)               ||
-    r.exibidor.toLowerCase().includes(q) ||
-    r.cliente.toLowerCase().includes(q)
-  );
+  if (!ENVIOS.length) {
+    document.getElementById('table-area').innerHTML = '<div class="empty"><div class="empty-icon">&#128203;</div><h3>Nenhum pedido carregado</h3><p>Va em "Upload Pedidos" para importar planilhas.</p></div>';
+    document.getElementById('search-q').style.display = 'none';
+    document.getElementById('btn-csv').style.display  = 'none';
+    document.getElementById('envios-info').textContent = 'Carregue pedidos pela aba "Upload Pedidos"';
+    return;
+  }
+  document.getElementById('search-q').style.display  = 'block';
+  document.getElementById('btn-csv').style.display   = 'inline-flex';
+  document.getElementById('envios-info').textContent  = ENVIOS.length + ' pedidos';
+
+  var q = (document.getElementById('search-q').value || '').toLowerCase();
+  var list = ENVIOS.filter(function(r) {
+    return !q || r.titulo.toLowerCase().includes(q) || r.tituloPN.toLowerCase().includes(q)
+      || r.cinema.toLowerCase().includes(q) || r.material.includes(q)
+      || r.exibidor.toLowerCase().includes(q) || r.cliente.toLowerCase().includes(q);
+  });
 
   if (!list.length) {
-    document.getElementById('table-area').innerHTML =
-      '<div class="empty" style="padding:40px"><p>Nenhum resultado para "' + document.getElementById('search-q').value + '"</p></div>';
+    document.getElementById('table-area').innerHTML = '<div class="empty"><p>Nenhum resultado.</p></div>';
     return;
   }
 
-  const cols = '85px 1fr 160px 1fr 100px 90px 44px';
+  var cols = '85px 1fr 160px 1fr 105px 90px 40px';
+  var html = '<div class="table-wrap">'
+    + '<div class="th" style="grid-template-columns:' + cols + '">'
+    + '<div>HD</div><div>Filme</div><div>Cinema</div><div>Endereco</div><div>Status</div><div>Saida</div><div></div>'
+    + '</div>';
 
-  let html = '<div class="table-wrap"><div class="table-head" style="grid-template-columns:' + cols + '">' +
-    '<div>HD</div><div>Filme</div><div>Cinema</div><div>Endereco</div><div>Status</div><div>Saida</div><div></div>' +
-    '</div>';
-
-  list.forEach(r => {
-    const idx = envios.indexOf(r);
-    const stCls = r.status.toLowerCase().includes('andamento') ? 'badge-amber'
-                : r.status.toLowerCase().includes('entregue')  ? 'badge-green'
-                : r.status.toLowerCase().includes('pendente')  ? 'badge-red'
-                : 'badge-gray';
-    const trCls = r.transp.toLowerCase().includes('loggi')   ? 'badge-orange'
-                : r.transp.toLowerCase().includes('stm')     ? 'badge-blue'
-                : r.transp.toLowerCase().includes('bem')     ? 'badge-amber'
-                : r.transp.toLowerCase().includes('acordo')  ? 'badge-green'
-                : 'badge-gray';
-
-    const endShort = r.endereco ? r.endereco.substring(0, 32) + (r.endereco.length > 32 ? '...' : '') : '--';
-
-    html += '<div class="table-row" style="grid-template-columns:' + cols + '" onclick="abrirProg(' + idx + ')">'
-      + '<div><span class="badge badge-dark" style="font-family:monospace;font-size:11px">#' + (r.material || '--') + '</span></div>'
-      + '<div><div class="cell-name">' + (r.tituloPN || r.titulo || '--') + '</div><div class="cell-sub">' + r.cliente + '</div></div>'
-      + '<div><div class="cell-name">' + r.cinema + '</div><div class="cell-sub">' + (r.cidade || '') + (r.uf ? ' · ' + r.uf : '') + '</div></div>'
-      + '<div><div class="cell-name" title="' + r.endereco + '">' + endShort + '</div><div class="cell-sub"><span class="badge ' + trCls + '" style="font-size:10px">' + (r.transp || '--') + '</span></div></div>'
-      + '<div><span class="badge ' + stCls + '">' + (r.status || '--') + '</span></div>'
+  list.forEach(function(r) {
+    var idx = ENVIOS.indexOf(r);
+    var stCls = r.status.toLowerCase().includes('andamento') ? 'badge-amber'
+              : r.status.toLowerCase().includes('entregue')  ? 'badge-green'
+              : r.status.toLowerCase().includes('pendente')  ? 'badge-red' : 'badge-gray';
+    var trCls = r.transp.toLowerCase().includes('loggi')  ? 'badge-orange'
+              : r.transp.toLowerCase().includes('stm')    ? 'badge-blue'
+              : r.transp.toLowerCase().includes('bem')    ? 'badge-amber' : 'badge-gray';
+    var end30 = r.endereco ? r.endereco.substring(0,30) + (r.endereco.length>30?'...':'') : '--';
+    html += '<div class="tr" style="grid-template-columns:' + cols + '" onclick="abrirProg(' + idx + ')">'
+      + '<div><span class="badge badge-dark" style="font-family:monospace;font-size:11px">#' + (r.material||'--') + '</span></div>'
+      + '<div><div class="cell-name">' + (r.tituloPN||r.titulo||'--') + '</div><div class="cell-sub">' + r.cliente + '</div></div>'
+      + '<div><div class="cell-name">' + r.cinema + '</div><div class="cell-sub">' + (r.cidade||'') + (r.uf?' - '+r.uf:'') + '</div></div>'
+      + '<div><div class="cell-name" title="' + r.endereco + '">' + end30 + '</div>'
+      + '<div class="cell-sub"><span class="badge ' + trCls + '" style="font-size:10px">' + (r.transp||'--') + '</span></div></div>'
+      + '<div><span class="badge ' + stCls + '">' + (r.status||'--') + '</span></div>'
       + '<div style="font-size:12px;color:#555">' + fmtDate(r.saida) + '</div>'
-      + '<div><button class="btn" style="padding:4px 9px;font-size:12px" onclick="event.stopPropagation();abrirProg(' + idx + ')" title="Programar remanejamento">-></button></div>'
+      + '<div><button class="btn" style="padding:4px 8px;font-size:12px" onclick="event.stopPropagation();abrirProg(' + idx + ')">-&gt;</button></div>'
       + '</div>';
   });
-
   html += '</div>';
   document.getElementById('table-area').innerHTML = html;
 }
 
 function exportCSV() {
-  let csv = 'Codigo,Cliente,Titulo,Titulo PT,Cinema,UF,Cidade,Material,Exibidor,Transportadora,Data Saida,Status,Endereco,Cod.Servico\n';
-  envios.forEach(r => {
+  var csv = 'Codigo,Cliente,Titulo,Titulo PT,Cinema,UF,Cidade,Material,Exibidor,Transportadora,Data Saida,Status,Endereco,Cod.Servico\n';
+  ENVIOS.forEach(function(r) {
     csv += '"' + [r.codigo,r.cliente,r.titulo,r.tituloPN,r.cinema,r.uf,r.cidade,r.material,r.exibidor,r.transp,r.saida.split(' ')[0],r.status,r.endereco,r.servico].join('","') + '"\n';
   });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob(['' + csv], {type:'text/csv'}));
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], {type:'text/csv'}));
   a.download = 'envios_' + new Date().toISOString().split('T')[0] + '.csv';
   a.click();
 }
 
-// -- DRAG & DROP --------------------------------
-(function() {
-  const da  = document.getElementById('drop-area');
-  const inp = document.getElementById('file-xls');
-
-  // clicking the drop area triggers file input
-  da.addEventListener('click', () => { if (!da.classList.contains('has-file')) inp.click(); });
-
-  ['dragenter','dragover'].forEach(ev =>
-    da.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); da.style.borderColor = '#1a4fff'; })
-  );
-  ['dragleave','dragend'].forEach(ev =>
-    da.addEventListener(ev, e => { e.preventDefault(); da.style.borderColor = ''; })
-  );
-  da.addEventListener('drop', e => {
-    e.preventDefault(); e.stopPropagation();
-    da.style.borderColor = '';
-    const f = e.dataTransfer.files[0];
-    if (f) handleFile({ files: [f] });
-  });
-
-  // Block browser from opening files dropped outside
-  document.addEventListener('dragover', e => e.preventDefault());
-  document.addEventListener('drop',     e => e.preventDefault());
-})();
-
-// -- OPEN PROG FROM ROW -------------------------
+// OPEN PROG FROM ROW
 function abrirProg(idx) {
-  const r = envios[idx];
+  var r = ENVIOS[idx];
   if (!r) return;
   goTo('prog');
-
-  // Fill form
   document.getElementById('f-titulo').value   = r.tituloPN ? r.titulo + ' -- ' + r.tituloPN : r.titulo;
   document.getElementById('f-cliente').value  = r.cliente;
   document.getElementById('f-material').value = r.material;
@@ -1119,52 +1126,62 @@ function abrirProg(idx) {
   document.getElementById('f-exibidor').value = r.exibidor;
   if (r.transp) document.getElementById('f-transp-saida').value = r.transp;
   if (r.saida) {
-    const d = r.saida.split(' ')[0].split('T')[0];
+    var d = r.saida.split(' ')[0].split('T')[0];
     if (d.length >= 8) document.getElementById('f-saida').value = d;
   }
-
-  // Match cinema in DB
-  const match = DB.find(c =>
-    c.name === r.cinema ||
-    c.name.toLowerCase() === r.cinema.toLowerCase() ||
-    (r.cinema.length > 8 && c.name.toLowerCase().includes(r.cinema.toLowerCase().substring(0, 12)))
-  );
-
+  var match = null;
+  for (var i = 0; i < DB.length; i++) {
+    if (DB[i].name === r.cinema || DB[i].name.toLowerCase() === r.cinema.toLowerCase()) { match = DB[i]; break; }
+  }
+  if (!match && r.cinema.length > 8) {
+    var prefix = r.cinema.toLowerCase().substring(0, 12);
+    for (var i = 0; i < DB.length; i++) {
+      if (DB[i].name.toLowerCase().includes(prefix)) { match = DB[i]; break; }
+    }
+  }
   if (match) {
     setOrigin(match);
   } else {
-    // Cinema not in DB -- use imported data
     origin = { id: -1, name: r.cinema, city: r.cidade, uf: r.uf, pct: 100, lat: null, lon: null, _addr: r.endereco };
-    showOriginBadge(r.cinema, r.cidade + (r.uf ? ' · ' + r.uf : '') + ' (importado)');
+    showOriginBadge(r.cinema, (r.cidade||'') + (r.uf?' - '+r.uf:'') + ' (importado)');
     document.getElementById('f-origem').value = r.cinema;
   }
-
-  showToast('Saida selecionada. Clique em  Gerar rota.', 'info');
+  toast('Pedido selecionado. Clique em Gerar rota.', 'info');
 }
 
-// -- SUGGEST ORIGIN -----------------------------
+function renderImportList() {
+  var el = document.getElementById('import-list');
+  if (!ENVIOS.length) { el.innerHTML = '<div style="font-size:12px;color:#aaa">Importe pedidos via "Upload Pedidos".</div>'; return; }
+  el.innerHTML = ENVIOS.slice(0, 15).map(function(r, i) {
+    return '<div onclick="abrirProg(' + i + ')" style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid #f0efeb;cursor:pointer">'
+      + '<span class="badge badge-dark" style="font-size:10px;font-family:monospace;flex-shrink:0">#' + (r.material||'?') + '</span>'
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (r.tituloPN||r.titulo||'--') + '</div>'
+      + '<div style="font-size:10px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.cinema + '</div>'
+      + '</div></div>';
+  }).join('') + (ENVIOS.length > 15 ? '<div style="font-size:11px;color:#aaa;text-align:center;padding-top:6px">+' + (ENVIOS.length-15) + ' mais</div>' : '');
+}
+
+// SUGGEST ORIGIN
 function suggestOrigin(q) {
-  const box = document.getElementById('sug-origin');
+  var box = document.getElementById('sug-origin');
   if (q.length < 2) { box.style.display = 'none'; return; }
-
-  const hits = DB.filter(c =>
-    c.name.toLowerCase().includes(q.toLowerCase()) ||
-    c.city.toLowerCase().includes(q.toLowerCase())
-  ).slice(0, 8);
-
+  var hits = [];
+  for (var i = 0; i < DB.length && hits.length < 8; i++) {
+    if (DB[i].name.toLowerCase().includes(q.toLowerCase()) || DB[i].city.toLowerCase().includes(q.toLowerCase())) hits.push(DB[i]);
+  }
   if (!hits.length) { box.style.display = 'none'; return; }
-
-  box.innerHTML = hits.map(c =>
-    '<div class="sug-item" onclick="pickOrigin(' + c.id + ')">'
-    + '<div class="sug-name">' + c.name + '</div>'
-    + '<div class="sug-meta">' + c.city + ' · ' + c.uf + ' · ' + c.pct + '%</div>'
-    + '</div>'
-  ).join('');
+  box.innerHTML = hits.map(function(c) {
+    return '<div class="sug-item" onclick="pickOrigin(' + c.id + ')">'
+      + '<div class="sug-name">' + c.name + '</div>'
+      + '<div class="sug-meta">' + c.city + ' - ' + c.uf + ' - ' + c.pct + '%</div></div>';
+  }).join('');
   box.style.display = 'block';
 }
 
 function pickOrigin(id) {
-  const c = DB.find(x => x.id === id);
+  var c = null;
+  for (var i = 0; i < DB.length; i++) { if (DB[i].id === id) { c = DB[i]; break; } }
   if (!c) return;
   setOrigin(c);
   document.getElementById('sug-origin').style.display = 'none';
@@ -1173,273 +1190,288 @@ function pickOrigin(id) {
 function setOrigin(c) {
   origin = c;
   document.getElementById('f-origem').value = c.name;
-  showOriginBadge(c.name, c.city + ' · ' + c.uf + ' · ' + c.pct + '%');
+  showOriginBadge(c.name, c.city + ' - ' + c.uf + ' - ' + c.pct + '%');
 }
 
 function showOriginBadge(name, meta) {
-  const el = document.getElementById('origin-badge');
+  var el = document.getElementById('origin-badge');
   el.style.display = 'block';
-  el.innerHTML = '<div class="notice ok"><span>OK</span><div><strong>' + name + '</strong><br><span style="opacity:.75;font-size:11px">' + meta + '</span></div></div>';
+  el.innerHTML = '<div style="background:#edf9f3;border:1px solid rgba(26,138,74,.2);border-radius:6px;padding:8px 12px;font-size:12px;display:flex;gap:7px">'
+    + '<span style="color:#1a8a4a">&#10003;</span>'
+    + '<div><strong>' + name + '</strong><br><span style="color:#888;font-size:11px">' + meta + '</span></div></div>';
 }
 
-document.addEventListener('click', e => {
+document.addEventListener('click', function(e) {
   if (!e.target.closest('#f-origem') && !e.target.closest('#sug-origin'))
     document.getElementById('sug-origin').style.display = 'none';
 });
 
-// -- IMPORT LIST (sidebar) ----------------------
-function renderImportList() {
-  const el = document.getElementById('import-list');
-  if (!envios.length) {
-    el.innerHTML = '<div style="font-size:12px;color:#aaa">Importe uma planilha em "Primeiros Envios".</div>';
-    return;
-  }
-  el.innerHTML = envios.slice(0, 12).map((r, i) =>
-    '<div onclick="abrirProg(' + i + ')" style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid #f0efeb;cursor:pointer">'
-    + '<span class="badge badge-dark" style="font-size:10px;font-family:monospace;flex-shrink:0">#' + (r.material || '?') + '</span>'
-    + '<div style="flex:1;min-width:0">'
-    + '<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (r.tituloPN || r.titulo || '--') + '</div>'
-    + '<div style="font-size:10px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.cinema + '</div>'
-    + '</div></div>'
-  ).join('') + (envios.length > 12 ? '<div style="font-size:11px;color:#aaa;text-align:center;padding-top:6px">+' + (envios.length - 12) + ' mais</div>' : '');
-}
-
-// -- ROUTE GENERATION ---------------------------
+// ROUTE
 function haversine(la1, lo1, la2, lo2) {
-  const R = 6371, dr = (la2-la1)*Math.PI/180, dc = (lo2-lo1)*Math.PI/180;
-  const a = Math.sin(dr/2)**2 + Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dc/2)**2;
+  var R = 6371, dr = (la2-la1)*Math.PI/180, dc = (lo2-lo1)*Math.PI/180;
+  var a = Math.sin(dr/2)*Math.sin(dr/2) + Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dc/2)*Math.sin(dc/2);
   return R * 2 * Math.asin(Math.sqrt(a));
 }
 
 function autoTr(uf) {
-  if (['SP'].includes(uf))                          return 'Loggi';
-  if (['RJ','MG','PR','RS','SC'].includes(uf))      return 'BEM TRANSPORTES';
+  if (uf === 'SP') return 'Loggi';
+  if (['RJ','MG','PR','RS','SC'].indexOf(uf) >= 0) return 'BEM TRANSPORTES';
   return 'STM Servicos';
 }
 
 function gerarRota() {
-  if (!origin) { showToast('Selecione o cinema de origem primeiro.', 'err'); return; }
-
-  const pct = parseInt(document.getElementById('f-pct').value);
-
-  const candidates = DB.filter(c =>
-    c.id !== (origin.id || -1) &&
-    c.uf   === (origin.uf   || '') &&
-    c.city === (origin.city || '') &&
-    c.pct  >= pct &&
-    c.lat && c.lon
-  );
-
+  if (!origin) { toast('Selecione o cinema de origem.', 'err'); return; }
+  var pct = parseInt(document.getElementById('f-pct').value);
+  var cands = DB.filter(function(c) {
+    return c.id !== (origin.id || -1) && c.uf === (origin.uf||'') && c.city === (origin.city||'') && c.pct >= pct && c.lat && c.lon;
+  });
   if (origin.lat && origin.lon) {
-    // Nearest neighbor
-    let rem = [...candidates], result = [], cur = { lat: origin.lat, lon: origin.lon };
+    var rem = cands.slice(), result = [], cur = { lat: origin.lat, lon: origin.lon };
     while (rem.length) {
-      let bestD = Infinity, bestI = -1;
-      rem.forEach((c, i) => { const d = haversine(cur.lat, cur.lon, c.lat, c.lon); if (d < bestD) { bestD = d; bestI = i; } });
-      result.push({ ...rem[bestI], legDist: bestD });
-      cur = rem[bestI];
-      rem.splice(bestI, 1);
+      var bestD = Infinity, bestI = -1;
+      rem.forEach(function(c, i) { var d = haversine(cur.lat, cur.lon, c.lat, c.lon); if (d < bestD) { bestD = d; bestI = i; } });
+      result.push(Object.assign({}, rem[bestI], { legDist: bestD }));
+      cur = rem[bestI]; rem.splice(bestI, 1);
     }
     route = result;
   } else {
-    route = candidates.sort((a, b) => b.pct - a.pct).map(c => ({ ...c, legDist: 0 }));
-    if (!route.length) { showToast('Nenhum cinema elegivel encontrado.', 'err'); }
-    else showToast('Origem sem coordenadas -- ordenando por percentual.', 'info');
+    route = cands.sort(function(a,b){ return b.pct - a.pct; }).map(function(c){ return Object.assign({}, c, { legDist: 0 }); });
   }
-
-  routeSt   = {};
-  routeTr   = {};
-  routeIncl = {};
+  routeSt = {}; routeTr = {}; routeIncl = {};
   renderRoute();
 }
 
-// -- RENDER ROUTE -------------------------------
 function renderRoute() {
-  const titulo  = document.getElementById('f-titulo').value  || '--';
-  const mat     = document.getElementById('f-material').value || '--';
-  const trSaida = document.getElementById('f-transp-saida').value;
-  const trRem   = document.getElementById('f-transp-rem').value || autoTr(origin.uf || '');
-  const totalD  = route.reduce((s, c) => s + (c.legDist || 0), 0);
+  if (!origin) return;
+  var titulo  = document.getElementById('f-titulo').value || '--';
+  var mat     = document.getElementById('f-material').value || '--';
+  var trSaida = document.getElementById('f-transp-saida').value;
+  var trRem   = document.getElementById('f-transp-rem').value || autoTr(origin.uf || '');
+  var totalD  = route.reduce(function(s,c){ return s + (routeIncl[route.indexOf(c)] === false ? 0 : (c.legDist||0)); }, 0);
 
-  let html = '';
+  var right = document.getElementById('prog-right');
+  right.innerHTML = '';
 
-  // Film header
-  html += '<div class="route-card">'
-    + '<div class="route-header">'
-    + '<div class="route-header-icon">?</div>'
-    + '<div class="route-header-info">'
-    + '<div class="route-header-title">' + titulo + '</div>'
-    + '<div class="route-header-sub">HD #' + mat + ' · ' + (origin.city||'') + '/' + (origin.uf||'') + ' · ' + route.length + ' remanejamentos · ' + Math.round(totalD) + 'km</div>'
+  // Header card
+  var header = document.createElement('div');
+  header.className = 'route-card';
+  header.style.marginBottom = '14px';
+  header.innerHTML = '<div class="route-header">'
+    + '<div class="rh-icon">&#127916;</div>'
+    + '<div class="rh-info">'
+    + '<div class="rh-title">' + titulo + '</div>'
+    + '<div class="rh-sub">HD #' + mat + ' - ' + (origin.city||'') + '/' + (origin.uf||'') + ' - ' + route.filter(function(c,i){return routeIncl[i]!==false;}).length + ' remanejamentos - ' + Math.round(totalD) + 'km</div>'
     + '</div>'
-    + '<div class="route-header-actions">'
-    + '<button class="btn" style="padding:5px 10px;font-size:12px" onclick="buildConfirm()">OK Salvar</button>'
-    + '<button class="btn btn-orange" style="padding:5px 10px;font-size:12px" onclick="abrirLoggi()">? Loggi</button>'
-    + '</div>'
-    + '</div>';
+    + '<div class="rh-actions">'
+    + '<button class="btn" style="padding:5px 10px;font-size:12px" onclick="buildConfirm()">Salvar</button>'
+    + '<button class="btn btn-orange" style="padding:5px 10px;font-size:12px" onclick="abrirLoggi()">Loggi</button>'
+    + '</div></div>';
 
-  if (!route.length) {
-    html += '<div class="notice warn" style="margin:12px"><span>?</span><div>Nenhum cinema encontrado em ' + (origin.city||'') + '/' + (origin.uf||'') + ' com o filtro atual. Tente reduzir o % minimo.</div></div>';
-  }
+  // Route steps
+  var stepsWrap = document.createElement('div');
+  stepsWrap.style.cssText = 'background:#fff;border-radius:8px;border:1px solid #e0deda;overflow:hidden;margin-bottom:14px';
 
   // Origin step
-  html += '<div class="step step-origin">'
-    + '<div class="step-num sn-orig">?</div>'
+  var originStep = document.createElement('div');
+  originStep.className = 'step step-origin';
+  originStep.innerHTML = '<div class="step-num sn-orig">&#10006;</div>'
     + '<div class="step-info"><div class="step-name">' + origin.name + ' <span class="badge badge-dark" style="font-size:10px;margin-left:4px">ORIGEM</span></div>'
-    + '<div class="step-meta">1? destino do HD · ' + (trSaida || '--') + '</div></div>'
-    + '<select class="sel-status" onchange="updSt(-1,this)"><option value="pendente">pendente</option><option value="em rota">em rota</option><option value="ok">OK OK</option><option value="erro">? erro</option></select>'
-    + '</div>';
+    + '<div class="step-meta">1 destino do HD - ' + (trSaida||'--') + '</div></div>'
+    + '<select class="sel-status" onchange="updSt(-1,this)">'
+    + '<option value="pendente">pendente</option><option value="em rota">em rota</option>'
+    + '<option value="ok">OK</option><option value="erro">erro</option></select>';
+  stepsWrap.appendChild(originStep);
 
-  route.forEach((c, i) => {
-    const st  = routeSt[i] || 'pendente';
-    const tr  = routeTr[i] || trRem;
-    const cls = c.pct === 100 ? 'sn-100' : c.pct >= 80 ? 'sn-80' : 'sn-lo';
-    const isBest = i === 0 && c.pct === 100;
+  route.forEach(function(c, i) {
+    var st      = routeSt[i] || 'pendente';
+    var tr      = routeTr[i] || trRem;
+    var incl    = routeIncl[i] !== false;
+    var cls     = c.pct === 100 ? 'sn-100' : c.pct >= 80 ? 'sn-80' : 'sn-lo';
+    var isBest  = i === 0 && c.pct === 100;
 
-    const checked = routeIncl[i] !== false; // default: included
+    // Connector
+    var conn = document.createElement('div');
+    conn.className = 'conn';
+    conn.innerHTML = '<div class="conn-line"></div>'
+      + '<div class="conn-lbl">remanejar' + ((c.legDist||0) > 0 && incl ? ' - ' + c.legDist.toFixed(1) + 'km' : '') + '</div>'
+      + '<div class="conn-line"></div>';
+    stepsWrap.appendChild(conn);
 
-    html += '<div class="step-connector">'
-      + '<div class="connector-line"></div>'
-      + '<div class="connector-label">remanejar' + ((c.legDist||0) > 0 ? ' · ' + c.legDist.toFixed(1) + 'km' : '') + '</div>'
-      + '<div class="connector-line"></div>'
-      + '</div>';
+    // Step
+    var step = document.createElement('div');
+    step.className = 'step' + (isBest ? ' step-best' : '') + (incl ? '' : ' step-skip');
 
-    html += '<div class="step' + (isBest ? ' step-best' : '') + (checked ? '' : ' step-skip') + '">'
-      + '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="updIncl(' + i + ',this)" style="margin-right:4px;cursor:pointer;flex-shrink:0;width:16px;height:16px;accent-color:#1a4fff">'
-      + '<div class="step-num ' + cls + '">' + (i + 1) + '</div>'
-      + '<div class="step-info"><div class="step-name">' + c.name
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = incl;
+    cb.style.cssText = 'width:16px;height:16px;cursor:pointer;flex-shrink:0;accent-color:#1a4fff;margin-right:2px';
+    cb.onchange = (function(idx){ return function(){ updIncl(idx, this); }; })(i);
+    step.appendChild(cb);
+
+    var numEl = document.createElement('div');
+    numEl.className = 'step-num ' + cls;
+    numEl.textContent = i + 1;
+    step.appendChild(numEl);
+
+    var info = document.createElement('div');
+    info.className = 'step-info';
+    info.innerHTML = '<div class="step-name">' + c.name
       + (i === 0 ? ' <span class="badge badge-green" style="font-size:10px;margin-left:4px">mais proximo</span>' : '')
-      + '</div><div class="step-meta">' + c.city + ' · ' + c.uf + ' · ' + c.pct + '%</div></div>'
-      + '<select class="sel-transp" onchange="updTr(' + i + ',this)" ' + (checked ? '' : 'disabled') + '>'
-      + '<option' + (tr==='Loggi'?' selected':'') + '>Loggi</option>'
-      + '<option' + (tr==='STM Servicos'?' selected':'') + '>STM Servicos</option>'
-      + '<option' + (tr==='BEM TRANSPORTES'?' selected':'') + '>BEM TRANSPORTES</option>'
-      + '<option' + (tr==='Acordo ETC Filmes'?' selected':'') + '>Acordo ETC Filmes</option>'
-      + '<option' + (tr==='Logcine Transportes'?' selected':'') + '>Logcine Transportes</option>'
-      + '</select>'
-      + '<select class="sel-status ' + (st==='ok'?'ok':st==='rota'?'rota':st==='erro'?'erro':'') + '" onchange="updSt(' + i + ',this)" ' + (checked ? '' : 'disabled') + '>'
-      + '<option value="pendente"' + (st==='pendente'?' selected':'') + '>pendente</option>'
-      + '<option value="em rota"' + (st==='em rota'?' selected':'') + '>em rota</option>'
-      + '<option value="ok"' + (st==='ok'?' selected':'') + '>OK</option>'
-      + '<option value="erro"' + (st==='erro'?' selected':'') + '>erro</option>'
-      + '</select>'
-      + '</div>';
+      + '</div><div class="step-meta">' + c.city + ' - ' + c.uf + ' - ' + c.pct + '%</div>';
+    step.appendChild(info);
+
+    var trSel = document.createElement('select');
+    trSel.className = 'sel-transp';
+    ['Loggi','STM Servicos','BEM TRANSPORTES','Acordo ETC Filmes','Logcine Transportes'].forEach(function(opt) {
+      var o = document.createElement('option');
+      o.textContent = opt;
+      if (opt === tr) o.selected = true;
+      trSel.appendChild(o);
+    });
+    trSel.disabled = !incl;
+    trSel.onchange = (function(idx){ return function(){ updTr(idx, this); }; })(i);
+    step.appendChild(trSel);
+
+    var stSel = document.createElement('select');
+    stSel.className = 'sel-status' + (st==='ok'?' ok':st==='em rota'?' rota':st==='erro'?' erro':'');
+    ['pendente','em rota','ok','erro'].forEach(function(opt) {
+      var o = document.createElement('option');
+      o.value = opt; o.textContent = opt;
+      if (opt === st) o.selected = true;
+      stSel.appendChild(o);
+    });
+    stSel.disabled = !incl;
+    stSel.onchange = (function(idx){ return function(){ updSt(idx, this); }; })(i);
+    step.appendChild(stSel);
+
+    stepsWrap.appendChild(step);
   });
 
-  html += '</div>'; // close route-card
+  right.appendChild(header);
+  right.appendChild(stepsWrap);
+
+  if (!route.length) {
+    var warn = document.createElement('div');
+    warn.className = 'notice notice-warn';
+    warn.innerHTML = '<span>!</span><div>Nenhum cinema encontrado em ' + (origin.city||'') + '/' + (origin.uf||'') + ' com o filtro atual.</div>';
+    right.appendChild(warn);
+  }
 
   // Saved schedules
   if (SAVED.length) {
-    html += '<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;margin-bottom:8px">Programac?es salvas (' + SAVED.length + ')</div><div id="saved-cards"></div></div>';
-    });
-    html += '</div>';
-  }
+    var savedDiv = document.createElement('div');
+    savedDiv.style.marginTop = '6px';
+    var savedTitle = document.createElement('div');
+    savedTitle.style.cssText = 'font-size:13px;font-weight:600;margin-bottom:8px';
+    savedTitle.textContent = 'Programacoes salvas (' + SAVED.length + ')';
+    savedDiv.appendChild(savedTitle);
 
-  document.getElementById('prog-right').innerHTML = html;
-  // Render saved cards via DOM (avoids quote escaping issues)
-  if (SAVED.length) { setTimeout(function() { var sc = document.getElementById('saved-cards'); if(!sc) return;
-    SAVED.slice(0, 4).forEach((s, i) => {
-      const done = (s.route||[]).filter(r=>r.status==='ok').length;
-      const tot  = (s.route||[]).length;
-      const pct  = tot > 0 ? Math.round(done/tot*100) : 0;
-      const cls  = done===tot&&tot>0 ? 'badge-green' : done>0 ? 'badge-amber' : 'badge-gray';
-      const lbl  = done===tot&&tot>0 ? 'completo'    : done>0 ? 'andamento'   : 'pendente';
-      const city = (s.origin&&s.origin.city) ? s.origin.city+'/'+s.origin.uf : '--';
-      const dt   = s.savedAt ? new Date(s.savedAt).toLocaleDateString('pt-BR') : '';
-      const el   = document.createElement('div');
-      el.style.cssText = 'background:#fff;border:1px solid #e0deda;border-radius:8px;padding:11px 14px;margin-bottom:7px;cursor:pointer;display:flex;align-items:center;gap:10px';
-      el.onclick = function(){ loadSaved(i); };
-      el.innerHTML =
-        '<div style="flex:1;min-width:0">'
-        + '<div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (s.titulo||'--') + '</div>'
-        + '<div style="font-size:11px;color:#888;margin-top:2px">' + city + ' &middot; HD #' + (s.material||'--') + ' &middot; ' + done + '/' + tot + ' OK &middot; ' + dt + '</div>'
-        + '<div style="height:3px;background:#e0deda;border-radius:2px;margin-top:5px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:#1a4fff;border-radius:2px"></div></div>'
+    SAVED.slice(0, 5).forEach(function(s, i) {
+      var done = (s.route||[]).filter(function(r){ return r.status==='ok'; }).length;
+      var tot  = (s.route||[]).length;
+      var pct  = tot > 0 ? Math.round(done/tot*100) : 0;
+      var cls  = done===tot&&tot>0 ? 'badge-green' : done>0 ? 'badge-amber' : 'badge-gray';
+      var lbl  = done===tot&&tot>0 ? 'completo'    : done>0 ? 'andamento'   : 'pendente';
+      var city = (s.origin&&s.origin.city) ? s.origin.city+'/'+s.origin.uf : '--';
+      var dt   = s.savedAt ? new Date(s.savedAt).toLocaleDateString('pt-BR') : '';
+
+      var card = document.createElement('div');
+      card.className = 'saved-card';
+      card.innerHTML = '<div class="saved-card-info">'
+        + '<div class="saved-card-title">' + (s.titulo||'--') + '</div>'
+        + '<div class="saved-card-meta">' + city + ' - HD #' + (s.material||'--') + ' - ' + done + '/' + tot + ' OK - ' + dt + '</div>'
+        + '<div class="saved-card-bar"><div class="saved-card-fill" style="width:' + pct + '%"></div></div>'
         + '</div>'
         + '<span class="badge ' + cls + '">' + lbl + '</span>'
-        + '<button onclick="event.stopPropagation();delSaved(' + i + ')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:16px;padding:0 3px">x</button>';
-      sc.appendChild(el);
+        + '<button style="background:none;border:none;color:#ccc;cursor:pointer;font-size:16px;padding:0 3px;flex-shrink:0" title="Excluir">x</button>';
+
+      card.onclick = (function(idx){ return function(e){ if(e.target.tagName==='BUTTON') delSaved(idx); else loadSaved(idx); }; })(i);
+      savedDiv.appendChild(card);
     });
-  }, 0); }
+    right.appendChild(savedDiv);
+  }
 }
 
 function updSt(i, sel) {
-  const v = sel.value;
+  var v = sel.value;
   sel.className = 'sel-status' + (v==='ok'?' ok':v==='em rota'?' rota':v==='erro'?' erro':'');
   if (i >= 0) routeSt[i] = v;
 }
 function updTr(i, sel) { routeTr[i] = sel.value; }
 function updIncl(i, cb) {
   routeIncl[i] = cb.checked;
-  // Re-render to update disabled state and visual
   renderRoute();
 }
 
-// -- SAVE / LOAD --------------------------------
+// SAVE/LOAD
+function filteredRoute() {
+  return route.filter(function(c, i) { return routeIncl[i] !== false; });
+}
+
 function buildSchedObj() {
-  const trRem = document.getElementById('f-transp-rem').value || autoTr(origin.uf || '');
+  var trRem = document.getElementById('f-transp-rem').value || autoTr(origin.uf || '');
+  var fr = filteredRoute();
   return {
-    id:         Date.now(),
-    savedAt:    new Date().toISOString(),
-    titulo:     document.getElementById('f-titulo').value,
-    cliente:    document.getElementById('f-cliente').value,
-    material:   document.getElementById('f-material').value,
-    servico:    document.getElementById('f-servico').value,
-    exibidor:   document.getElementById('f-exibidor').value,
-    saida:      document.getElementById('f-saida').value,
-    prazo:      document.getElementById('f-prazo').value,
-    transpSaida:document.getElementById('f-transp-saida').value,
-    origin:     {...origin},
-    route:      route.filter((c, i) => routeIncl[i] !== false).map((c, i) => ({...c, transp: routeTr[route.indexOf(c)]||trRem, status: routeSt[route.indexOf(c)]||'pendente'})),
-    totalDist:  Math.round(route.reduce((s,c) => s+(c.legDist||0), 0)),
+    id: Date.now(), savedAt: new Date().toISOString(),
+    titulo:      document.getElementById('f-titulo').value,
+    cliente:     document.getElementById('f-cliente').value,
+    material:    document.getElementById('f-material').value,
+    servico:     document.getElementById('f-servico').value,
+    exibidor:    document.getElementById('f-exibidor').value,
+    saida:       document.getElementById('f-saida').value,
+    prazo:       document.getElementById('f-prazo').value,
+    transpSaida: document.getElementById('f-transp-saida').value,
+    origin: origin,
+    route: fr.map(function(c) {
+      var i = route.indexOf(c);
+      return Object.assign({}, c, { transp: routeTr[i]||trRem, status: routeSt[i]||'pendente' });
+    }),
+    totalDist: Math.round(fr.reduce(function(s,c){ return s+(c.legDist||0); }, 0)),
   };
 }
 
 function buildConfirm() {
-  if (!origin || !route.length) { showToast('Gere a rota primeiro.', 'err'); return; }
-  const s = buildSchedObj();
-  document.getElementById('mc-sub').textContent = s.route.length + ' remanejamentos · ' + (s.origin.city||'') + '/' + (s.origin.uf||'');
-  const trRem = document.getElementById('f-transp-rem').value || autoTr(origin.uf||'');
-
-  let body = '<div style="background:#f5f4f0;border-radius:6px;padding:12px 14px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px">'
-    + '<div><div style="color:#888;font-size:10px">Filme</div><div style="font-weight:500">' + s.titulo + '</div></div>'
-    + '<div><div style="color:#888;font-size:10px">Cliente</div><div style="font-weight:500">' + s.cliente + '</div></div>'
-    + '<div><div style="color:#888;font-size:10px">Material</div><div style="font-weight:500;font-family:monospace">#' + s.material + '</div></div>'
+  if (!origin || !filteredRoute().length) { toast('Selecione ao menos um cinema e gere a rota.', 'err'); return; }
+  var s = buildSchedObj();
+  var trRem = document.getElementById('f-transp-rem').value || autoTr(origin.uf||'');
+  document.getElementById('mc-sub').textContent = s.route.length + ' remanejamentos - ' + (s.origin.city||'') + '/' + (s.origin.uf||'');
+  var body = '<div style="background:#f5f4f0;border-radius:6px;padding:12px 14px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px">'
+    + '<div><div style="color:#888;font-size:10px">Filme</div><div style="font-weight:500">' + (s.titulo||'--') + '</div></div>'
+    + '<div><div style="color:#888;font-size:10px">Cliente</div><div style="font-weight:500">' + (s.cliente||'--') + '</div></div>'
+    + '<div><div style="color:#888;font-size:10px">Material</div><div style="font-weight:500;font-family:monospace">#' + (s.material||'--') + '</div></div>'
     + '<div><div style="color:#888;font-size:10px">Data saida</div><div style="font-weight:500">' + fmtDate(s.saida) + '</div></div>'
     + '</div>'
     + '<div style="border:1px solid #e0deda;border-radius:6px;overflow:hidden;font-size:12px">'
     + '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#eef1ff;border-bottom:1px solid #e0deda">'
-    + '<span class="badge badge-dark" style="font-size:10px">?</span><strong>' + s.origin.name + '</strong>'
+    + '<span class="badge badge-dark" style="font-size:10px">ORIGEM</span>'
+    + '<strong>' + s.origin.name + '</strong>'
     + '<span style="margin-left:auto;color:#888;font-size:11px">' + (s.origin.city||'') + '/' + (s.origin.uf||'') + '</span></div>';
-
-  s.route.forEach((c, i) => {
+  s.route.forEach(function(c, i) {
     body += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #f0efeb">'
       + '<span class="badge ' + (c.pct===100?'badge-green':c.pct>=80?'badge-amber':'badge-gray') + '" style="font-size:10px">' + (i+1) + '</span>'
       + '<strong style="flex:1">' + c.name + '</strong>'
-      + '<span style="color:#888;font-size:11px">' + (c.transp||trRem) + '</span></div>';
+      + '<span style="color:#888;font-size:11px">' + c.transp + '</span></div>';
   });
   body += '</div>';
-
   document.getElementById('mc-body').innerHTML = body;
   openModal('modal-confirm');
 }
 
 function salvarProg(withLoggi) {
-  const s = buildSchedObj();
+  var s = buildSchedObj();
   SAVED.unshift(s);
   localStorage.setItem('etc_saved', JSON.stringify(SAVED));
   closeModal('modal-confirm');
-  showToast('Programacao salva!', 'ok');
+  toast('Programacao salva!', 'ok');
   renderRoute();
-  if (withLoggi) setTimeout(() => abrirLoggi(), 200);
+  if (withLoggi) setTimeout(function(){ abrirLoggi(); }, 200);
 }
 
 function loadSaved(i) {
-  i = parseInt(i);
-  const s = SAVED[i];
-  if (!s) return;
-  origin = s.origin;
-  route  = s.route.map(r => ({...r}));
-  routeSt = {}; routeTr = {};
-  s.route.forEach((r, j) => { routeSt[j] = r.status; routeTr[j] = r.transp; });
+  var s = SAVED[i]; if (!s) return;
+  origin = s.origin; route = s.route.slice();
+  routeSt = {}; routeTr = {}; routeIncl = {};
+  s.route.forEach(function(r, j) { routeSt[j] = r.status; routeTr[j] = r.transp; });
   document.getElementById('f-titulo').value    = s.titulo   || '';
   document.getElementById('f-cliente').value   = s.cliente  || '';
   document.getElementById('f-material').value  = s.material || '';
@@ -1448,260 +1480,201 @@ function loadSaved(i) {
   document.getElementById('f-saida').value     = s.saida    || '';
   document.getElementById('f-prazo').value     = s.prazo    || '';
   if (s.transpSaida) document.getElementById('f-transp-saida').value = s.transpSaida;
-  document.getElementById('f-origem').value    = s.origin.name;
-  showOriginBadge(s.origin.name, (s.origin.city||'') + ' · ' + (s.origin.uf||'') + ' · ' + (s.origin.pct||'') + '%');
+  document.getElementById('f-origem').value = s.origin.name;
+  showOriginBadge(s.origin.name, (s.origin.city||'') + ' - ' + (s.origin.uf||'') + ' - ' + (s.origin.pct||'') + '%');
   renderRoute();
-  showToast('Programacao carregada.', 'ok');
+  toast('Programacao carregada.', 'ok');
 }
 
 function delSaved(i) {
-  if (!confirm('Excluir esta programacao?')) return;
+  if (!confirm('Excluir?')) return;
   SAVED.splice(i, 1);
   localStorage.setItem('etc_saved', JSON.stringify(SAVED));
-  renderRoute();
-  showToast('Excluida.', 'info');
+  renderRoute(); toast('Excluida.', 'info');
 }
 
 function limpar() {
-  origin = null; route = []; routeSt = {}; routeTr = {};
-  ['f-titulo','f-cliente','f-material','f-servico','f-exibidor','f-origem'].forEach(id => {
+  origin = null; route = []; routeSt = {}; routeTr = {}; routeIncl = {};
+  ['f-titulo','f-cliente','f-material','f-servico','f-exibidor','f-origem'].forEach(function(id){
     document.getElementById(id).value = '';
   });
   document.getElementById('origin-badge').style.display = 'none';
-  document.getElementById('prog-right').innerHTML = '<div class="empty"><div class="empty-icon">?</div><h3>Formul?rio limpo</h3><p>Selecione um envio importado ou busque o cinema de origem.</p></div>';
-  showToast('Limpo.', 'info');
+  document.getElementById('prog-right').innerHTML = '<div class="empty"><div class="empty-icon">&#127916;</div><h3>Formulario limpo</h3><p>Selecione um pedido importado ou busque o cinema de origem.</p></div>';
+  toast('Limpo.', 'info');
 }
 
-// -- LOGGI --------------------------------------
+// LOGGI
 function resolveAddr(name) {
-  // Check imported envios for address
-  const env = envios.find(r => r.cinema === name);
-  if (env && env.endereco)
-    return { rawAddress: env.endereco + ', ' + env.cidade + ', ' + env.uf, label: name + ' -- Operacao', resolved: 'imported' };
-  const c = DB.find(x => x.name === name);
-  return { rawAddress: (c ? name + ', ' + c.city + ', ' + c.uf : name) + ', Brasil', label: name + ' -- Operacao', resolved: 'geocoded' };
+  var env = null;
+  for (var i = 0; i < ENVIOS.length; i++) { if (ENVIOS[i].cinema === name) { env = ENVIOS[i]; break; } }
+  if (env && env.endereco) return { rawAddress: env.endereco + ', ' + env.cidade + ', ' + env.uf, label: name + ' - Operacao', resolved: 'imported' };
+  var c = null;
+  for (var i = 0; i < DB.length; i++) { if (DB[i].name === name) { c = DB[i]; break; } }
+  return { rawAddress: (c ? name + ', ' + c.city + ', ' + c.uf : name) + ', Brasil', label: name + ' - Operacao', resolved: 'geocoded' };
 }
 
 function abrirLoggi() {
-  if (!LOGGI.token && !LOGGI.clientId) { showToast('Configure as credenciais Loggi (aba ? Loggi).', 'err'); return; }
-  if (!origin || !route.length) { showToast('Gere a rota primeiro.', 'err'); return; }
-
-  const mat    = document.getElementById('f-material').value || '--';
-  const titulo = document.getElementById('f-titulo').value   || 'Filme';
-  const trRem  = document.getElementById('f-transp-rem').value || autoTr(origin.uf||'');
-  const trS    = document.getElementById('f-transp-saida').value;
-  const phone  = (LOGGI.phone || '11999999999').replace(/[^0-9]/g, '');
-
-  loggiOrders = [];
-  loggiSt     = {};
-
-  // Initial delivery
+  if (!LOGGI.token && !LOGGI.clientId) { toast('Configure as credenciais Loggi.', 'err'); return; }
+  var fr = filteredRoute();
+  if (!origin || !fr.length) { toast('Gere a rota com ao menos um cinema selecionado.', 'err'); return; }
+  var mat    = document.getElementById('f-material').value || '--';
+  var titulo = document.getElementById('f-titulo').value   || 'Filme';
+  var trRem  = document.getElementById('f-transp-rem').value || autoTr(origin.uf||'');
+  var trS    = document.getElementById('f-transp-saida').value;
+  var phone  = (LOGGI.phone || '11999999999').replace(/[^0-9]/g, '');
+  lgOrders = []; lgSt = {};
   if (trS === 'Loggi') {
-    const fromAddr = LOGGI.etcId
-      ? { addressId: LOGGI.etcId, label: EMPRESA.contato, resolved: 'saved' }
-      : { rawAddress: EMPRESA.addr, label: EMPRESA.contato, resolved: 'manual' };
-    loggiOrders.push({
-      i: -1, seq: '?', fromName: 'ETC Filmes', from: fromAddr,
-      toName: origin.name, to: resolveAddr(origin.name),
-      desc: 'HD #' + mat + ' | ' + titulo + ' | 1? entrega',
-      instr: 'FILME: ' + titulo + ' | HD: ' + mat + ' | ETC Filmes -> ' + origin.name,
-      extId: 'ETCF-' + mat + '-000', phone
-    });
+    var fromAddr = LOGGI.etcId ? { addressId: LOGGI.etcId, label: EMPRESA.contato, resolved: 'saved' } : { rawAddress: EMPRESA.addr, label: EMPRESA.contato, resolved: 'manual' };
+    lgOrders.push({ i:-1, seq:'0', fromName:'ETC Filmes', from:fromAddr, toName:origin.name, to:resolveAddr(origin.name), desc:'HD #'+mat+' | '+titulo+' | 1a entrega', instr:'FILME: '+titulo+' | HD: '+mat, extId:'ETCF-'+mat+'-000', phone:phone });
   }
-
-  // Remanejamentos
-  route.forEach((c, i) => {
-    if ((routeTr[i] || trRem) !== 'Loggi') return;
-    const from = i === 0 ? origin : route[i-1];
-    loggiOrders.push({
-      i, seq: i+1, fromName: from.name, from: resolveAddr(from.name),
-      toName: c.name, to: resolveAddr(c.name),
-      desc: 'HD #' + mat + ' | ' + titulo + ' | Rem. ' + (i+1),
-      instr: 'FILME: ' + titulo + ' | HD: ' + mat + ' | ' + from.name + ' -> ' + c.name,
-      extId: 'ETCF-' + mat + '-' + String(i+1).padStart(3,'0'), phone
-    });
+  fr.forEach(function(c, idx) {
+    var origIdx = route.indexOf(c);
+    if ((routeTr[origIdx]||trRem) !== 'Loggi') return;
+    var from = idx === 0 ? origin : fr[idx-1];
+    lgOrders.push({ i:origIdx, seq:idx+1, fromName:from.name, from:resolveAddr(from.name), toName:c.name, to:resolveAddr(c.name), desc:'HD #'+mat+' | '+titulo+' | Rem. '+(idx+1), instr:'FILME: '+titulo+' | HD: '+mat+' | '+from.name+' -> '+c.name, extId:'ETCF-'+mat+'-'+String(idx+1).padStart(3,'0'), phone:phone });
   });
-
-  if (!loggiOrders.length) { showToast('Nenhum trecho com Loggi nesta rota.', 'info'); return; }
-
-  document.getElementById('ml-sub').textContent = loggiOrders.length + ' pedido' + (loggiOrders.length>1?'s':'') + ' · HD #' + mat;
-
-  const addrBadge = r =>
-    r==='saved'    ? '<span style="font-size:9px;background:#e5f5ec;color:#1a8a4a;padding:1px 5px;border-radius:3px">salvo</span>'
-    : r==='imported' ? '<span style="font-size:9px;background:#eaedff;color:#1a4fff;padding:1px 5px;border-radius:3px">importado</span>'
-    : '<span style="font-size:9px;background:#fdf4df;color:#996a00;padding:1px 5px;border-radius:3px">geocode</span>';
-
-  document.getElementById('ml-pkg').innerHTML =
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12px">'
+  if (!lgOrders.length) { toast('Nenhum trecho com Loggi.', 'info'); return; }
+  document.getElementById('ml-sub').textContent = lgOrders.length + ' pedido' + (lgOrders.length>1?'s':'') + ' - HD #' + mat;
+  document.getElementById('ml-pkg').innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12px">'
     + '<div><div style="color:#a03500;font-size:10px">Filme</div><div style="font-weight:500">' + titulo + '</div></div>'
     + '<div><div style="color:#a03500;font-size:10px">HD</div><div style="font-weight:500;font-family:monospace">#' + mat + '</div></div>'
-    + '<div><div style="color:#a03500;font-size:10px">Pedidos</div><div style="font-weight:500;color:#1a4fff">' + loggiOrders.length + '</div></div>'
-    + '</div>';
-
-  document.getElementById('ml-orders').innerHTML = loggiOrders.map((o, idx) =>
-    '<div class="loggi-row" id="lgrow-' + idx + '">'
-    + '<div class="loggi-num">' + o.seq + '</div>'
-    + '<div class="loggi-info">'
-    + '<div class="loggi-route">' + o.fromName + ' ' + addrBadge(o.from&&o.from.resolved||'geocoded') + ' -> ' + o.toName + ' ' + addrBadge(o.to&&o.to.resolved||'geocoded') + '</div>'
-    + '<div class="loggi-desc">' + o.desc + '</div>'
-    + '</div>'
-    + '<span class="loggi-st lst-pd" id="lgst-' + idx + '">pendente</span>'
-    + '<button class="btn" style="padding:3px 9px;font-size:11px" id="lgbtn-' + idx + '" onclick="dispatchOne(' + idx + ')">Enviar</button>'
-    + '</div>'
-  ).join('');
-
+    + '<div><div style="color:#a03500;font-size:10px">Pedidos</div><div style="font-weight:500;color:#1a4fff">' + lgOrders.length + '</div></div></div>';
+  var ordersEl = document.getElementById('ml-orders');
+  ordersEl.innerHTML = '';
+  lgOrders.forEach(function(o, idx) {
+    var row = document.createElement('div');
+    row.className = 'lg-row';
+    row.id = 'lgrow-' + idx;
+    var rBadge = function(r){ return r==='saved' ? '<span style="font-size:9px;background:#e5f5ec;color:#1a8a4a;padding:1px 5px;border-radius:3px">salvo</span>' : r==='imported' ? '<span style="font-size:9px;background:#eaedff;color:#1a4fff;padding:1px 5px;border-radius:3px">importado</span>' : '<span style="font-size:9px;background:#fdf4df;color:#996a00;padding:1px 5px;border-radius:3px">geocode</span>'; };
+    row.innerHTML = '<div class="lg-num">' + o.seq + '</div>'
+      + '<div class="lg-info"><div class="lg-route">' + o.fromName + ' ' + rBadge(o.from&&o.from.resolved||'geocoded') + ' -> ' + o.toName + ' ' + rBadge(o.to&&o.to.resolved||'geocoded') + '</div>'
+      + '<div class="lg-desc">' + o.desc + '</div></div>'
+      + '<span class="lg-st lg-pd" id="lgst-' + idx + '">pendente</span>';
+    var btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.style.cssText = 'padding:3px 9px;font-size:11px';
+    btn.textContent = 'Enviar';
+    btn.id = 'lgbtn-' + idx;
+    btn.onclick = (function(ii){ return function(){ dispatchOne(ii); }; })(idx);
+    row.appendChild(btn);
+    ordersEl.appendChild(row);
+  });
   document.getElementById('ml-prog').style.width = '0%';
   document.getElementById('ml-count').textContent = '0 enviados';
   document.getElementById('btn-all').disabled = false;
-  document.getElementById('btn-all').textContent = '? Disparar todos';
-  openModal('modal-loggi');
+  document.getElementById('btn-all').textContent = 'Disparar todos';
+  openModal('modal-loggi-dispatch');
 }
 
 async function dispatchOne(idx) {
-  const o = loggiOrders[idx];
-  if (!o) return;
-  const btn = document.getElementById('lgbtn-' + idx);
-  const st  = document.getElementById('lgst-'  + idx);
+  var o = lgOrders[idx]; if (!o) return;
+  var btn = document.getElementById('lgbtn-' + idx);
+  var st  = document.getElementById('lgst-'  + idx);
   btn.disabled = true; btn.textContent = '...';
-  st.className = 'loggi-st lst-sn'; st.textContent = '? enviando...';
-
+  st.className = 'lg-st lg-sn'; st.textContent = 'enviando...';
   try {
-    const fromA = o.from&&o.from.addressId ? {addressId:o.from.addressId} : {rawAddress:o.from&&o.from.rawAddress||o.fromName};
-    const toA   = o.to&&o.to.addressId     ? {addressId:o.to.addressId}   : {rawAddress:o.to&&o.to.rawAddress||o.toName};
-    const mut = `mutation CreateOrder($input:CreateOrderMutationInput!){createOrder(input:$input){order{pk trackingKey}errors{field messages}}}`;
-    const vars = { input: {
-      shopPk: parseInt(LOGGI.shopPk || '0'), packageType: 'loggi-ponto',
-      waypoints: [
-        { address: fromA, recipient: { name: o.from.label, phone: '+55'+o.phone },
-          packageItems: [{ description: o.desc, quantity:1, weight:2.0, length:20, height:15, width:15 }],
-          instructions: o.instr },
-        { address: toA, recipient: { name: o.to.label, phone: '+55'+o.phone } }
-      ]
-    }};
-    const res = await fetch('https://www.loggi.com/graphql', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+LOGGI.token },
-      body: JSON.stringify({ query: mut, variables: vars })
-    });
-    const data = await res.json();
-    const cr   = data&&data.data&&data.data.createOrder;
-    if (cr&&cr.errors&&cr.errors.length) throw new Error(cr.errors.map(e=>e.messages.join(' ')).join('; '));
-    const order = cr && cr.order;
-    if (!order||!order.pk) throw new Error('Resposta inv?lida da Loggi');
-    loggiSt[idx] = 'ok';
-    st.className = 'loggi-st lst-ok'; st.textContent = 'OK OK';
+    var fromA = o.from&&o.from.addressId ? {addressId:o.from.addressId} : {rawAddress:o.from&&o.from.rawAddress||o.fromName};
+    var toA   = o.to&&o.to.addressId     ? {addressId:o.to.addressId}   : {rawAddress:o.to&&o.to.rawAddress||o.toName};
+    var mut = 'mutation CreateOrder($input:CreateOrderMutationInput!){createOrder(input:$input){order{pk trackingKey}errors{field messages}}}';
+    var vars = { input: { shopPk: parseInt(LOGGI.shopPk||'0'), packageType: 'loggi-ponto', waypoints: [
+      { address:fromA, recipient:{name:o.from.label,phone:'+55'+o.phone}, packageItems:[{description:o.desc,quantity:1,weight:2.0,length:20,height:15,width:15}], instructions:o.instr },
+      { address:toA, recipient:{name:o.to.label,phone:'+55'+o.phone} }
+    ]}};
+    var res  = await fetch('https://www.loggi.com/graphql', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+LOGGI.token}, body:JSON.stringify({query:mut,variables:vars}) });
+    var data = await res.json();
+    var cr   = data&&data.data&&data.data.createOrder;
+    if (cr&&cr.errors&&cr.errors.length) throw new Error(cr.errors.map(function(e){return e.messages.join(' ');}).join('; '));
+    var order = cr && cr.order;
+    if (!order||!order.pk) throw new Error('Resposta invalida');
+    lgSt[idx] = 'ok';
+    st.className = 'lg-st lg-ok'; st.textContent = 'OK';
     btn.textContent = 'OK'; btn.style.background = '#1a8a4a'; btn.style.color = '#fff';
     if (order.trackingKey) {
-      const a = document.createElement('a');
-      a.className = 'loggi-track';
-      a.href = 'https://www.loggi.com/rastreio/' + order.trackingKey;
-      a.target = '_blank';
-      a.textContent = '? Rastrear #' + order.trackingKey;
-      document.querySelector('#lgrow-' + idx + ' .loggi-info').appendChild(a);
+      var a = document.createElement('a'); a.className = 'lg-track';
+      a.href = 'https://www.loggi.com/rastreio/' + order.trackingKey; a.target = '_blank';
+      a.textContent = 'Rastrear #' + order.trackingKey;
+      document.querySelector('#lgrow-'+idx+' .lg-info').appendChild(a);
     }
-    showToast('Pedido enviado! #' + (order.trackingKey || order.pk), 'ok');
+    toast('Pedido enviado!', 'ok');
   } catch(err) {
-    loggiSt[idx] = 'err';
-    st.className = 'loggi-st lst-er'; st.textContent = '? erro';
-    btn.disabled = false; btn.textContent = '?';
-    showToast('Erro Loggi: ' + err.message, 'err');
-    console.error(err);
+    lgSt[idx] = 'err'; st.className = 'lg-st lg-er'; st.textContent = 'erro';
+    btn.disabled = false; btn.textContent = 'Tentar';
+    toast('Erro Loggi: ' + err.message, 'err');
   }
-
-  const done = Object.values(loggiSt).filter(v => v==='ok').length;
-  document.getElementById('ml-count').textContent = done + ' de ' + loggiOrders.length + ' enviados';
-  document.getElementById('ml-prog').style.width = Math.round(done / loggiOrders.length * 100) + '%';
+  var done = Object.values(lgSt).filter(function(v){return v==='ok';}).length;
+  document.getElementById('ml-count').textContent = done + ' de ' + lgOrders.length + ' enviados';
+  document.getElementById('ml-prog').style.width = Math.round(done/lgOrders.length*100) + '%';
 }
 
 async function dispararTodos() {
-  const btn = document.getElementById('btn-all');
-  btn.disabled = true; btn.textContent = '? Enviando...';
-  for (let i = 0; i < loggiOrders.length; i++) {
-    if (loggiSt[i] === 'ok') continue;
+  var btn = document.getElementById('btn-all'); btn.disabled = true; btn.textContent = 'Enviando...';
+  for (var i = 0; i < lgOrders.length; i++) {
+    if (lgSt[i] === 'ok') continue;
     await dispatchOne(i);
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(function(r){ setTimeout(r, 600); });
   }
-  btn.textContent = 'OK Concluido';
+  btn.textContent = 'Concluido';
 }
 
-// -- CONFIG -------------------------------------
+// CONFIG
 async function autenticarOAuth() {
-  const cid = document.getElementById('cfg-cid').value.trim();
-  const cs  = document.getElementById('cfg-cs').value.trim();
-  if (!cid || !cs) { showToast('Preencha Client ID e Client Secret.', 'err'); return; }
+  var cid = document.getElementById('cfg-cid').value.trim();
+  var cs  = document.getElementById('cfg-cs').value.trim();
+  if (!cid||!cs) { toast('Preencha Client ID e Client Secret.', 'err'); return; }
   setCfgMsg('Autenticando...', '#888');
   try {
-    const r = await fetch('https://api.loggi.com/v2/oauth2/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: cid, client_secret: cs })
-    });
-    const d = await r.json();
+    var r = await fetch('https://api.loggi.com/v2/oauth2/token', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({client_id:cid,client_secret:cs}) });
+    var d = await r.json();
     if (!d.access_token) throw new Error(JSON.stringify(d));
-    LOGGI.token = d.access_token;
-    LOGGI.clientId = cid;
-    document.getElementById('cfg-token').value = '????????????????';
+    LOGGI.token = d.access_token; LOGGI.clientId = cid;
+    document.getElementById('cfg-token').value = '****************';
     localStorage.setItem('etc_loggi', JSON.stringify(LOGGI));
-    setDot(true);
-    setCfgMsg('OK Autenticado!', '#1a8a4a');
-    showToast('Autenticado com sucesso!', 'ok');
-  } catch(e) { setCfgMsg('Erro: ' + e.message, '#c0392b'); showToast('Falha na autenticacao.', 'err'); }
+    setCfgMsg('Autenticado!', '#1a8a4a'); toast('Autenticado!', 'ok');
+  } catch(e) { setCfgMsg('Erro: ' + e.message, '#c0392b'); toast('Falha.', 'err'); }
 }
 
 async function testarConexao() {
-  const tok = LOGGI.token;
-  if (!tok) { showToast('Configure o token primeiro.', 'err'); return; }
+  if (!LOGGI.token) { toast('Configure o token.', 'err'); return; }
   setCfgMsg('Testando...', '#888');
   try {
-    const r = await fetch('https://www.loggi.com/graphql', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
-      body: JSON.stringify({ query: 'query{__typename}' })
-    });
-    const d = await r.json();
-    if (d&&d.data) { setDot(true); setCfgMsg('OK Conectado!', '#1a8a4a'); showToast('Conectado!', 'ok'); }
-    else throw new Error(JSON.stringify(d).substring(0,100));
-  } catch(e) { setDot(false); setCfgMsg('Erro: ' + e.message, '#c0392b'); }
+    var r = await fetch('https://www.loggi.com/graphql', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+LOGGI.token}, body:JSON.stringify({query:'query{__typename}'}) });
+    var d = await r.json();
+    if (d&&d.data) { setCfgMsg('Conectado!', '#1a8a4a'); toast('Conectado!', 'ok'); }
+    else throw new Error(JSON.stringify(d).substring(0,80));
+  } catch(e) { setCfgMsg('Erro: ' + e.message, '#c0392b'); toast('Falha.', 'err'); }
 }
 
 function salvarCfg() {
-  const tok = document.getElementById('cfg-token').value.trim();
-  LOGGI = {
-    ...LOGGI,
-    token:  tok === '????????????????' ? LOGGI.token : tok,
+  var tok = document.getElementById('cfg-token').value.trim();
+  LOGGI = Object.assign({}, LOGGI, {
+    token:  tok === '****************' ? LOGGI.token : tok,
     shopPk: document.getElementById('cfg-shopk').value.trim(),
     phone:  document.getElementById('cfg-phone').value.trim().replace(/[^0-9]/g,''),
     etcId:  document.getElementById('cfg-etc-id').value.trim(),
     clientId: document.getElementById('cfg-cid').value.trim(),
-  };
+  });
   localStorage.setItem('etc_loggi', JSON.stringify(LOGGI));
-  if (LOGGI.token) setDot(true);
-  setCfgMsg('OK Salvo!', '#1a8a4a');
-  showToast('Configuracao salva!', 'ok');
+  setCfgMsg('Salvo!', '#1a8a4a'); toast('Configuracao salva!', 'ok');
 }
 
 function salvarEmpresa() {
-  EMPRESA = {
-    nome:    document.getElementById('cfg-emp-nome').value.trim(),
-    addr:    document.getElementById('cfg-emp-addr').value.trim(),
-    cep:     document.getElementById('cfg-emp-cep').value.trim(),
-    contato: document.getElementById('cfg-emp-contato').value.trim(),
-  };
+  EMPRESA = { nome:document.getElementById('cfg-emp-nome').value.trim(), addr:document.getElementById('cfg-emp-addr').value.trim(), cep:document.getElementById('cfg-emp-cep').value.trim(), contato:document.getElementById('cfg-emp-contato').value.trim() };
   localStorage.setItem('etc_empresa', JSON.stringify(EMPRESA));
-  showToast('Empresa salva!', 'ok');
+  toast('Empresa salva!', 'ok');
 }
 
-function setDot(ok) {
-  document.getElementById('loggi-dot').style.background = ok ? '#1a8a4a' : '#ccc';
-}
 function setCfgMsg(msg, color) {
-  const el = document.getElementById('cfg-msg');
+  var el = document.getElementById('cfg-msg');
   el.textContent = msg; el.style.color = color; el.style.display = 'block';
 }
 
-// -- INIT ---------------------------------------
+// INIT
 document.getElementById('f-saida').value = new Date().toISOString().split('T')[0];
-if (LOGGI.token || LOGGI.clientId) setDot(true);
+updateBadges();
+renderTable();
+</script>
+</body>
+</html>
 </script>
 </body>
 </html>
