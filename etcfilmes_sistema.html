@@ -1598,18 +1598,12 @@ function abrirModalEmail(idx) {
   document.getElementById('me-sub').textContent  = 'Para: ' + origem;
   document.getElementById('email-para').value    = '';
 
-  var corpo = 'Ola, equipe ' + origem + '! Tudo bem?
-
-'
+  var corpo = 'Ola, equipe ' + origem + '! Tudo bem?\n\n'
     + 'Enviamos para voces o HD ' + mat + ' do filme ' + titulo + ' e precisamos movimenta-lo para outro cinema. '
-    + 'Peco, por gentileza, que realizem o ingeste, testem o filme na sala e, apos esses procedimentos, liberem o HD para coleta.
-'
-    + 'Ficamos no aguardo da liberacao. Obrigada!
-
-'
+    + 'Peco, por gentileza, que realizem o ingeste, testem o filme na sala e, apos esses procedimentos, liberem o HD para coleta.\n'
+    + 'Ficamos no aguardo da liberacao. Obrigada!\n\n'
     + 'Equipe ETC Filmes, por favor, assim que o pessoal do ' + origem + ' liberar o HD, coletar e entregar no ' + destino
-    + (s.prazo ? ' ate ' + prazo : '') + '. Por favor nos avise da movimentacao.
-'
+    + (s.prazo ? ' ate ' + prazo : '') + '. Por favor nos avise da movimentacao.\n'
     + 'Abs.';
 
   document.getElementById('email-corpo').value = corpo;
