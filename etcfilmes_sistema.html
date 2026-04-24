@@ -1846,10 +1846,10 @@ function abrirDetalhe(idx) {
       + buildStatusSel(idx, i) + '</div>'
       + '<div style="display:grid;grid-template-columns:160px 1fr;gap:8px">'
       + '<div><div style="font-size:10px;color:#aaa;margin-bottom:3px">Horario recebimento</div>'
-      + '<input type="datetime-local" value="' + (sd.recHora||'') + '" onchange="updDel(' + idx + ',' + i + ','recHora',this.value)" style="width:100%;padding:4px 7px;border:1px solid #d0cec9;border-radius:4px;font-size:11px;font-family:inherit;outline:none"></div>'
+      + '<div><div style="font-size:10px;color:#aaa;margin-bottom:3px">Horario recebimento</div>'
+      + '<input type="datetime-local" value="' + (sd.recHora||'') + '" data-si="' + idx + '" data-ri="' + i + '" data-field="recHora" onchange="updDelEvt(this)" style="width:100%;padding:4px 7px;border:1px solid #d0cec9;border-radius:4px;font-size:11px;font-family:inherit;outline:none"></div>'
       + '<div><div style="font-size:10px;color:#aaa;margin-bottom:3px">Recebido por</div>'
-      + '<input type="text" value="' + (sd.recNome||'') + '" placeholder="Nome" onchange="updDel(' + idx + ',' + i + ','recNome',this.value)" style="width:100%;padding:4px 7px;border:1px solid #d0cec9;border-radius:4px;font-size:11px;font-family:inherit;outline:none"></div>'
-      + '</div>'
+      + '<input type="text" value="' + (sd.recNome||'') + '" placeholder="Nome" data-si="' + idx + '" data-ri="' + i + '" data-field="recNome" onchange="updDelEvt(this)" style="width:100%;padding:4px 7px;border:1px solid #d0cec9;border-radius:4px;font-size:11px;font-family:inherit;outline:none"></div>'
       + (sd.tracking ? '<div style="margin-top:5px"><a href="https://www.loggi.com/rastreio/' + sd.tracking + '" target="_blank" style="font-size:11px;color:#1a4fff">Rastrear Loggi #' + sd.tracking + '</a></div>' : '')
       + '</div>';
   });
@@ -1884,6 +1884,9 @@ function updStepStatus(schedIdx, stepIdx, val) {
   renderDash();
 }
 
+function updDelEvt(el) {
+  updDel(parseInt(el.dataset.si), parseInt(el.dataset.ri), el.dataset.field, el.value);
+}
 function updDel(schedIdx, stepIdx, field, val) {
   var s = SAVED[schedIdx]; if (!s) return;
   if (!s.stepData) s.stepData = {};
