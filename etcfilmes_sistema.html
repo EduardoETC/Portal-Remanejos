@@ -6,396 +6,410 @@
 <title>ETC Filmes — Remanejamento</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-:root{
-  --bg:#f5f4f0;--bg2:#fff;--bg3:#eceae5;
-  --bdr:rgba(0,0,0,.1);--bdr2:rgba(0,0,0,.18);
-  --t:#1a1a18;--t2:#585854;--t3:#97968e;
-  --ac:#1a4fff;--al:#eaedff;
-  --gn:#1a8a4a;--gl:#e5f5ec;
-  --am:#996a00;--yl:#fdf4df;
-  --rd:#c0392b;--rl:#fdecea;
-  --or:#e65100;--ol:#fff2e8;
-  --nav:#18181600;
-  --r:8px;--rs:5px;
-}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--t);font-size:14px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;background:#f0efeb;color:#1a1a18;min-height:100vh}
 
 /* NAV */
-nav{background:#1a1a18;display:flex;align-items:center;padding:0 20px;height:48px;gap:6px;position:sticky;top:0;z-index:100}
-.nav-brand{color:#fff;font-size:13px;font-weight:600;margin-right:16px;white-space:nowrap}
-.nav-brand span{color:rgba(255,255,255,.4);font-weight:400;margin-left:4px;font-size:12px}
-.nav-btn{padding:6px 14px;border-radius:var(--rs);border:none;cursor:pointer;font-size:13px;font-family:inherit;font-weight:500;transition:all .14s}
-.nav-btn.off{background:none;color:rgba(255,255,255,.5)}
-.nav-btn.off:hover{background:rgba(255,255,255,.08);color:#fff}
-.nav-btn.on{background:rgba(255,255,255,.15);color:#fff}
-.nav-right{margin-left:auto;display:flex;align-items:center;gap:6px}
-.loggi-dot{width:7px;height:7px;border-radius:50%;background:#555;display:inline-block;margin-left:6px}
-.loggi-dot.ok{background:var(--gn)}
+nav{background:#1c1c1a;height:46px;display:flex;align-items:center;padding:0 20px;gap:4px;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.logo{color:#fff;font-weight:600;font-size:13px;margin-right:14px;flex-shrink:0}
+.logo span{color:rgba(255,255,255,.35);font-weight:400}
+.ntab{padding:5px 13px;border-radius:5px;border:none;background:none;color:rgba(255,255,255,.5);font-size:13px;font-family:inherit;cursor:pointer;transition:all .15s;font-weight:500}
+.ntab:hover{color:#fff;background:rgba(255,255,255,.08)}
+.ntab.active{color:#fff;background:rgba(255,255,255,.14)}
 
 /* VIEWS */
-.view{display:none}.view.on{display:block}
+.view{display:none}
+.view.active{display:block}
 
 /* PAGE HEADER */
-.ph{background:var(--bg2);border-bottom:1px solid var(--bdr2);padding:14px 24px;display:flex;align-items:center;gap:12px}
-.ph h1{font-size:16px;font-weight:600}
-.ph-sub{font-size:12px;color:var(--t3);margin-top:1px}
-.ph-right{margin-left:auto;display:flex;gap:7px;align-items:center}
+.ph{background:#fff;border-bottom:1px solid #e0deda;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.ph-left h1{font-size:16px;font-weight:600}
+.ph-left p{font-size:12px;color:#888;margin-top:2px}
 
 /* BUTTONS */
-.btn{padding:7px 14px;border-radius:var(--rs);font-family:inherit;font-size:13px;cursor:pointer;border:1px solid var(--bdr2);background:none;color:var(--t2);font-weight:500;transition:all .14s;white-space:nowrap}
-.btn:hover{border-color:var(--ac);color:var(--ac)}
-.btn.pri{background:var(--ac);color:#fff;border-color:var(--ac)}
-.btn.pri:hover{background:#1237cc}
-.btn.grn{background:var(--gn);color:#fff;border-color:var(--gn)}
-.btn.grn:hover{background:#157a3e}
-.btn.orn{background:var(--or);color:#fff;border-color:var(--or)}
-.btn.orn:hover{background:#bf4000}
-.btn.sm{padding:4px 10px;font-size:12px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:1px solid #d0cec9;background:#fff;color:#444;font-size:13px;font-family:inherit;font-weight:500;cursor:pointer;transition:all .15s;text-decoration:none}
+.btn:hover{border-color:#1a4fff;color:#1a4fff}
+.btn-primary{background:#1a4fff;color:#fff;border-color:#1a4fff}
+.btn-primary:hover{background:#1237cc;border-color:#1237cc;color:#fff}
+.btn-green{background:#1a8a4a;color:#fff;border-color:#1a8a4a}
+.btn-green:hover{background:#147a3f;color:#fff}
+.btn-orange{background:#e65100;color:#fff;border-color:#e65100}
+.btn-orange:hover{background:#bf4000;color:#fff}
 
-/* CONTENT */
-.pad{padding:20px 24px}
+/* FILE INPUT — the reliable way */
+.file-label{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:1px solid #d0cec9;background:#fff;color:#444;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.file-label:hover{border-color:#1a4fff;color:#1a4fff}
+.file-label input[type=file]{display:none}
 
-/* DROP ZONE */
-.dropzone{border:2px dashed var(--bdr2);border-radius:var(--r);padding:32px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg2);margin-bottom:16px}
-.dropzone:hover,.dropzone.drag{border-color:var(--ac);background:var(--al)}
-.dropzone.loaded{border-style:solid;border-color:var(--gn);background:var(--gl);cursor:default}
-.dz-icon{font-size:32px;margin-bottom:8px;opacity:.5}
-.dz-title{font-size:14px;font-weight:600;color:var(--t)}
-.dz-sub{font-size:12px;color:var(--t2);margin-top:3px}
-#file-input{display:none}
+/* DROP AREA */
+.drop-area{border:2px dashed #c8c6c0;border-radius:10px;padding:40px 24px;text-align:center;background:#fff;cursor:pointer;transition:all .15s;margin:20px 24px}
+.drop-area:hover{border-color:#1a4fff;background:#f0f3ff}
+.drop-area.has-file{border-color:#1a8a4a;border-style:solid;background:#f0faf4;cursor:default}
+.drop-icon{font-size:36px;margin-bottom:10px}
+.drop-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.drop-sub{font-size:12px;color:#888}
+
+/* SEARCH */
+.search-wrap{padding:0 24px 12px}
+.search-input{width:100%;padding:8px 12px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;font-family:inherit;outline:none;background:#fff}
+.search-input:focus{border-color:#1a4fff;box-shadow:0 0 0 3px rgba(26,79,255,.08)}
 
 /* TABLE */
-.tbl-wrap{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden}
-.tbl-head{display:grid;padding:9px 14px;background:var(--bg3);border-bottom:1px solid var(--bdr2);font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;gap:0}
-.tbl-row{display:grid;padding:10px 14px;border-bottom:1px solid var(--bdr);align-items:center;gap:0;transition:background .12s;cursor:pointer}
-.tbl-row:last-child{border-bottom:none}
-.tbl-row:hover{background:#f8f7f4}
-.tbl-row.sel{background:var(--al);border-left:3px solid var(--ac)}
-.cell-main{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cell-sub{font-size:11px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mono{font-family:'SF Mono',Monaco,'IBM Plex Mono',monospace}
-
-/* GRID for envios table: HD | Filme | Cinema | Exibidor | Transp | Data | Status | Ação */
-.grid-envios{grid-template-columns:85px 1fr 155px 180px 90px 90px 40px}
+.table-wrap{margin:0 24px 24px;background:#fff;border-radius:8px;border:1px solid #e0deda;overflow:hidden}
+.table-head{display:grid;padding:9px 14px;background:#f5f4f0;border-bottom:1px solid #e0deda;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em}
+.table-row{display:grid;padding:11px 14px;border-bottom:1px solid #ebebeb;align-items:center;cursor:pointer;transition:background .12s}
+.table-row:last-child{border-bottom:none}
+.table-row:hover{background:#f8f7f4}
+.cell-name{font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell-sub{font-size:11px;color:#888;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* BADGES */
-.badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap}
-.badge.gn{background:var(--gl);color:var(--gn)}
-.badge.am{background:var(--yl);color:var(--am)}
-.badge.gy{background:var(--bg3);color:var(--t3)}
-.badge.ac{background:var(--al);color:var(--ac)}
-.badge.or{background:var(--ol);color:var(--or)}
-.badge.dk{background:#1a1a18;color:#fff}
-.badge.rd{background:var(--rl);color:var(--rd)}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-green{background:#e5f5ec;color:#1a8a4a}
+.badge-amber{background:#fdf4df;color:#996a00}
+.badge-red{background:#fdecea;color:#c0392b}
+.badge-blue{background:#eaedff;color:#1a4fff}
+.badge-orange{background:#fff2e8;color:#e65100}
+.badge-gray{background:#f0efeb;color:#666}
+.badge-dark{background:#1c1c1a;color:#fff}
 
-/* FORM */
-.fld{margin-bottom:11px}
-.fld label{display:block;font-size:12px;color:var(--t2);margin-bottom:4px;font-weight:500}
-.fld input,.fld select{width:100%;padding:7px 10px;border:1px solid var(--bdr2);border-radius:var(--rs);font-family:inherit;font-size:13px;color:var(--t);background:#fff;outline:none;transition:border-color .14s}
-.fld input:focus,.fld select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(26,79,255,.09)}
-.fld2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.fld3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+/* SPLIT LAYOUT */
+.split{display:flex;height:calc(100vh - 46px)}
+.split-left{width:290px;flex-shrink:0;background:#fff;border-right:1px solid #e0deda;overflow-y:auto;display:flex;flex-direction:column}
+.split-right{flex:1;overflow-y:auto;background:#f0efeb;padding:20px 24px}
 
-/* SPLIT LAYOUT for route screen */
-.split{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 48px)}
-.split-l{background:var(--bg2);border-right:1px solid var(--bdr2);overflow-y:auto;display:flex;flex-direction:column}
-.split-r{overflow-y:auto;padding:20px 24px;background:var(--bg)}
-.psec{padding:14px 16px;border-bottom:1px solid var(--bdr)}
-.psec h3{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px}
+/* FORM SECTIONS */
+.fsec{padding:14px 16px;border-bottom:1px solid #ebebeb}
+.fsec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:10px}
+.field{margin-bottom:10px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12px;font-weight:500;color:#555;margin-bottom:4px}
+.field input,.field select{width:100%;padding:7px 10px;border:1px solid #d0cec9;border-radius:6px;font-family:inherit;font-size:13px;color:#1a1a18;background:#fff;outline:none;transition:border-color .14s}
+.field input:focus,.field select:focus{border-color:#1a4fff;box-shadow:0 0 0 3px rgba(26,79,255,.08)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 
 /* SUGGEST */
 .sug-wrap{position:relative}
-.sug-box{position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1px solid var(--ac);border-radius:var(--rs);z-index:200;max-height:200px;overflow-y:auto;display:none;box-shadow:0 4px 12px rgba(0,0,0,.12)}
-.sug-item{padding:8px 11px;cursor:pointer;border-bottom:1px solid var(--bdr);font-size:13px}
+.sug-list{position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1px solid #1a4fff;border-radius:6px;z-index:200;max-height:220px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12);display:none}
+.sug-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid #f0efeb;font-size:13px}
 .sug-item:last-child{border-bottom:none}
-.sug-item:hover{background:var(--al)}
+.sug-item:hover{background:#f0f3ff}
 .sug-name{font-weight:500}
-.sug-meta{font-size:11px;color:var(--t3);margin-top:1px}
+.sug-meta{font-size:11px;color:#888;margin-top:1px}
+
+/* ROUTE CARD */
+.route-card{background:#fff;border-radius:8px;border:1px solid #e0deda;overflow:hidden;margin-bottom:14px}
+.route-header{background:#1c1c1a;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.route-header-icon{width:32px;height:44px;background:rgba(255,255,255,.1);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.route-header-info{flex:1;min-width:0}
+.route-header-title{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.route-header-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px}
+.route-header-actions{display:flex;gap:6px;flex-shrink:0}
 
 /* ROUTE STEPS */
-.route-wrap{display:flex;flex-direction:column;gap:0;border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;background:#fff;margin-bottom:16px}
-.step{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--bdr);transition:background .12s}
+.step{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #ebebeb}
 .step:last-child{border-bottom:none}
-.step.origin-step{background:#eef1ff}
-.step.best-step{background:var(--gl)}
+.step-origin{background:#eef1ff}
+.step-best{background:#edf9f3}
 .step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
-.sn-orig{background:#1a1a18;color:#fff}
-.sn-100{background:var(--gl);color:var(--gn);border:1.5px solid var(--gn)}
-.sn-80{background:var(--yl);color:var(--am);border:1.5px solid var(--am)}
-.sn-lo{background:var(--bg3);color:var(--t3);border:1.5px solid var(--bdr2)}
+.sn-orig{background:#1c1c1a;color:#fff}
+.sn-100{background:#e5f5ec;color:#1a8a4a;border:1.5px solid #1a8a4a}
+.sn-80{background:#fdf4df;color:#996a00;border:1.5px solid #996a00}
+.sn-lo{background:#f0efeb;color:#888;border:1.5px solid #ccc}
 .step-info{flex:1;min-width:0}
 .step-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.step-meta{font-size:11px;color:var(--t3);margin-top:1px}
-.step-dist{font-size:11px;color:var(--t3);flex-shrink:0;font-family:monospace}
-.step-arrow{display:flex;align-items:center;padding:3px 14px 3px 18px;border-bottom:1px solid var(--bdr);background:#fff;gap:6px}
-.step-arrow-line{flex:1;height:0;border-top:1px dashed var(--bdr2)}
-.step-arrow-txt{font-size:10px;color:var(--t3);white-space:nowrap}
+.step-meta{font-size:11px;color:#888;margin-top:1px}
+.step-connector{display:flex;align-items:center;padding:3px 14px 3px 22px;border-bottom:1px solid #ebebeb}
+.connector-line{flex:1;border-top:1px dashed #ddd}
+.connector-label{font-size:10px;color:#aaa;margin:0 7px;white-space:nowrap}
 
-/* STATUS SELECT */
-.st-sel{padding:3px 7px;border:1px solid var(--bdr2);border-radius:var(--rs);font-size:11px;font-family:monospace;background:#fff;cursor:pointer;outline:none;max-width:90px}
-.st-ok{background:var(--gl);color:var(--gn);border-color:var(--gn)}
-.st-rt{background:var(--yl);color:var(--am);border-color:var(--am)}
-.st-er{background:var(--rl);color:var(--rd);border-color:var(--rd)}
-.st-pd{background:var(--bg3);color:var(--t3)}
+/* STATUS & TRANSP SELECTS */
+.sel-status{padding:3px 8px;border:1px solid #d0cec9;border-radius:5px;font-size:11px;font-family:monospace;background:#fff;cursor:pointer;outline:none}
+.sel-status.ok{background:#e5f5ec;color:#1a8a4a;border-color:#1a8a4a}
+.sel-status.rota{background:#fdf4df;color:#996a00;border-color:#996a00}
+.sel-status.erro{background:#fdecea;color:#c0392b;border-color:#c0392b}
+.sel-transp{padding:3px 7px;border:1px solid #d0cec9;border-radius:5px;font-size:11px;font-family:inherit;background:#fff;cursor:pointer;outline:none;max-width:130px}
 
-/* TRANSP SELECT */
-.tr-sel{padding:3px 7px;border:1px solid var(--bdr2);border-radius:var(--rs);font-size:11px;font-family:inherit;background:#fff;cursor:pointer;outline:none}
-
-/* INFO BOX */
-.info-box{border-radius:var(--rs);padding:10px 13px;font-size:12px;margin-bottom:12px;display:flex;align-items:flex-start;gap:7px;line-height:1.5;border:1px solid}
-.info-box.inf{background:var(--al);color:#1237cc;border-color:rgba(26,79,255,.2)}
-.info-box.ok{background:var(--gl);color:var(--gn);border-color:rgba(26,138,74,.2)}
-.info-box.wrn{background:var(--yl);color:var(--am);border-color:rgba(153,106,0,.2)}
+/* EMPTY / WELCOME */
+.empty{text-align:center;padding:60px 30px;color:#aaa}
+.empty-icon{font-size:42px;margin-bottom:12px;opacity:.4}
+.empty h3{font-size:16px;font-weight:600;color:#555;margin-bottom:6px}
+.empty p{font-size:13px;color:#888;line-height:1.6;max-width:340px;margin:0 auto}
 
 /* MODAL */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center}
-.overlay.on{display:flex}
-.modal{background:#fff;border-radius:10px;box-shadow:0 16px 48px rgba(0,0,0,.18);display:flex;flex-direction:column;max-height:88vh;width:580px;max-width:95vw}
-.modal.lg{width:680px}
-.m-head{padding:16px 20px 13px;border-bottom:1px solid var(--bdr);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
-.m-head h3{font-size:15px;font-weight:600}
-.m-sub{font-size:12px;color:var(--t3);margin-top:2px}
-.m-body{padding:16px 20px;overflow-y:auto;flex:1}
-.m-foot{padding:12px 20px;border-top:1px solid var(--bdr);display:flex;gap:7px;justify-content:flex-end;flex-shrink:0}
-.m-close{background:none;border:1px solid var(--bdr2);border-radius:var(--rs);padding:4px 10px;cursor:pointer;font-size:12px;color:var(--t2);font-family:inherit}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center}
+.overlay.active{display:flex}
+.modal{background:#fff;border-radius:10px;width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,.18)}
+.modal-head{padding:16px 20px 13px;border-bottom:1px solid #ebebeb;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}
+.modal-head h3{font-size:15px;font-weight:600}
+.modal-head p{font-size:12px;color:#888;margin-top:2px}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1}
+.modal-foot{padding:12px 20px;border-top:1px solid #ebebeb;display:flex;gap:7px;justify-content:flex-end;flex-shrink:0}
+.modal-close{background:none;border:1px solid #d0cec9;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px;color:#666;font-family:inherit}
 
 /* LOGGI MODAL */
-.lg-row{display:flex;align-items:center;gap:9px;padding:10px 16px;border-bottom:1px solid rgba(230,81,0,.1);font-size:12px}
-.lg-row:hover{background:rgba(230,81,0,.03)}
-.lg-row:last-child{border-bottom:none}
-.lg-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;background:rgba(230,81,0,.15);color:#bf4000}
-.lg-info{flex:1;min-width:0}
-.lg-route{font-weight:500;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lg-desc{font-size:10px;color:var(--t3);margin-top:1px}
-.lg-track{font-size:10px;font-family:monospace;color:var(--ac);text-decoration:none;display:block;margin-top:2px}
-.lg-st{font-size:10px;font-family:monospace;padding:2px 7px;border-radius:8px;flex-shrink:0}
-.lg-pd{background:var(--bg3);color:var(--t3)}
-.lg-sn{background:var(--ol);color:var(--or)}
-.lg-ok{background:var(--gl);color:var(--gn)}
-.lg-er{background:var(--rl);color:var(--rd)}
-.lg-prog-bar{height:3px;background:rgba(230,81,0,.15);border-radius:2px;margin:0 16px 10px;overflow:hidden}
-.lg-prog-fill{height:100%;background:var(--or);border-radius:2px;transition:width .4s}
-.btn-orange{padding:7px 14px;background:var(--or);color:#fff;border:none;border-radius:var(--rs);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .14s}
-.btn-orange:hover{background:#bf4000}
-.btn-orange:disabled{background:var(--t3);cursor:not-allowed}
-
-/* WELCOME */
-.welcome{text-align:center;padding:60px 30px;color:var(--t3)}
-.welcome-icon{font-size:40px;margin-bottom:12px;opacity:.4}
-.welcome h3{font-size:16px;font-weight:600;color:var(--t);margin-bottom:6px}
-.welcome p{font-size:13px;color:var(--t2);line-height:1.6}
-
-/* SEARCH */
-.search-input{width:100%;padding:8px 12px;border:1px solid var(--bdr2);border-radius:var(--rs);font-family:inherit;font-size:13px;outline:none;background:#fff;margin-bottom:12px}
-.search-input:focus{border-color:var(--ac)}
+.loggi-row{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid rgba(230,81,0,.1);font-size:12px}
+.loggi-row:hover{background:rgba(230,81,0,.03)}
+.loggi-row:last-child{border-bottom:none}
+.loggi-num{width:22px;height:22px;border-radius:50%;background:rgba(230,81,0,.15);color:#bf4000;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.loggi-info{flex:1;min-width:0}
+.loggi-route{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.loggi-desc{font-size:10px;color:#888;margin-top:1px}
+.loggi-st{font-size:10px;font-family:monospace;padding:2px 7px;border-radius:8px;flex-shrink:0}
+.lst-pd{background:#f0efeb;color:#888}
+.lst-sn{background:#fff2e8;color:#e65100}
+.lst-ok{background:#e5f5ec;color:#1a8a4a}
+.lst-er{background:#fdecea;color:#c0392b}
+.loggi-track{font-size:10px;font-family:monospace;color:#1a4fff;text-decoration:none;display:block;margin-top:2px}
+.loggi-prog{height:3px;background:rgba(230,81,0,.15);border-radius:2px;margin:0 16px 10px}
+.loggi-prog-fill{height:100%;background:#e65100;border-radius:2px;transition:width .4s}
 
 /* TOAST */
-.toast{position:fixed;bottom:18px;right:18px;padding:10px 16px;border-radius:var(--r);font-size:13px;font-weight:500;z-index:9999;opacity:0;transform:translateY(6px);transition:all .22s;pointer-events:none}
+.toast{position:fixed;bottom:18px;right:18px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;z-index:9999;pointer-events:none;opacity:0;transform:translateY(6px);transition:all .22s;max-width:300px}
 .toast.show{opacity:1;transform:translateY(0)}
-.toast.ok{background:var(--gn);color:#fff}
-.toast.err{background:var(--rd);color:#fff}
-.toast.info{background:#1a1a18;color:#fff}
+.toast.ok{background:#1a8a4a;color:#fff}
+.toast.err{background:#c0392b;color:#fff}
+.toast.info{background:#1c1c1a;color:#fff}
+
+/* NOTICE */
+.notice{border-radius:6px;padding:10px 13px;font-size:12px;margin-bottom:12px;display:flex;gap:8px;border:1px solid;line-height:1.5}
+.notice.info{background:#eaedff;color:#1237cc;border-color:rgba(26,79,255,.2)}
+.notice.ok{background:#e5f5ec;color:#1a8a4a;border-color:rgba(26,138,74,.2)}
+.notice.warn{background:#fdf4df;color:#996a00;border-color:rgba(153,106,0,.2)}
+
+/* KPIS */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:8px;border:1px solid #e0deda;padding:12px 14px}
+.kpi-val{font-size:22px;font-weight:600;font-family:monospace;margin-bottom:2px}
+.kpi-lbl{font-size:11px;color:#888}
+
+/* CONFIG PAGE */
+.cfg-card{background:#fff;border:1px solid #e0deda;border-radius:8px;padding:18px;margin:20px 24px 0}
+.cfg-title{font-size:14px;font-weight:600;margin-bottom:14px}
 
 ::-webkit-scrollbar{width:5px}
-::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+::-webkit-scrollbar-thumb{background:#d0cec9;border-radius:3px}
 </style>
 </head>
 <body>
 
 <!-- NAV -->
 <nav>
-  <div class="nav-brand">ETC Filmes <span>Remanejamento HD</span></div>
-  <button class="nav-btn on" id="nb-envios"    onclick="goTo('envios')">📋 Primeiros Envios</button>
-  <button class="nav-btn off" id="nb-prog"     onclick="goTo('prog')">⚡ Programar Remanejamento</button>
-  <button class="nav-btn off" id="nb-loggi-cfg" onclick="goTo('cfg')">⚙ Loggi<span class="loggi-dot" id="nav-dot"></span></button>
+  <div class="logo">ETC Filmes <span>· Remanejamento HD</span></div>
+  <button class="ntab active" id="tab-envios"  onclick="goTo('envios')">📋 Primeiros Envios</button>
+  <button class="ntab"        id="tab-prog"    onclick="goTo('prog')">⚡ Programar</button>
+  <button class="ntab"        id="tab-cfg"     onclick="goTo('cfg')">⚙ Loggi</button>
 </nav>
 
-<!-- ═══ PRIMEIROS ENVIOS ═══════════════════════ -->
-<div class="view on" id="view-envios">
+<!-- ═══ TELA 1: PRIMEIROS ENVIOS ═══════════════ -->
+<div class="view active" id="view-envios">
+
   <div class="ph">
-    <div>
+    <div class="ph-left">
       <h1>Primeiros Envios</h1>
-      <div class="ph-sub" id="envios-sub">Importe a planilha do sistema legado</div>
+      <p id="envios-info">Importe a planilha exportada do sistema desktop</p>
     </div>
-    <div class="ph-right">
-      <label for="xls-file" class="btn" style="cursor:pointer">📂 Importar XLS</label>
-      <input type="file" id="xls-file" accept=".xls,.xlsx" onchange="importXLS(this)" style="display:none">
-      <button class="btn" id="btn-export-csv" onclick="exportEnviosCSV()" style="display:none">⬇ Exportar CSV</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <label class="file-label">
+        📂 Importar XLS
+        <input type="file" id="file-xls" accept=".xls,.xlsx" onchange="handleFile(this)">
+      </label>
+      <button class="btn" id="btn-csv" style="display:none" onclick="exportCSV()">⬇ CSV</button>
     </div>
   </div>
-  <div class="pad">
-    <div class="dropzone" id="dropzone" onclick="document.getElementById('xls-file').click()">
-      <div class="dz-icon">📂</div>
-      <div class="dz-title">Clique ou arraste a planilha aqui</div>
-      <div class="dz-sub">Exportação do sistema desktop (.xls ou .xlsx)</div>
-    </div>
-    <input class="search-input" id="envios-search" placeholder="Buscar por filme, cinema, HD, exibidor..." oninput="renderEnvios()" style="display:none">
-    <div id="envios-table"></div>
+
+  <!-- DROP AREA -->
+  <div class="drop-area" id="drop-area">
+    <div class="drop-icon">📂</div>
+    <div class="drop-title">Arraste a planilha aqui</div>
+    <div class="drop-sub">ou use o botão "Importar XLS" acima · .xls ou .xlsx</div>
   </div>
+
+  <!-- SEARCH (hidden until data loaded) -->
+  <div class="search-wrap" id="search-wrap" style="display:none">
+    <input class="search-input" id="search-q" placeholder="Buscar por filme, cinema, HD, exibidor..." oninput="renderTable()">
+  </div>
+
+  <!-- TABLE -->
+  <div id="table-area"></div>
+
 </div>
 
-<!-- ═══ PROGRAMAR REMANEJAMENTO ════════════════ -->
+<!-- ═══ TELA 2: PROGRAMAR ═══════════════════════ -->
 <div class="view" id="view-prog">
   <div class="split">
 
-    <!-- LEFT: form -->
-    <div class="split-l">
-      <div class="psec" style="background:#1a1a18;padding:14px 16px">
-        <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">Programar Remanejamento</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.45)">Selecione origem → sistema sugere a rota</div>
-      </div>
+    <!-- LEFT PANEL -->
+    <div class="split-left">
 
-      <!-- From import -->
-      <div class="psec" id="from-import-sec">
-        <h3>Usar primeiro envio importado</h3>
-        <div id="import-sel-list">
-          <div style="font-size:12px;color:var(--t3)">Nenhuma planilha importada ainda. Vá em "Primeiros Envios" e importe o XLS.</div>
+      <!-- From import list -->
+      <div class="fsec" id="fsec-import">
+        <div class="fsec-title">Selecionar envio importado</div>
+        <div id="import-list">
+          <div style="font-size:12px;color:#aaa">Importe uma planilha na aba "Primeiros Envios" para ver as saídas aqui.</div>
         </div>
       </div>
 
-      <!-- Dados do filme -->
-      <div class="psec">
-        <h3>Dados do filme</h3>
-        <div class="fld"><label>Cliente</label><input id="f-cliente" placeholder="Ex: Diamond Films Brazil"></div>
-        <div class="fld"><label>Título / Título PT</label><input id="f-titulo" placeholder="Ex: SHELTER — Missão Refúgio"></div>
-        <div class="fld2">
-          <div class="fld" style="margin-bottom:0"><label>Material (HD nº)</label><input id="f-material" placeholder="3598"></div>
-          <div class="fld" style="margin-bottom:0"><label>Cód. serviço</label><input id="f-servico" placeholder="67392"></div>
+      <!-- Film data -->
+      <div class="fsec">
+        <div class="fsec-title">Dados do filme</div>
+        <div class="field"><label>Título</label><input id="f-titulo" placeholder="Ex: SHELTER — Missão Refúgio"></div>
+        <div class="field"><label>Cliente</label><input id="f-cliente" placeholder="Ex: Diamond Films Brazil"></div>
+        <div class="field-row">
+          <div class="field"><label>Material (HD)</label><input id="f-material" placeholder="3598"></div>
+          <div class="field"><label>Cód. serviço</label><input id="f-servico" placeholder="67392"></div>
         </div>
       </div>
 
-      <!-- Cinema de origem -->
-      <div class="psec">
-        <h3>Cinema de origem (1º destino)</h3>
-        <div class="fld sug-wrap">
+      <!-- Origin -->
+      <div class="fsec">
+        <div class="fsec-title">Cinema de origem (1º destino)</div>
+        <div class="field sug-wrap">
           <label>Buscar cinema</label>
-          <input id="f-origem" placeholder="Digite o nome do cinema..." oninput="suggestOrigin(this.value)" autocomplete="off">
-          <div class="sug-box" id="sug-origin"></div>
+          <input id="f-origem" placeholder="Digite o nome..." oninput="suggestOrigin(this.value)" autocomplete="off">
+          <div class="sug-list" id="sug-origin"></div>
         </div>
-        <div id="origin-ok" style="display:none">
-          <div class="info-box ok" style="margin-bottom:8px"><span>✓</span><div><strong id="origin-nome"></strong><br><span id="origin-meta" style="opacity:.8;font-size:11px"></span></div></div>
+        <div id="origin-badge" style="display:none;margin-bottom:8px"></div>
+        <div class="field-row">
+          <div class="field"><label>Data saída</label><input type="date" id="f-saida"></div>
+          <div class="field"><label>Exibidor</label><input id="f-exibidor" placeholder="CNMK"></div>
         </div>
-        <div class="fld2">
-          <div class="fld" style="margin-bottom:0"><label>Data saída</label><input type="date" id="f-saida"></div>
-          <div class="fld" style="margin-bottom:0"><label>Exibidor</label><input id="f-exibidor" placeholder="CNMK"></div>
-        </div>
-        <div class="fld"><label>Transportadora (1ª entrega)</label>
+        <div class="field"><label>Transportadora (saída)</label>
           <select id="f-transp-saida">
             <option value="">— selecione —</option>
-            <option>Loggi</option><option>STM Serviços</option>
-            <option>BEM TRANSPORTES</option><option>Acordo ETC Filmes</option>
-            <option>Logcine Transportes</option><option>Portador Cinema</option><option>NTC</option>
+            <option>Loggi</option>
+            <option>STM Serviços</option>
+            <option>BEM TRANSPORTES</option>
+            <option>Acordo ETC Filmes</option>
+            <option>Logcine Transportes</option>
+            <option>Portador Cinema</option>
+            <option>NTC</option>
           </select>
         </div>
       </div>
 
-      <!-- Filtros -->
-      <div class="psec">
-        <h3>Filtros de rota</h3>
-        <div class="fld2">
-          <div class="fld" style="margin-bottom:0"><label>% mínimo</label>
+      <!-- Filters -->
+      <div class="fsec">
+        <div class="fsec-title">Filtros de rota</div>
+        <div class="field-row">
+          <div class="field"><label>% mínimo</label>
             <select id="f-pct">
-              <option value="100">Só 100%</option>
-              <option value="80" selected>80%+</option>
-              <option value="60">60%+</option>
+              <option value="100">100% apenas</option>
+              <option value="80" selected>80% ou mais</option>
+              <option value="60">60% ou mais</option>
               <option value="0">Todos</option>
             </select>
           </div>
-          <div class="fld" style="margin-bottom:0"><label>Transp. remanejamento</label>
+          <div class="field"><label>Transportadora rem.</label>
             <select id="f-transp-rem">
               <option value="">auto por região</option>
-              <option>Loggi</option><option>STM Serviços</option>
-              <option>BEM TRANSPORTES</option><option>Acordo ETC Filmes</option>
+              <option>Loggi</option>
+              <option>STM Serviços</option>
+              <option>BEM TRANSPORTES</option>
+              <option>Acordo ETC Filmes</option>
             </select>
           </div>
         </div>
-        <div class="fld"><label>Prazo retorno</label><input type="date" id="f-prazo"></div>
-        <button class="btn pri" style="width:100%;margin-top:4px" onclick="gerarRota()">⚡ Gerar rota otimizada</button>
-        <button class="btn" style="width:100%;margin-top:6px" onclick="limpar()">Limpar</button>
+        <div class="field"><label>Prazo retorno</label><input type="date" id="f-prazo"></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:4px;justify-content:center" onclick="gerarRota()">
+          ⚡ Gerar rota otimizada
+        </button>
+        <button class="btn" style="width:100%;margin-top:6px;justify-content:center" onclick="limpar()">
+          Limpar formulário
+        </button>
       </div>
-    </div>
 
-    <!-- RIGHT: results -->
-    <div class="split-r" id="prog-right">
-      <div class="welcome">
-        <div class="welcome-icon">🎬</div>
+    </div><!-- /split-left -->
+
+    <!-- RIGHT PANEL -->
+    <div class="split-right" id="prog-right">
+      <div class="empty">
+        <div class="empty-icon">🎬</div>
         <h3>Selecione o cinema de origem</h3>
-        <p>Escolha um primeiro envio importado ou busque o cinema manualmente. O sistema calculará a melhor sequência de remanejamento.</p>
+        <p>Escolha uma saída importada ou busque o cinema manualmente. O sistema vai sugerir a melhor rota.</p>
       </div>
     </div>
-  </div>
+
+  </div><!-- /split -->
 </div>
 
-<!-- ═══ CONFIG LOGGI ════════════════════════════ -->
+<!-- ═══ TELA 3: CONFIG LOGGI ════════════════════ -->
 <div class="view" id="view-cfg">
-  <div class="ph"><h1>Configurações — Loggi</h1></div>
-  <div class="pad" style="max-width:520px">
-    <div class="info-box wrn" style="margin-bottom:16px"><span>📋</span><div>Acesse <strong>developers.loggi.com</strong> para obter o <code>client_id</code> e <code>client_secret</code> da sua conta corporativa.</div></div>
-    <div style="background:#fff;border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:14px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Credenciais API</div>
-      <div class="fld2">
-        <div class="fld" style="margin-bottom:10px"><label>Client ID</label><input id="cfg-cid" placeholder="client_id"></div>
-        <div class="fld" style="margin-bottom:10px"><label>Client Secret</label><input type="password" id="cfg-cs" placeholder="client_secret"></div>
-      </div>
-      <div class="fld" style="margin-bottom:10px"><label>Bearer Token <span style="font-size:10px;color:var(--t3)">(gerado pelo botão abaixo ou cole direto)</span></label>
-        <input type="password" id="cfg-token" placeholder="Bearer token...">
-      </div>
-      <div class="fld2" style="margin-bottom:10px">
-        <div class="fld" style="margin-bottom:0"><label>Shop PK</label><input id="cfg-shop-pk" placeholder="33552"></div>
-        <div class="fld" style="margin-bottom:0"><label>Telefone remetente</label><input id="cfg-phone" placeholder="11999990000"></div>
-      </div>
-      <div class="fld" style="margin-bottom:10px"><label>Address ID — ETC Filmes <span style="font-size:10px;color:var(--t3)">(após sincronizar)</span></label><input id="cfg-etc-addr" placeholder="ID do endereço da ETC na Loggi"></div>
-      <div style="display:flex;gap:7px">
-        <button class="btn" onclick="autenticarOAuth()">🔑 Autenticar OAuth</button>
-        <button class="btn" onclick="testarConexao()">↻ Testar</button>
-        <button class="btn pri" onclick="salvarCfg()">Salvar</button>
-      </div>
-      <div id="cfg-msg" style="display:none;font-size:11px;margin-top:8px"></div>
+  <div class="ph">
+    <div class="ph-left">
+      <h1>Integração Loggi</h1>
+      <p>Configure as credenciais da API corporativa</p>
     </div>
-    <div style="background:#fff;border:1px solid var(--bdr);border-radius:var(--r);padding:16px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Empresa remetente</div>
-      <div class="fld"><label>Nome</label><input id="cfg-nome" value="ETC Filmes"></div>
-      <div class="fld"><label>Endereço</label><input id="cfg-addr" value="Av. Escola Politécnica, 1700, Jaguaré, São Paulo, SP, 05319-000"></div>
-      <div class="fld2">
-        <div class="fld" style="margin-bottom:0"><label>CEP</label><input id="cfg-cep" value="05319-000"></div>
-        <div class="fld" style="margin-bottom:0"><label>Contato</label><input id="cfg-contato" value="ETC Filmes — Expedição"></div>
-      </div>
-      <button class="btn pri" style="margin-top:10px" onclick="salvarEmpresa()">Salvar</button>
+  </div>
+
+  <div class="cfg-card">
+    <div class="cfg-title">Credenciais API <span id="loggi-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ccc;margin-left:6px;vertical-align:middle"></span></div>
+    <div class="notice info"><span>ℹ</span><div>Acesse <strong>developers.loggi.com</strong> para obter o <code>client_id</code> e <code>client_secret</code> da sua conta corporativa.</div></div>
+    <div class="field-row">
+      <div class="field"><label>Client ID</label><input id="cfg-cid" placeholder="client_id"></div>
+      <div class="field"><label>Client Secret</label><input type="password" id="cfg-cs" placeholder="client_secret"></div>
     </div>
+    <div class="field"><label>Bearer Token <span style="font-size:10px;color:#aaa;font-weight:400">(gerado automaticamente ou cole direto)</span></label>
+      <input type="password" id="cfg-token" placeholder="Bearer token...">
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Shop PK</label><input id="cfg-shopk" placeholder="Ex: 33552"></div>
+      <div class="field"><label>Telefone remetente</label><input id="cfg-phone" placeholder="11999990000"></div>
+    </div>
+    <div class="field"><label>Address ID — ETC Filmes <span style="font-size:10px;color:#aaa;font-weight:400">(após sincronizar com Loggi)</span></label>
+      <input id="cfg-etc-id" placeholder="ID do seu endereço na Loggi">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" onclick="autenticarOAuth()">🔑 Autenticar OAuth</button>
+      <button class="btn" onclick="testarConexao()">↻ Testar conexão</button>
+      <button class="btn btn-primary" onclick="salvarCfg()">Salvar</button>
+    </div>
+    <div id="cfg-msg" style="font-size:12px;margin-top:10px;display:none"></div>
+  </div>
+
+  <div class="cfg-card" style="margin-top:14px">
+    <div class="cfg-title">Empresa remetente (ETC Filmes)</div>
+    <div class="field"><label>Nome</label><input id="cfg-emp-nome" value="ETC Filmes"></div>
+    <div class="field"><label>Endereço completo</label><input id="cfg-emp-addr" value="Av. Escola Politécnica, 1700, Jaguaré, São Paulo, SP, 05319-000"></div>
+    <div class="field-row">
+      <div class="field"><label>CEP</label><input id="cfg-emp-cep" value="05319-000"></div>
+      <div class="field"><label>Contato</label><input id="cfg-emp-contato" value="ETC Filmes — Expedição"></div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:4px" onclick="salvarEmpresa()">Salvar empresa</button>
   </div>
 </div>
 
-<!-- MODALS -->
-
-<!-- Confirm / save -->
+<!-- MODAL: Confirmar programação -->
 <div class="overlay" id="modal-confirm">
   <div class="modal">
-    <div class="m-head"><div><h3>Salvar programação</h3><div class="m-sub" id="mc-sub"></div></div><button class="m-close" onclick="closeModal('modal-confirm')">✕</button></div>
-    <div class="m-body" id="mc-body"></div>
-    <div class="m-foot">
+    <div class="modal-head">
+      <div><h3>Confirmar programação</h3><p id="mc-sub"></p></div>
+      <button class="modal-close" onclick="closeModal('modal-confirm')">✕</button>
+    </div>
+    <div class="modal-body" id="mc-body"></div>
+    <div class="modal-foot">
       <button class="btn" onclick="closeModal('modal-confirm')">Cancelar</button>
-      <button class="btn" onclick="salvarProg()" style="background:#333;color:#fff;border-color:#333">✓ Salvar</button>
-      <button class="btn-orange" onclick="salvarELoggi()">📦 Salvar + Enviar Loggi</button>
+      <button class="btn" onclick="salvarProg(false)" style="background:#333;color:#fff;border-color:#333">✓ Salvar</button>
+      <button class="btn btn-orange" onclick="salvarProg(true)">📦 Salvar + Loggi</button>
     </div>
   </div>
 </div>
 
-<!-- Loggi dispatch -->
+<!-- MODAL: Loggi dispatch -->
 <div class="overlay" id="modal-loggi">
-  <div class="modal lg" style="border-top:3px solid var(--or)">
-    <div class="m-head" style="background:var(--ol)">
-      <div><h3 style="color:var(--or)">Enviar pedidos — Loggi</h3><div class="m-sub" id="ml-sub" style="color:#a03500"></div></div>
-      <button class="m-close" onclick="closeModal('modal-loggi')">✕</button>
+  <div class="modal" style="width:640px;border-top:3px solid #e65100">
+    <div class="modal-head" style="background:#fff8f5">
+      <div><h3 style="color:#e65100">Enviar pedidos — Loggi</h3><p id="ml-sub" style="color:#a03500"></p></div>
+      <button class="modal-close" onclick="closeModal('modal-loggi')">✕</button>
     </div>
-    <div style="padding:11px 16px;background:#fffaf7;border-bottom:1px solid rgba(230,81,0,.1)" id="ml-pkg"></div>
-    <div id="ml-orders" style="max-height:360px;overflow-y:auto;background:#fffaf7"></div>
-    <div class="lg-prog-bar"><div class="lg-prog-fill" id="ml-prog" style="width:0%"></div></div>
-    <div class="m-foot" style="border-top:1px solid rgba(230,81,0,.15);justify-content:space-between">
-      <span style="font-size:12px;color:var(--t3)" id="ml-count">0 enviados</span>
+    <div style="padding:11px 16px;background:#fff8f5;border-bottom:1px solid rgba(230,81,0,.1)" id="ml-pkg"></div>
+    <div id="ml-orders" style="max-height:340px;overflow-y:auto"></div>
+    <div class="loggi-prog" style="margin-top:0"><div class="loggi-prog-fill" id="ml-prog" style="width:0%"></div></div>
+    <div class="modal-foot" style="justify-content:space-between;border-top:1px solid rgba(230,81,0,.15)">
+      <span style="font-size:12px;color:#888" id="ml-count">0 enviados</span>
       <div style="display:flex;gap:7px">
         <button class="btn" onclick="closeModal('modal-loggi')">Fechar</button>
-        <button class="btn-orange" id="btn-all" onclick="dispararTodos()">📦 Disparar todos</button>
+        <button class="btn btn-orange" id="btn-all" onclick="dispararTodos()">📦 Disparar todos</button>
       </div>
     </div>
   </div>
@@ -404,7 +418,6 @@ nav{background:#1a1a18;display:flex;align-items:center;padding:0 20px;height:48p
 <div class="toast" id="toast"></div>
 
 <script>
-// ─── DATA: flat cinema DB ──────────────────────
 const DB = [
   {id:1422,name:"Cine Cultura Maceio 2",city:"MACEIO",uf:"AL",pct:20,lat:-9.6658,lon:-35.735},
   {id:1418,name:"Cineart Maceio 8",city:"MACEIO",uf:"AL",pct:100,lat:-9.6658,lon:-35.735},
@@ -900,328 +913,337 @@ const DB = [
 ];
 
 
-// ─── STATE ─────────────────────────────────────
-let LOGGI_CFG  = JSON.parse(localStorage.getItem('etcf_lcfg') || '{}');
-let EMPRESA    = JSON.parse(localStorage.getItem('etcf_emp')  || '{"nome":"ETC Filmes","addr":"Av. Escola Politécnica, 1700, Jaguaré, São Paulo, SP, 05319-000","cep":"05319-000","contato":"ETC Filmes — Expedição"}');
-let SCHEDULES  = JSON.parse(localStorage.getItem('etcf_sch')  || '[]');
-let ENVIOS     = [];   // rows from imported XLS
-let selOrigin  = null;
-let curRoute   = [];
-let routeSt    = {};
-let routeTr    = {};
-let loggiOrds  = [];
-let loggiSt    = {};
-let currentView = 'envios';
+// ── STATE ──────────────────────────────────────
+let LOGGI   = JSON.parse(localStorage.getItem('etc_loggi')   || '{}');
+let EMPRESA = JSON.parse(localStorage.getItem('etc_empresa') || '{"nome":"ETC Filmes","addr":"Av. Escola Politécnica, 1700, Jaguaré, São Paulo, SP, 05319-000","cep":"05319-000","contato":"ETC Filmes — Expedição"}');
+let SAVED   = JSON.parse(localStorage.getItem('etc_saved')   || '[]');
 
-// ─── NAV ───────────────────────────────────────
+let envios      = [];   // imported rows
+let origin      = null; // selected origin cinema
+let route       = [];   // calculated route
+let routeSt     = {};   // status per step
+let routeTr     = {};   // transp per step
+let loggiOrders = [];
+let loggiSt     = {};
+
+// ── NAV ────────────────────────────────────────
 function goTo(v) {
-  currentView = v;
-  document.querySelectorAll('.view').forEach(el => el.classList.remove('on'));
-  document.querySelectorAll('.nav-btn').forEach(b => { b.classList.remove('on'); b.classList.add('off'); });
-  document.getElementById('view-' + v).classList.add('on');
-  const nb = document.getElementById('nb-' + (v==='cfg'?'loggi-cfg':v));
-  if(nb) { nb.classList.add('on'); nb.classList.remove('off'); }
-  if(v === 'prog') renderImportSelect();
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.ntab').forEach(b  => b.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.getElementById('tab-'  + v).classList.add('active');
+  if (v === 'prog') renderImportList();
 }
 
-function openModal(id)  { document.getElementById(id).classList.add('on'); }
-function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+function openModal(id)  { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-function toast(msg, type) {
+function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className = 'toast show ' + (type||'info');
-  clearTimeout(t._t);
-  t._t = setTimeout(() => { t.className = 'toast'; }, 3000);
+  t.className = 'toast show ' + (type || 'info');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.className = 'toast', 3000);
 }
 
-// ─── XLS IMPORT ───────────────────────────────
-function importXLS(input) {
-  const file = (input.files && input.files[0]) || null;
-  if(!file) return;
+// ── FILE IMPORT ────────────────────────────────
+function handleFile(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (typeof XLSX === 'undefined') {
+    showToast('Carregando biblioteca XLS... tente novamente em 2 segundos.', 'info');
+    return;
+  }
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      const wb = XLSX.read(e.target.result, {type:'array'});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
-      if(!rows.length) { toast('Planilha vazia.','err'); return; }
+      const wb   = XLSX.read(e.target.result, { type: 'array' });
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+      if (!rows.length) { showToast('Planilha vazia.', 'err'); return; }
 
-      ENVIOS = rows
+      envios = rows
         .filter(r => r['Cinema'] || r['Código'])
         .map(r => ({
-          codigo:   String(r['Código']            || '').trim(),
-          cliente:  String(r['Cliente']           || '').trim(),
-          titulo:   String(r['Título']            || r['Titulo'] || '').trim(),
-          tituloPN: String(r['Título Português']  || r['Titulo Portugues'] || '').trim(),
-          exibidor: String(r['Exibidor']          || '').trim(),
-          cinema:   String(r['Cinema']            || '').trim(),
-          uf:       String(r['UF']                || '').trim(),
-          cidade:   String(r['Cidade']            || '').trim(),
-          material: String(r['Material']          || '').trim(),
-          transp:   String(r['Logistica: Transp'] || '').trim(),
-          saida:    String(r['Logistica: Saida']  || r['Primeira Saida'] || '').trim(),
-          endereco: String(r['Cinema Endereco']   || '').trim(),
-          servico:  String(r['Código Serviço']    || r['Codigo Servico'] || '').trim(),
-          status:   String(r['Status']            || '').trim(),
-          cnpj:     String(r['Cinema CNPJ']       || '').trim(),
+          codigo:   clean(r['Código']),
+          cliente:  clean(r['Cliente']),
+          titulo:   clean(r['Título'] || r['Titulo']),
+          tituloPN: clean(r['Título Português'] || r['Titulo Portugues']),
+          exibidor: clean(r['Exibidor']),
+          cinema:   clean(r['Cinema']),
+          uf:       clean(r['UF']),
+          cidade:   clean(r['Cidade']),
+          material: clean(r['Material']),
+          transp:   clean(r['Logistica: Transp']),
+          saida:    clean(r['Logistica: Saida'] || r['Primeira Saida']),
+          endereco: clean(r['Cinema Endereco']),
+          servico:  clean(r['Código Serviço'] || r['Codigo Servico']),
+          status:   clean(r['Status']),
+          cnpj:     clean(r['Cinema CNPJ']),
         }));
 
-      const dz = document.getElementById('dropzone');
-      dz.className = 'dropzone loaded';
-      dz.innerHTML = `<div class="dz-icon" style="opacity:1">✓</div><div class="dz-title">${ENVIOS.length} saídas importadas</div><div class="dz-sub">${file.name} · clique em "Importar XLS" para trocar</div>`;
-      dz.onclick = null;
-      document.getElementById('envios-sub').textContent = ENVIOS.length + ' primeiro envios · ' + [...new Set(ENVIOS.map(e=>e.titulo))].length + ' filmes';
-      document.getElementById('envios-search').style.display = 'block';
-      document.getElementById('btn-export-csv').style.display = 'inline-block';
-      renderEnvios();
-      toast(ENVIOS.length + ' envios importados!', 'ok');
+      // Update drop area
+      const da = document.getElementById('drop-area');
+      da.className = 'drop-area has-file';
+      da.innerHTML = '<div class="drop-icon" style="opacity:1">✓</div><div class="drop-title">' + envios.length + ' saídas importadas</div><div class="drop-sub">' + file.name + '</div>';
+
+      document.getElementById('envios-info').textContent =
+        envios.length + ' envios · ' + new Set(envios.map(e => e.titulo)).size + ' filmes';
+      document.getElementById('search-wrap').style.display = 'block';
+      document.getElementById('btn-csv').style.display     = 'inline-flex';
+
+      renderTable();
+      showToast(envios.length + ' envios importados!', 'ok');
     } catch(err) {
-      toast('Erro: ' + err.message, 'err');
+      showToast('Erro ao ler arquivo: ' + err.message, 'err');
+      console.error(err);
     }
   };
   reader.readAsArrayBuffer(file);
-  try { input.value = ''; } catch(e) {}
+  input.value = '';
 }
 
-// Drag & drop — prevent browser from opening the file
-const dz = document.getElementById('dropzone');
-['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => {
-  e.preventDefault(); e.stopPropagation(); dz.classList.add('drag');
-}));
-['dragleave','dragend'].forEach(ev => dz.addEventListener(ev, e => {
-  e.preventDefault(); dz.classList.remove('drag');
-}));
-dz.addEventListener('drop', e => {
-  e.preventDefault(); e.stopPropagation(); dz.classList.remove('drag');
-  const f = e.dataTransfer.files[0];
-  if(!f) return;
-  // Create a fake input to pass to importXLS
-  const inp = document.getElementById('xls-file');
-  // Use DataTransfer to set files on real input (works in modern browsers)
-  try { inp.files = e.dataTransfer.files; } catch(ex) {}
-  importXLS({ files: e.dataTransfer.files });
-});
-// Also block drag on the whole document so files don't open if dropped outside
-document.addEventListener('dragover', e => e.preventDefault());
-document.addEventListener('drop',     e => e.preventDefault());
+function clean(v) { return String(v || '').trim(); }
 
-// ─── RENDER ENVIOS TABLE ───────────────────────
-function renderEnvios() {
-  const q = (document.getElementById('envios-search').value || '').toLowerCase();
-  const list = ENVIOS.filter(r =>
-    !q || r.titulo.toLowerCase().includes(q) || r.tituloPN.toLowerCase().includes(q) ||
-    r.cinema.toLowerCase().includes(q) || r.material.includes(q) ||
-    r.exibidor.toLowerCase().includes(q) || r.cliente.toLowerCase().includes(q)
+function fmtDate(s) {
+  if (!s) return '—';
+  const p = s.split(' ')[0].split('T')[0].split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : s;
+}
+
+// ── RENDER TABLE ───────────────────────────────
+function renderTable() {
+  const q = (document.getElementById('search-q').value || '').toLowerCase();
+  const list = envios.filter(r =>
+    !q ||
+    r.titulo.toLowerCase().includes(q)   ||
+    r.tituloPN.toLowerCase().includes(q) ||
+    r.cinema.toLowerCase().includes(q)   ||
+    r.material.includes(q)               ||
+    r.exibidor.toLowerCase().includes(q) ||
+    r.cliente.toLowerCase().includes(q)
   );
 
-  if(!list.length) {
-    document.getElementById('envios-table').innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3);font-size:13px">Nenhum resultado.</div>';
+  if (!list.length) {
+    document.getElementById('table-area').innerHTML =
+      '<div class="empty" style="padding:40px"><p>Nenhum resultado para "' + document.getElementById('search-q').value + '"</p></div>';
     return;
   }
 
-  const transpColor = t => {
-    if(!t) return 'gy';
-    if(t.toLowerCase().includes('loggi'))   return 'or';
-    if(t.toLowerCase().includes('stm'))     return 'ac';
-    if(t.toLowerCase().includes('bem'))     return 'am';
-    if(t.toLowerCase().includes('acordo'))  return 'gn';
-    return 'gy';
-  };
+  const cols = '85px 1fr 160px 1fr 100px 90px 44px';
 
-  const statusColor = s => {
-    if(!s) return 'gy';
-    if(s.toLowerCase().includes('andamento')) return 'am';
-    if(s.toLowerCase().includes('entregue'))  return 'gn';
-    if(s.toLowerCase().includes('pendente'))  return 'rd';
-    return 'gy';
-  };
+  let html = '<div class="table-wrap"><div class="table-head" style="grid-template-columns:' + cols + '">' +
+    '<div>HD</div><div>Filme</div><div>Cinema</div><div>Endereço</div><div>Status</div><div>Saída</div><div></div>' +
+    '</div>';
 
-  const fmtDate = d => {
-    if(!d) return '—';
-    const s = d.toString().split(' ')[0].split('T')[0];
-    if(s.length < 8) return d;
-    const p = s.split('-');
-    return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : d;
-  };
+  list.forEach(r => {
+    const idx = envios.indexOf(r);
+    const stCls = r.status.toLowerCase().includes('andamento') ? 'badge-amber'
+                : r.status.toLowerCase().includes('entregue')  ? 'badge-green'
+                : r.status.toLowerCase().includes('pendente')  ? 'badge-red'
+                : 'badge-gray';
+    const trCls = r.transp.toLowerCase().includes('loggi')   ? 'badge-orange'
+                : r.transp.toLowerCase().includes('stm')     ? 'badge-blue'
+                : r.transp.toLowerCase().includes('bem')     ? 'badge-amber'
+                : r.transp.toLowerCase().includes('acordo')  ? 'badge-green'
+                : 'badge-gray';
 
-  document.getElementById('envios-table').innerHTML = `
-    <div class="tbl-wrap">
-      <div class="tbl-head grid-envios">
-        <div>HD</div><div>Filme</div><div>Cinema</div><div>Endereço</div>
-        <div>Status</div><div>Saída</div><div></div>
-      </div>
-      ${list.map((r, i) => {
-        const idx = ENVIOS.indexOf(r);
-        return `<div class="tbl-row grid-envios" onclick="abrirProg(${idx})">
-          <div><span class="badge dk mono" style="font-size:11px">#${r.material||'—'}</span></div>
-          <div>
-            <div class="cell-main">${r.tituloPN || r.titulo || '—'}</div>
-            <div class="cell-sub">${r.cliente}</div>
-          </div>
-          <div>
-            <div class="cell-main">${r.cinema}</div>
-            <div class="cell-sub">${r.cidade||''}${r.uf?' · '+r.uf:''}</div>
-          </div>
-          <div style="font-size:11px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.endereco||''}">${r.endereco ? r.endereco.substring(0,28)+(r.endereco.length>28?'…':'') : '—'}<br><span style="color:var(--t3);font-size:10px">${r.transp||'—'} · ${r.exibidor||'—'}</span></div>
-          <div><span class="badge ${statusColor(r.status)}">${r.status||'—'}</span></div>
-          <div style="font-size:12px;color:var(--t2)">${fmtDate(r.saida)}</div>
-          <div>
-            <button class="btn sm" onclick="event.stopPropagation();abrirProg(${idx})" title="Programar remanejamento">→</button>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
-}
+    const endShort = r.endereco ? r.endereco.substring(0, 32) + (r.endereco.length > 32 ? '…' : '') : '—';
 
-function exportEnviosCSV() {
-  if(!ENVIOS.length) return;
-  let csv = 'Código,Cliente,Título,Título PT,Cinema,UF,Cidade,Material,Exibidor,Transportadora,Data Saída,Status,Endereço,CNPJ,Cód.Serviço
-';
-  ENVIOS.forEach(r => {
-    const fmtDate = d => { if(!d) return ''; const s=d.toString().split(' ')[0]; return s; };
-    csv += `"${r.codigo}","${r.cliente}","${r.titulo}","${r.tituloPN}","${r.cinema}","${r.uf}","${r.cidade}","${r.material}","${r.exibidor}","${r.transp}","${fmtDate(r.saida)}","${r.status}","${r.endereco}","${r.cnpj}","${r.servico}"
-`;
+    html += '<div class="table-row" style="grid-template-columns:' + cols + '" onclick="abrirProg(' + idx + ')">'
+      + '<div><span class="badge badge-dark" style="font-family:monospace;font-size:11px">#' + (r.material || '—') + '</span></div>'
+      + '<div><div class="cell-name">' + (r.tituloPN || r.titulo || '—') + '</div><div class="cell-sub">' + r.cliente + '</div></div>'
+      + '<div><div class="cell-name">' + r.cinema + '</div><div class="cell-sub">' + (r.cidade || '') + (r.uf ? ' · ' + r.uf : '') + '</div></div>'
+      + '<div><div class="cell-name" title="' + r.endereco + '">' + endShort + '</div><div class="cell-sub"><span class="badge ' + trCls + '" style="font-size:10px">' + (r.transp || '—') + '</span></div></div>'
+      + '<div><span class="badge ' + stCls + '">' + (r.status || '—') + '</span></div>'
+      + '<div style="font-size:12px;color:#555">' + fmtDate(r.saida) + '</div>'
+      + '<div><button class="btn" style="padding:4px 9px;font-size:12px" onclick="event.stopPropagation();abrirProg(' + idx + ')" title="Programar remanejamento">→</button></div>'
+      + '</div>';
   });
-  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'primeiros_envios_' + new Date().toISOString().split('T')[0] + '.csv'; a.click();
-  toast('CSV exportado!','ok');
+
+  html += '</div>';
+  document.getElementById('table-area').innerHTML = html;
 }
 
-// ─── OPEN PROG FROM ENVIO ─────────────────────
+function exportCSV() {
+  let csv = 'Código,Cliente,Título,Título PT,Cinema,UF,Cidade,Material,Exibidor,Transportadora,Data Saída,Status,Endereço,Cód.Serviço
+';
+  envios.forEach(r => {
+    csv += '"' + [r.codigo,r.cliente,r.titulo,r.tituloPN,r.cinema,r.uf,r.cidade,r.material,r.exibidor,r.transp,r.saida.split(' ')[0],r.status,r.endereco,r.servico].join('","') + '"
+';
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + csv], {type:'text/csv'}));
+  a.download = 'envios_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+}
+
+// ── DRAG & DROP ────────────────────────────────
+(function() {
+  const da  = document.getElementById('drop-area');
+  const inp = document.getElementById('file-xls');
+
+  // clicking the drop area triggers file input
+  da.addEventListener('click', () => { if (!da.classList.contains('has-file')) inp.click(); });
+
+  ['dragenter','dragover'].forEach(ev =>
+    da.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); da.style.borderColor = '#1a4fff'; })
+  );
+  ['dragleave','dragend'].forEach(ev =>
+    da.addEventListener(ev, e => { e.preventDefault(); da.style.borderColor = ''; })
+  );
+  da.addEventListener('drop', e => {
+    e.preventDefault(); e.stopPropagation();
+    da.style.borderColor = '';
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile({ files: [f] });
+  });
+
+  // Block browser from opening files dropped outside
+  document.addEventListener('dragover', e => e.preventDefault());
+  document.addEventListener('drop',     e => e.preventDefault());
+})();
+
+// ── OPEN PROG FROM ROW ─────────────────────────
 function abrirProg(idx) {
-  const r = ENVIOS[idx];
-  if(!r) return;
+  const r = envios[idx];
+  if (!r) return;
   goTo('prog');
 
-  // Pre-fill form
-  document.getElementById('f-cliente').value  = r.cliente;
+  // Fill form
   document.getElementById('f-titulo').value   = r.tituloPN ? r.titulo + ' — ' + r.tituloPN : r.titulo;
+  document.getElementById('f-cliente').value  = r.cliente;
   document.getElementById('f-material').value = r.material;
   document.getElementById('f-servico').value  = r.servico;
   document.getElementById('f-exibidor').value = r.exibidor;
-  if(r.transp) document.getElementById('f-transp-saida').value = r.transp;
-  if(r.saida) {
-    const d = r.saida.toString().split(' ')[0].split('T')[0];
-    if(d.length >= 8) document.getElementById('f-saida').value = d;
+  if (r.transp) document.getElementById('f-transp-saida').value = r.transp;
+  if (r.saida) {
+    const d = r.saida.split(' ')[0].split('T')[0];
+    if (d.length >= 8) document.getElementById('f-saida').value = d;
   }
 
   // Match cinema in DB
-  const found = (DB||[]).find(c =>
+  const match = DB.find(c =>
     c.name === r.cinema ||
     c.name.toLowerCase() === r.cinema.toLowerCase() ||
-    (r.cinema.length > 8 && c.name.toLowerCase().includes(r.cinema.toLowerCase().substring(0,10)))
+    (r.cinema.length > 8 && c.name.toLowerCase().includes(r.cinema.toLowerCase().substring(0, 12)))
   );
 
-  if(found) {
-    selOrigin = found;
+  if (match) {
+    setOrigin(match);
   } else {
-    // Cinema not in DB — create temp entry with imported address
-    selOrigin = { id: -1, name: r.cinema, city: r.cidade, uf: r.uf, pct: 100,
-                  lat: null, lon: null, _addr: r.endereco, _cnpj: r.cnpj };
+    // Cinema not in DB — use imported data
+    origin = { id: -1, name: r.cinema, city: r.cidade, uf: r.uf, pct: 100, lat: null, lon: null, _addr: r.endereco };
+    showOriginBadge(r.cinema, r.cidade + (r.uf ? ' · ' + r.uf : '') + ' (importado)');
+    document.getElementById('f-origem').value = r.cinema;
   }
 
-  document.getElementById('f-origem').value   = selOrigin.name;
-  document.getElementById('origin-nome').textContent = selOrigin.name;
-  document.getElementById('origin-meta').textContent = (selOrigin.city||r.cidade) + (selOrigin.uf||r.uf ? ' · '+(selOrigin.uf||r.uf) : '') + (selOrigin.pct ? ' · '+selOrigin.pct+'%' : '');
-  document.getElementById('origin-ok').style.display = 'block';
-
-  // Clear previous results
-  document.getElementById('prog-right').innerHTML = `
-    <div class="info-box ok"><span>✓</span><div>
-      <strong>${r.cinema}</strong> selecionado como origem.<br>
-      <span style="opacity:.8">Ajuste os filtros e clique em ⚡ Gerar rota otimizada.</span>
-    </div></div>`;
+  showToast('Saída selecionada. Clique em ⚡ Gerar rota.', 'info');
 }
 
-// ─── IMPORT SELECT LIST (prog sidebar) ────────
-function renderImportSelect() {
-  const el = document.getElementById('import-sel-list');
-  if(!ENVIOS.length) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--t3)">Nenhuma planilha importada. Vá em "Primeiros Envios" e importe o XLS.</div>';
-    return;
-  }
-  el.innerHTML = ENVIOS.slice(0, 15).map((r, i) => `
-    <div onclick="abrirProg(${i})" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bdr);cursor:pointer;transition:opacity .12s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">
-      <span class="badge dk mono" style="font-size:10px;flex-shrink:0">#${r.material||'?'}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.tituloPN||r.titulo||'—'}</div>
-        <div style="font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.cinema} · ${r.exibidor}</div>
-      </div>
-    </div>`).join('') + (ENVIOS.length > 15 ? `<div style="font-size:11px;color:var(--t3);text-align:center;padding:6px">+${ENVIOS.length-15} mais em Primeiros Envios</div>` : '');
-}
-
-// ─── SUGGEST ORIGIN ───────────────────────────
+// ── SUGGEST ORIGIN ─────────────────────────────
 function suggestOrigin(q) {
   const box = document.getElementById('sug-origin');
-  if(q.length < 2) { box.style.display='none'; return; }
-  const hits = (DB||[]).filter(c =>
+  if (q.length < 2) { box.style.display = 'none'; return; }
+
+  const hits = DB.filter(c =>
     c.name.toLowerCase().includes(q.toLowerCase()) ||
     c.city.toLowerCase().includes(q.toLowerCase())
   ).slice(0, 8);
-  if(!hits.length) { box.style.display='none'; return; }
-  box.innerHTML = hits.map(c => `
-    <div class="sug-item" onclick="pickOrigin(${c.id})">
-      <div class="sug-name">${c.name}</div>
-      <div class="sug-meta">${c.city} · ${c.uf} · ${c.pct}%</div>
-    </div>`).join('');
+
+  if (!hits.length) { box.style.display = 'none'; return; }
+
+  box.innerHTML = hits.map(c =>
+    '<div class="sug-item" onclick="pickOrigin(' + c.id + ')">'
+    + '<div class="sug-name">' + c.name + '</div>'
+    + '<div class="sug-meta">' + c.city + ' · ' + c.uf + ' · ' + c.pct + '%</div>'
+    + '</div>'
+  ).join('');
   box.style.display = 'block';
 }
 
 function pickOrigin(id) {
-  selOrigin = (DB||[]).find(c => c.id === id);
-  if(!selOrigin) return;
-  document.getElementById('f-origem').value = selOrigin.name;
+  const c = DB.find(x => x.id === id);
+  if (!c) return;
+  setOrigin(c);
   document.getElementById('sug-origin').style.display = 'none';
-  document.getElementById('origin-nome').textContent = selOrigin.name;
-  document.getElementById('origin-meta').textContent = selOrigin.city + ' · ' + selOrigin.uf + ' · ' + selOrigin.pct + '%';
-  document.getElementById('origin-ok').style.display = 'block';
+}
+
+function setOrigin(c) {
+  origin = c;
+  document.getElementById('f-origem').value = c.name;
+  showOriginBadge(c.name, c.city + ' · ' + c.uf + ' · ' + c.pct + '%');
+}
+
+function showOriginBadge(name, meta) {
+  const el = document.getElementById('origin-badge');
+  el.style.display = 'block';
+  el.innerHTML = '<div class="notice ok"><span>✓</span><div><strong>' + name + '</strong><br><span style="opacity:.75;font-size:11px">' + meta + '</span></div></div>';
 }
 
 document.addEventListener('click', e => {
-  if(!e.target.closest('#f-origem') && !e.target.closest('#sug-origin'))
+  if (!e.target.closest('#f-origem') && !e.target.closest('#sug-origin'))
     document.getElementById('sug-origin').style.display = 'none';
 });
 
-// ─── ROUTE GENERATION ─────────────────────────
-function haversine(la1,lo1,la2,lo2) {
-  const R=6371,dr=(la2-la1)*Math.PI/180,dc=(lo2-lo1)*Math.PI/180;
-  const a=Math.sin(dr/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dc/2)**2;
-  return R*2*Math.asin(Math.sqrt(a));
+// ── IMPORT LIST (sidebar) ──────────────────────
+function renderImportList() {
+  const el = document.getElementById('import-list');
+  if (!envios.length) {
+    el.innerHTML = '<div style="font-size:12px;color:#aaa">Importe uma planilha em "Primeiros Envios".</div>';
+    return;
+  }
+  el.innerHTML = envios.slice(0, 12).map((r, i) =>
+    '<div onclick="abrirProg(' + i + ')" style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid #f0efeb;cursor:pointer">'
+    + '<span class="badge badge-dark" style="font-size:10px;font-family:monospace;flex-shrink:0">#' + (r.material || '?') + '</span>'
+    + '<div style="flex:1;min-width:0">'
+    + '<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (r.tituloPN || r.titulo || '—') + '</div>'
+    + '<div style="font-size:10px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.cinema + '</div>'
+    + '</div></div>'
+  ).join('') + (envios.length > 12 ? '<div style="font-size:11px;color:#aaa;text-align:center;padding-top:6px">+' + (envios.length - 12) + ' mais</div>' : '');
 }
 
-function autoTransp(uf) {
-  if(['SP'].includes(uf)) return 'Loggi';
-  if(['RJ','MG','PR','RS','SC'].includes(uf)) return 'BEM TRANSPORTES';
+// ── ROUTE GENERATION ───────────────────────────
+function haversine(la1, lo1, la2, lo2) {
+  const R = 6371, dr = (la2-la1)*Math.PI/180, dc = (lo2-lo1)*Math.PI/180;
+  const a = Math.sin(dr/2)**2 + Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dc/2)**2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+function autoTr(uf) {
+  if (['SP'].includes(uf))                          return 'Loggi';
+  if (['RJ','MG','PR','RS','SC'].includes(uf))      return 'BEM TRANSPORTES';
   return 'STM Serviços';
 }
 
 function gerarRota() {
-  if(!selOrigin) { toast('Selecione o cinema de origem primeiro.','err'); return; }
+  if (!origin) { showToast('Selecione o cinema de origem primeiro.', 'err'); return; }
+
   const pct = parseInt(document.getElementById('f-pct').value);
 
-  let candidates = (DB||[]).filter(c =>
-    c.id !== (selOrigin.id||-1) &&
-    c.uf   === (selOrigin.uf||'') &&
-    c.city === (selOrigin.city||'') &&
+  const candidates = DB.filter(c =>
+    c.id !== (origin.id || -1) &&
+    c.uf   === (origin.uf   || '') &&
+    c.city === (origin.city || '') &&
     c.pct  >= pct &&
     c.lat && c.lon
   );
 
-  // Nearest neighbor sort
-  if(selOrigin.lat && selOrigin.lon) {
-    let rem = [...candidates], route = [], cur = {lat:selOrigin.lat, lon:selOrigin.lon};
-    while(rem.length) {
-      let bestD=Infinity, bestI=-1;
-      rem.forEach((c,i)=>{ const d=haversine(cur.lat,cur.lon,c.lat,c.lon); if(d<bestD){bestD=d;bestI=i;} });
-      route.push({...rem[bestI], legDist:bestD});
-      cur = rem[bestI]; rem.splice(bestI,1);
+  if (origin.lat && origin.lon) {
+    // Nearest neighbor
+    let rem = [...candidates], result = [], cur = { lat: origin.lat, lon: origin.lon };
+    while (rem.length) {
+      let bestD = Infinity, bestI = -1;
+      rem.forEach((c, i) => { const d = haversine(cur.lat, cur.lon, c.lat, c.lon); if (d < bestD) { bestD = d; bestI = i; } });
+      result.push({ ...rem[bestI], legDist: bestD });
+      cur = rem[bestI];
+      rem.splice(bestI, 1);
     }
-    curRoute = route;
+    route = result;
   } else {
-    curRoute = candidates.sort((a,b)=>b.pct-a.pct).map(c=>({...c,legDist:0}));
-    toast('Origem sem coordenadas — ordenando por percentual.','wrn');
+    route = candidates.sort((a, b) => b.pct - a.pct).map(c => ({ ...c, legDist: 0 }));
+    if (!route.length) { showToast('Nenhum cinema elegível encontrado.', 'err'); }
+    else showToast('Origem sem coordenadas — ordenando por percentual.', 'info');
   }
 
   routeSt = {};
@@ -1229,364 +1251,435 @@ function gerarRota() {
   renderRoute();
 }
 
-// ─── RENDER ROUTE ─────────────────────────────
+// ── RENDER ROUTE ───────────────────────────────
 function renderRoute() {
-  if(!selOrigin) return;
-  const titre   = document.getElementById('f-titulo').value || '—';
+  const titulo  = document.getElementById('f-titulo').value  || '—';
   const mat     = document.getElementById('f-material').value || '—';
-  const tr      = document.getElementById('f-transp-rem').value || autoTransp(selOrigin.uf||'');
   const trSaida = document.getElementById('f-transp-saida').value;
-  const totalDist = curRoute.reduce((s,c)=>s+(c.legDist||0),0);
+  const trRem   = document.getElementById('f-transp-rem').value || autoTr(origin.uf || '');
+  const totalD  = route.reduce((s, c) => s + (c.legDist || 0), 0);
 
-  let html = `
-    <div style="background:#1a1a18;border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
-      <div style="width:32px;height:44px;background:rgba(255,255,255,.1);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🎬</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${titre}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px">HD #${mat} · ${selOrigin.city||''}/${selOrigin.uf||''} · ${curRoute.length} remanejamentos · ${Math.round(totalDist)}km</div>
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn" onclick="openModal('modal-confirm')">✓ Salvar</button>
-        <button class="btn-orange" onclick="abrirLoggi()">📦 Loggi</button>
-      </div>
-    </div>`;
+  let html = '';
 
-  if(!curRoute.length) {
-    html += `<div class="info-box wrn"><span>⚠</span><div>Nenhum cinema encontrado em ${selOrigin.city}/${selOrigin.uf} com ${document.getElementById('f-pct').value}%+. Tente reduzir o filtro.</div></div>`;
+  // Film header
+  html += '<div class="route-card">'
+    + '<div class="route-header">'
+    + '<div class="route-header-icon">🎬</div>'
+    + '<div class="route-header-info">'
+    + '<div class="route-header-title">' + titulo + '</div>'
+    + '<div class="route-header-sub">HD #' + mat + ' · ' + (origin.city||'') + '/' + (origin.uf||'') + ' · ' + route.length + ' remanejamentos · ' + Math.round(totalD) + 'km</div>'
+    + '</div>'
+    + '<div class="route-header-actions">'
+    + '<button class="btn" style="padding:5px 10px;font-size:12px" onclick="buildConfirm()">✓ Salvar</button>'
+    + '<button class="btn btn-orange" style="padding:5px 10px;font-size:12px" onclick="abrirLoggi()">📦 Loggi</button>'
+    + '</div>'
+    + '</div>';
+
+  if (!route.length) {
+    html += '<div class="notice warn" style="margin:12px"><span>⚠</span><div>Nenhum cinema encontrado em ' + (origin.city||'') + '/' + (origin.uf||'') + ' com o filtro atual. Tente reduzir o % mínimo.</div></div>';
   }
 
-  html += '<div class="route-wrap">';
+  // Origin step
+  html += '<div class="step step-origin">'
+    + '<div class="step-num sn-orig">✦</div>'
+    + '<div class="step-info"><div class="step-name">' + origin.name + ' <span class="badge badge-dark" style="font-size:10px;margin-left:4px">ORIGEM</span></div>'
+    + '<div class="step-meta">1º destino do HD · ' + (trSaida || '—') + '</div></div>'
+    + '<select class="sel-status" onchange="updSt(-1,this)"><option value="pendente">pendente</option><option value="em rota">em rota</option><option value="ok">✓ OK</option><option value="erro">⚠ erro</option></select>'
+    + '</div>';
 
-  // Origin
-  html += `<div class="step origin-step">
-    <div class="step-num sn-orig">✦</div>
-    <div class="step-info">
-      <div class="step-name">${selOrigin.name} <span class="badge dk" style="font-size:10px;margin-left:4px">ORIGEM</span></div>
-      <div class="step-meta">1º destino do HD · ${trSaida||'—'}</div>
-    </div>
-    <select class="st-sel st-pd" onchange="updSt(-1,this)"><option value="pendente">pendente</option><option value="em rota">em rota</option><option value="ok">✓ OK</option><option value="erro">⚠ erro</option></select>
-  </div>`;
-
-  curRoute.forEach((c, i) => {
+  route.forEach((c, i) => {
     const st  = routeSt[i] || 'pendente';
-    const trr = routeTr[i] || tr;
-    const cls = c.pct===100?'sn-100':c.pct>=80?'sn-80':'sn-lo';
-    const isBest = i===0 && c.pct===100;
+    const tr  = routeTr[i] || trRem;
+    const cls = c.pct === 100 ? 'sn-100' : c.pct >= 80 ? 'sn-80' : 'sn-lo';
+    const isBest = i === 0 && c.pct === 100;
 
-    html += `
-      <div class="step-arrow">
-        <div class="step-arrow-line"></div>
-        <span class="step-arrow-txt">remanejar${(c.legDist||0)>0?' · '+(c.legDist).toFixed(1)+'km':''}</span>
-        <div class="step-arrow-line"></div>
-      </div>
-      <div class="step${isBest?' best-step':''}">
-        <div class="step-num ${cls}">${i+1}</div>
-        <div class="step-info">
-          <div class="step-name">${c.name}${i===0?' <span class="badge gn" style="font-size:10px;margin-left:4px">mais próximo</span>':''}</div>
-          <div class="step-meta">${c.city} · ${c.uf} · ${c.pct}%</div>
-        </div>
-        <select class="tr-sel" onchange="updTr(${i},this)" style="font-size:11px;max-width:120px;margin-right:6px">
-          <option${trr==='Loggi'?' selected':''}>Loggi</option>
-          <option${trr==='STM Serviços'?' selected':''}>STM Serviços</option>
-          <option${trr==='BEM TRANSPORTES'?' selected':''}>BEM TRANSPORTES</option>
-          <option${trr==='Acordo ETC Filmes'?' selected':''}>Acordo ETC Filmes</option>
-          <option${trr==='Logcine Transportes'?' selected':''}>Logcine Transportes</option>
-        </select>
-        <select class="st-sel ${st==='ok'?'st-ok':st==='em rota'?'st-rt':st==='erro'?'st-er':'st-pd'}" onchange="updSt(${i},this)">
-          <option value="pendente"${st==='pendente'?' selected':''}>pendente</option>
-          <option value="em rota"${st==='em rota'?' selected':''}>em rota</option>
-          <option value="ok"${st==='ok'?' selected':''}>✓ OK</option>
-          <option value="erro"${st==='erro'?' selected':''}>⚠ erro</option>
-        </select>
-      </div>`;
+    html += '<div class="step-connector">'
+      + '<div class="connector-line"></div>'
+      + '<div class="connector-label">remanejar' + ((c.legDist||0) > 0 ? ' · ' + c.legDist.toFixed(1) + 'km' : '') + '</div>'
+      + '<div class="connector-line"></div>'
+      + '</div>';
+
+    html += '<div class="step' + (isBest ? ' step-best' : '') + '">'
+      + '<div class="step-num ' + cls + '">' + (i + 1) + '</div>'
+      + '<div class="step-info"><div class="step-name">' + c.name
+      + (i === 0 ? ' <span class="badge badge-green" style="font-size:10px;margin-left:4px">mais próximo</span>' : '')
+      + '</div><div class="step-meta">' + c.city + ' · ' + c.uf + ' · ' + c.pct + '%</div></div>'
+      + '<select class="sel-transp" onchange="updTr(' + i + ',this)">'
+      + '<option' + (tr==='Loggi'?' selected':'') + '>Loggi</option>'
+      + '<option' + (tr==='STM Serviços'?' selected':'') + '>STM Serviços</option>'
+      + '<option' + (tr==='BEM TRANSPORTES'?' selected':'') + '>BEM TRANSPORTES</option>'
+      + '<option' + (tr==='Acordo ETC Filmes'?' selected':'') + '>Acordo ETC Filmes</option>'
+      + '<option' + (tr==='Logcine Transportes'?' selected':'') + '>Logcine Transportes</option>'
+      + '</select>'
+      + '<select class="sel-status ' + (st==='ok'?'ok':st==='rota'?'rota':st==='erro'?'erro':'') + '" onchange="updSt(' + i + ',this)">'
+      + '<option value="pendente"' + (st==='pendente'?' selected':'') + '>pendente</option>'
+      + '<option value="em rota"' + (st==='em rota'?' selected':'') + '>em rota</option>'
+      + '<option value="ok"' + (st==='ok'?' selected':'') + '>✓ OK</option>'
+      + '<option value="erro"' + (st==='erro'?' selected':'') + '>⚠ erro</option>'
+      + '</select>'
+      + '</div>';
   });
 
-  html += '</div>';
+  html += '</div>'; // close route-card
+
+  // Saved schedules
+  if (SAVED.length) {
+    html += '<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;margin-bottom:8px">Programações salvas (' + SAVED.length + ')</div>';
+    SAVED.slice(0, 4).forEach((s, i) => {
+      const done = (s.route||[]).filter(r=>r.status==='ok').length;
+      const tot  = (s.route||[]).length;
+      const cls  = done===tot&&tot>0 ? 'badge-green' : done>0 ? 'badge-amber' : 'badge-gray';
+      const lbl  = done===tot&&tot>0 ? 'completo'    : done>0 ? 'andamento'   : 'pendente';
+      html += '<div onclick="loadSaved(' + i + ')" style="background:#fff;border:1px solid #e0deda;border-radius:8px;padding:10px 13px;margin-bottom:6px;cursor:pointer;display:flex;align-items:flex-start;gap:8px;transition:border-color .14s" onmouseover="this.style.borderColor='#1a4fff'" onmouseout="this.style.borderColor='#e0deda'">'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:13px;font-weight:500">' + (s.titulo||'—') + '</div>'
+        + '<div style="font-size:11px;color:#888;margin-top:1px">' + (s.origin&&s.origin.city||'') + '/' + (s.origin&&s.origin.uf||'') + ' · HD #' + (s.material||'') + ' · ' + done + '/' + tot + ' ok</div>'
+        + '</div>'
+        + '<span class="badge ' + cls + '">' + lbl + '</span>'
+        + '<button onclick="event.stopPropagation();delSaved(' + i + ')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:0 2px">✕</button>'
+        + '</div>';
+    });
+    html += '</div>';
+  }
+
   document.getElementById('prog-right').innerHTML = html;
-  // Fill confirm modal
-  buildConfirmModal();
 }
 
 function updSt(i, sel) {
-  const v=sel.value;
-  sel.className='st-sel '+(v==='ok'?'st-ok':v==='em rota'?'st-rt':v==='erro'?'st-er':'st-pd');
-  if(i>=0) routeSt[i]=v;
+  const v = sel.value;
+  sel.className = 'sel-status' + (v==='ok'?' ok':v==='em rota'?' rota':v==='erro'?' erro':'');
+  if (i >= 0) routeSt[i] = v;
 }
-function updTr(i,sel) { routeTr[i]=sel.value; }
+function updTr(i, sel) { routeTr[i] = sel.value; }
 
-// ─── CONFIRM + SAVE ───────────────────────────
-function buildConfirmModal() {
-  if(!selOrigin) return;
-  const t=document.getElementById('f-titulo').value||'—';
-  const m=document.getElementById('f-material').value||'—';
-  const c=document.getElementById('f-cliente').value||'—';
-  const s=document.getElementById('f-saida').value;
-  const tr=document.getElementById('f-transp-rem').value||autoTransp(selOrigin.uf||'');
-
-  document.getElementById('mc-sub').textContent = curRoute.length + ' remanejamentos · ' + (selOrigin.city||'') + '/' + (selOrigin.uf||'');
-
-  let html = `<div style="background:var(--bg3);border-radius:6px;padding:12px 14px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px">
-    <div><div style="color:var(--t3);font-size:10px">Filme</div><div style="font-weight:500">${t}</div></div>
-    <div><div style="color:var(--t3);font-size:10px">Cliente</div><div style="font-weight:500">${c}</div></div>
-    <div><div style="color:var(--t3);font-size:10px">Material (HD)</div><div style="font-weight:500;font-family:monospace">#${m}</div></div>
-    <div><div style="color:var(--t3);font-size:10px">Data saída</div><div style="font-weight:500">${s||'—'}</div></div>
-  </div>
-  <div style="border:1px solid var(--bdr);border-radius:6px;overflow:hidden;font-size:12px">
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#eef1ff;border-bottom:1px solid var(--bdr)">
-      <span class="badge dk" style="font-size:10px">✦ ORIGEM</span>
-      <strong>${selOrigin.name}</strong>
-      <span style="margin-left:auto;color:var(--t3)">${selOrigin.city||''}/${selOrigin.uf||''}</span>
-    </div>
-    ${curRoute.map((cc,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--bdr)">
-      <span class="badge ${cc.pct===100?'gn':cc.pct>=80?'am':'gy'}" style="font-size:10px">${i+1}</span>
-      <strong style="flex:1">${cc.name}</strong>
-      <span style="color:var(--t3);font-size:11px">${routeTr[i]||tr}</span>
-    </div>`).join('')}
-  </div>`;
-  document.getElementById('mc-body').innerHTML = html;
-}
-
-function salvarProg() {
-  if(!selOrigin) return;
-  const tr = document.getElementById('f-transp-rem').value || autoTransp(selOrigin.uf||'');
-  const sched = {
-    id: Date.now(), savedAt: new Date().toISOString(),
-    cliente: document.getElementById('f-cliente').value,
-    titulo:  document.getElementById('f-titulo').value,
-    material:document.getElementById('f-material').value,
-    servico: document.getElementById('f-servico').value,
-    exibidor:document.getElementById('f-exibidor').value,
-    saida:   document.getElementById('f-saida').value,
-    prazo:   document.getElementById('f-prazo').value,
-    transpSaida: document.getElementById('f-transp-saida').value,
-    origin: {...selOrigin},
-    route: curRoute.map((c,i) => ({...c, transp:routeTr[i]||tr, status:routeSt[i]||'pendente'})),
-    totalDist: Math.round(curRoute.reduce((s,c)=>s+(c.legDist||0),0)),
+// ── SAVE / LOAD ────────────────────────────────
+function buildSchedObj() {
+  const trRem = document.getElementById('f-transp-rem').value || autoTr(origin.uf || '');
+  return {
+    id:         Date.now(),
+    savedAt:    new Date().toISOString(),
+    titulo:     document.getElementById('f-titulo').value,
+    cliente:    document.getElementById('f-cliente').value,
+    material:   document.getElementById('f-material').value,
+    servico:    document.getElementById('f-servico').value,
+    exibidor:   document.getElementById('f-exibidor').value,
+    saida:      document.getElementById('f-saida').value,
+    prazo:      document.getElementById('f-prazo').value,
+    transpSaida:document.getElementById('f-transp-saida').value,
+    origin:     {...origin},
+    route:      route.map((c, i) => ({...c, transp: routeTr[i]||trRem, status: routeSt[i]||'pendente'})),
+    totalDist:  Math.round(route.reduce((s,c) => s+(c.legDist||0), 0)),
   };
-  SCHEDULES.unshift(sched);
-  localStorage.setItem('etcf_sch', JSON.stringify(SCHEDULES));
-  closeModal('modal-confirm');
-  toast('Programação salva!','ok');
 }
 
-function salvarELoggi() { salvarProg(); setTimeout(()=>abrirLoggi(), 150); }
+function buildConfirm() {
+  if (!origin || !route.length) { showToast('Gere a rota primeiro.', 'err'); return; }
+  const s = buildSchedObj();
+  document.getElementById('mc-sub').textContent = s.route.length + ' remanejamentos · ' + (s.origin.city||'') + '/' + (s.origin.uf||'');
+  const trRem = document.getElementById('f-transp-rem').value || autoTr(origin.uf||'');
 
-// ─── LOGGI DISPATCH ───────────────────────────
-function resolveAddr(cinemaName) {
-  if(LOGGI_CFG.etcAddressId && cinemaName === (EMPRESA.nome||'ETC Filmes'))
-    return {addressId: LOGGI_CFG.etcAddressId, label: EMPRESA.contato, resolved:'saved'};
-  // Look for a matching envio address
-  const envio = ENVIOS.find(r=>r.cinema===cinemaName);
-  if(envio && envio.endereco)
-    return {rawAddress: envio.endereco + ', ' + envio.cidade + ', ' + envio.uf, label:cinemaName+' — Operação', resolved:'envio'};
-  const c = (DB||[]).find(x=>x.name===cinemaName);
-  return {rawAddress:(c?cinemaName+', '+c.city+', '+c.uf:cinemaName)+', Brasil', label:cinemaName+' — Operação', resolved:'geocoded'};
+  let body = '<div style="background:#f5f4f0;border-radius:6px;padding:12px 14px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px">'
+    + '<div><div style="color:#888;font-size:10px">Filme</div><div style="font-weight:500">' + s.titulo + '</div></div>'
+    + '<div><div style="color:#888;font-size:10px">Cliente</div><div style="font-weight:500">' + s.cliente + '</div></div>'
+    + '<div><div style="color:#888;font-size:10px">Material</div><div style="font-weight:500;font-family:monospace">#' + s.material + '</div></div>'
+    + '<div><div style="color:#888;font-size:10px">Data saída</div><div style="font-weight:500">' + fmtDate(s.saida) + '</div></div>'
+    + '</div>'
+    + '<div style="border:1px solid #e0deda;border-radius:6px;overflow:hidden;font-size:12px">'
+    + '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#eef1ff;border-bottom:1px solid #e0deda">'
+    + '<span class="badge badge-dark" style="font-size:10px">✦</span><strong>' + s.origin.name + '</strong>'
+    + '<span style="margin-left:auto;color:#888;font-size:11px">' + (s.origin.city||'') + '/' + (s.origin.uf||'') + '</span></div>';
+
+  s.route.forEach((c, i) => {
+    body += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #f0efeb">'
+      + '<span class="badge ' + (c.pct===100?'badge-green':c.pct>=80?'badge-amber':'badge-gray') + '" style="font-size:10px">' + (i+1) + '</span>'
+      + '<strong style="flex:1">' + c.name + '</strong>'
+      + '<span style="color:#888;font-size:11px">' + (c.transp||trRem) + '</span></div>';
+  });
+  body += '</div>';
+
+  document.getElementById('mc-body').innerHTML = body;
+  openModal('modal-confirm');
+}
+
+function salvarProg(withLoggi) {
+  const s = buildSchedObj();
+  SAVED.unshift(s);
+  localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+  closeModal('modal-confirm');
+  showToast('Programação salva!', 'ok');
+  renderRoute();
+  if (withLoggi) setTimeout(() => abrirLoggi(), 200);
+}
+
+function loadSaved(i) {
+  const s = SAVED[i];
+  if (!s) return;
+  origin = s.origin;
+  route  = s.route.map(r => ({...r}));
+  routeSt = {}; routeTr = {};
+  s.route.forEach((r, j) => { routeSt[j] = r.status; routeTr[j] = r.transp; });
+  document.getElementById('f-titulo').value    = s.titulo   || '';
+  document.getElementById('f-cliente').value   = s.cliente  || '';
+  document.getElementById('f-material').value  = s.material || '';
+  document.getElementById('f-servico').value   = s.servico  || '';
+  document.getElementById('f-exibidor').value  = s.exibidor || '';
+  document.getElementById('f-saida').value     = s.saida    || '';
+  document.getElementById('f-prazo').value     = s.prazo    || '';
+  if (s.transpSaida) document.getElementById('f-transp-saida').value = s.transpSaida;
+  document.getElementById('f-origem').value    = s.origin.name;
+  showOriginBadge(s.origin.name, (s.origin.city||'') + ' · ' + (s.origin.uf||'') + ' · ' + (s.origin.pct||'') + '%');
+  renderRoute();
+  showToast('Programação carregada.', 'ok');
+}
+
+function delSaved(i) {
+  if (!confirm('Excluir esta programação?')) return;
+  SAVED.splice(i, 1);
+  localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+  renderRoute();
+  showToast('Excluída.', 'info');
+}
+
+function limpar() {
+  origin = null; route = []; routeSt = {}; routeTr = {};
+  ['f-titulo','f-cliente','f-material','f-servico','f-exibidor','f-origem'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('origin-badge').style.display = 'none';
+  document.getElementById('prog-right').innerHTML = '<div class="empty"><div class="empty-icon">🎬</div><h3>Formulário limpo</h3><p>Selecione um envio importado ou busque o cinema de origem.</p></div>';
+  showToast('Limpo.', 'info');
+}
+
+// ── LOGGI ──────────────────────────────────────
+function resolveAddr(name) {
+  // Check imported envios for address
+  const env = envios.find(r => r.cinema === name);
+  if (env && env.endereco)
+    return { rawAddress: env.endereco + ', ' + env.cidade + ', ' + env.uf, label: name + ' — Operação', resolved: 'imported' };
+  const c = DB.find(x => x.name === name);
+  return { rawAddress: (c ? name + ', ' + c.city + ', ' + c.uf : name) + ', Brasil', label: name + ' — Operação', resolved: 'geocoded' };
 }
 
 function abrirLoggi() {
-  if(!LOGGI_CFG.token && !LOGGI_CFG.clientId) { toast('Configure as credenciais Loggi primeiro (⚙ Loggi).','err'); return; }
-  if(!selOrigin || !curRoute.length) { toast('Gere a rota primeiro.','err'); return; }
-  const mat    = document.getElementById('f-material').value||'—';
-  const titulo = document.getElementById('f-titulo').value||'Filme';
-  const tr     = document.getElementById('f-transp-rem').value||autoTransp(selOrigin.uf||'');
+  if (!LOGGI.token && !LOGGI.clientId) { showToast('Configure as credenciais Loggi (aba ⚙ Loggi).', 'err'); return; }
+  if (!origin || !route.length) { showToast('Gere a rota primeiro.', 'err'); return; }
+
+  const mat    = document.getElementById('f-material').value || '—';
+  const titulo = document.getElementById('f-titulo').value   || 'Filme';
+  const trRem  = document.getElementById('f-transp-rem').value || autoTr(origin.uf||'');
   const trS    = document.getElementById('f-transp-saida').value;
-  const phone  = (LOGGI_CFG.phone||'11999999999').replace(/[^0-9]/g,'');
+  const phone  = (LOGGI.phone || '11999999999').replace(/[^0-9]/g, '');
 
-  loggiOrds = []; loggiSt = {};
+  loggiOrders = [];
+  loggiSt     = {};
 
-  if(trS === 'Loggi') {
-    const fromAddr = LOGGI_CFG.etcAddressId
-      ? {addressId:LOGGI_CFG.etcAddressId, label:EMPRESA.contato||'ETC Filmes', resolved:'saved'}
-      : {rawAddress:EMPRESA.addr, label:EMPRESA.contato||'ETC Filmes', resolved:'manual'};
-    loggiOrds.push({idx:-1,seq:'✦',fromName:'ETC Filmes',from:fromAddr,toName:selOrigin.name,to:resolveAddr(selOrigin.name),
-      description:`HD #${mat} | ${titulo} | 1ª entrega`,
-      instructions:`FILME: ${titulo} | HD: ${mat} | ETC Filmes → ${selOrigin.name}`,
-      externalId:`ETCF-${mat}-000`, phone});
+  // Initial delivery
+  if (trS === 'Loggi') {
+    const fromAddr = LOGGI.etcId
+      ? { addressId: LOGGI.etcId, label: EMPRESA.contato, resolved: 'saved' }
+      : { rawAddress: EMPRESA.addr, label: EMPRESA.contato, resolved: 'manual' };
+    loggiOrders.push({
+      i: -1, seq: '✦', fromName: 'ETC Filmes', from: fromAddr,
+      toName: origin.name, to: resolveAddr(origin.name),
+      desc: 'HD #' + mat + ' | ' + titulo + ' | 1ª entrega',
+      instr: 'FILME: ' + titulo + ' | HD: ' + mat + ' | ETC Filmes → ' + origin.name,
+      extId: 'ETCF-' + mat + '-000', phone
+    });
   }
 
-  curRoute.forEach((c,i)=>{
-    const rowTr = routeTr[i]||tr;
-    if(rowTr !== 'Loggi') return;
-    const fromC = i===0?selOrigin:curRoute[i-1];
-    loggiOrds.push({idx:i,seq:i+1,fromName:fromC.name,from:resolveAddr(fromC.name),toName:c.name,to:resolveAddr(c.name),
-      description:`HD #${mat} | ${titulo} | Rem. ${i+1}`,
-      instructions:`FILME: ${titulo} | HD: ${mat} | ${fromC.name} → ${c.name}`,
-      externalId:`ETCF-${mat}-${String(i+1).padStart(3,'0')}`, phone});
+  // Remanejamentos
+  route.forEach((c, i) => {
+    if ((routeTr[i] || trRem) !== 'Loggi') return;
+    const from = i === 0 ? origin : route[i-1];
+    loggiOrders.push({
+      i, seq: i+1, fromName: from.name, from: resolveAddr(from.name),
+      toName: c.name, to: resolveAddr(c.name),
+      desc: 'HD #' + mat + ' | ' + titulo + ' | Rem. ' + (i+1),
+      instr: 'FILME: ' + titulo + ' | HD: ' + mat + ' | ' + from.name + ' → ' + c.name,
+      extId: 'ETCF-' + mat + '-' + String(i+1).padStart(3,'0'), phone
+    });
   });
 
-  if(!loggiOrds.length) { toast('Nenhum trecho com Loggi na rota.','wrn'); return; }
+  if (!loggiOrders.length) { showToast('Nenhum trecho com Loggi nesta rota.', 'info'); return; }
 
-  document.getElementById('ml-sub').textContent = loggiOrds.length + ' pedido' + (loggiOrds.length>1?'s':'') + ' · HD #' + mat;
-  document.getElementById('ml-pkg').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12px">
-      <div><div style="color:#a03500;font-size:10px">Filme</div><div style="font-weight:500">${titulo}</div></div>
-      <div><div style="color:#a03500;font-size:10px">Material</div><div style="font-weight:500;font-family:monospace">#${mat}</div></div>
-      <div><div style="color:#a03500;font-size:10px">Pedidos Loggi</div><div style="font-weight:500;color:var(--ac)">${loggiOrds.length}</div></div>
-    </div>`;
+  document.getElementById('ml-sub').textContent = loggiOrders.length + ' pedido' + (loggiOrders.length>1?'s':'') + ' · HD #' + mat;
 
-  const addrBadge = r => r==='saved'
-    ? '<span style="font-size:9px;background:var(--gl);color:var(--gn);padding:1px 5px;border-radius:3px">salvo</span>'
-    : r==='envio'
-    ? '<span style="font-size:9px;background:var(--al);color:var(--ac);padding:1px 5px;border-radius:3px">importado</span>'
-    : '<span style="font-size:9px;background:var(--yl);color:var(--am);padding:1px 5px;border-radius:3px">geocode</span>';
+  const addrBadge = r =>
+    r==='saved'    ? '<span style="font-size:9px;background:#e5f5ec;color:#1a8a4a;padding:1px 5px;border-radius:3px">salvo</span>'
+    : r==='imported' ? '<span style="font-size:9px;background:#eaedff;color:#1a4fff;padding:1px 5px;border-radius:3px">importado</span>'
+    : '<span style="font-size:9px;background:#fdf4df;color:#996a00;padding:1px 5px;border-radius:3px">geocode</span>';
 
-  document.getElementById('ml-orders').innerHTML = loggiOrds.map((o,i)=>`
-    <div class="lg-row" id="lg-row-${i}">
-      <div class="lg-num">${o.seq}</div>
-      <div class="lg-info">
-        <div class="lg-route">${o.fromName} ${addrBadge(o.from?.resolved||'geocoded')} → ${o.toName} ${addrBadge(o.to?.resolved||'geocoded')}</div>
-        <div class="lg-desc">${o.description}</div>
-      </div>
-      <span class="lg-st lg-pd" id="lgst-${i}">pendente</span>
-      <button class="btn sm" id="lgbtn-${i}" onclick="dispatchOne(${i})">Enviar</button>
-    </div>`).join('');
+  document.getElementById('ml-pkg').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12px">'
+    + '<div><div style="color:#a03500;font-size:10px">Filme</div><div style="font-weight:500">' + titulo + '</div></div>'
+    + '<div><div style="color:#a03500;font-size:10px">HD</div><div style="font-weight:500;font-family:monospace">#' + mat + '</div></div>'
+    + '<div><div style="color:#a03500;font-size:10px">Pedidos</div><div style="font-weight:500;color:#1a4fff">' + loggiOrders.length + '</div></div>'
+    + '</div>';
 
-  document.getElementById('ml-prog').style.width='0%';
+  document.getElementById('ml-orders').innerHTML = loggiOrders.map((o, idx) =>
+    '<div class="loggi-row" id="lgrow-' + idx + '">'
+    + '<div class="loggi-num">' + o.seq + '</div>'
+    + '<div class="loggi-info">'
+    + '<div class="loggi-route">' + o.fromName + ' ' + addrBadge(o.from&&o.from.resolved||'geocoded') + ' → ' + o.toName + ' ' + addrBadge(o.to&&o.to.resolved||'geocoded') + '</div>'
+    + '<div class="loggi-desc">' + o.desc + '</div>'
+    + '</div>'
+    + '<span class="loggi-st lst-pd" id="lgst-' + idx + '">pendente</span>'
+    + '<button class="btn" style="padding:3px 9px;font-size:11px" id="lgbtn-' + idx + '" onclick="dispatchOne(' + idx + ')">Enviar</button>'
+    + '</div>'
+  ).join('');
+
+  document.getElementById('ml-prog').style.width = '0%';
   document.getElementById('ml-count').textContent = '0 enviados';
   document.getElementById('btn-all').disabled = false;
   document.getElementById('btn-all').textContent = '📦 Disparar todos';
   openModal('modal-loggi');
 }
 
-async function callLoggi(query, variables) {
-  const token = LOGGI_CFG.token;
-  const r = await fetch('https://www.loggi.com/graphql', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-    body: JSON.stringify({query, variables})
-  });
-  if(!r.ok) throw new Error('HTTP '+r.status);
-  return r.json();
-}
+async function dispatchOne(idx) {
+  const o = loggiOrders[idx];
+  if (!o) return;
+  const btn = document.getElementById('lgbtn-' + idx);
+  const st  = document.getElementById('lgst-'  + idx);
+  btn.disabled = true; btn.textContent = '...';
+  st.className = 'loggi-st lst-sn'; st.textContent = '⟳ enviando...';
 
-async function dispatchOne(i) {
-  const o = loggiOrds[i]; if(!o) return;
-  const btn=document.getElementById('lgbtn-'+i), st=document.getElementById('lgst-'+i);
-  btn.disabled=true; btn.textContent='...'; st.className='lg-st lg-sn'; st.textContent='⟳ enviando...';
   try {
-    const fromA = o.from?.addressId?{addressId:o.from.addressId}:{rawAddress:o.from?.rawAddress||o.fromName};
-    const toA   = o.to?.addressId  ?{addressId:o.to.addressId}  :{rawAddress:o.to?.rawAddress||o.toName};
+    const fromA = o.from&&o.from.addressId ? {addressId:o.from.addressId} : {rawAddress:o.from&&o.from.rawAddress||o.fromName};
+    const toA   = o.to&&o.to.addressId     ? {addressId:o.to.addressId}   : {rawAddress:o.to&&o.to.rawAddress||o.toName};
     const mut = `mutation CreateOrder($input:CreateOrderMutationInput!){createOrder(input:$input){order{pk trackingKey}errors{field messages}}}`;
-    const vars = {input:{shopPk:parseInt(LOGGI_CFG.shopPk||'0'),packageType:'loggi-ponto',waypoints:[
-      {address:fromA,recipient:{name:o.from.label,phone:'+55'+o.phone},packageItems:[{description:o.description,quantity:1,weight:2.0,length:20,height:15,width:15}],instructions:o.instructions},
-      {address:toA,recipient:{name:o.to.label,phone:'+55'+o.phone}}
-    ]}};
-    const data = await callLoggi(mut, vars);
-    const res = data?.data?.createOrder;
-    if(res?.errors?.length) throw new Error(res.errors.map(e=>e.messages.join(' ')).join('; '));
-    const order = res?.order;
-    if(!order?.pk) throw new Error('Resposta inválida');
-    loggiSt[i]='ok';
-    st.className='lg-st lg-ok'; st.textContent='✓ OK';
-    btn.textContent='✓'; btn.style.background='var(--gn)'; btn.style.color='#fff';
-    if(order.trackingKey) {
-      const a=document.createElement('a'); a.className='lg-track';
-      a.href='https://www.loggi.com/rastreio/'+order.trackingKey; a.target='_blank';
-      a.textContent='🔗 Rastrear #'+order.trackingKey;
-      document.querySelector('#lg-row-'+i+' .lg-info').appendChild(a);
+    const vars = { input: {
+      shopPk: parseInt(LOGGI.shopPk || '0'), packageType: 'loggi-ponto',
+      waypoints: [
+        { address: fromA, recipient: { name: o.from.label, phone: '+55'+o.phone },
+          packageItems: [{ description: o.desc, quantity:1, weight:2.0, length:20, height:15, width:15 }],
+          instructions: o.instr },
+        { address: toA, recipient: { name: o.to.label, phone: '+55'+o.phone } }
+      ]
+    }};
+    const res = await fetch('https://www.loggi.com/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+LOGGI.token },
+      body: JSON.stringify({ query: mut, variables: vars })
+    });
+    const data = await res.json();
+    const cr   = data&&data.data&&data.data.createOrder;
+    if (cr&&cr.errors&&cr.errors.length) throw new Error(cr.errors.map(e=>e.messages.join(' ')).join('; '));
+    const order = cr && cr.order;
+    if (!order||!order.pk) throw new Error('Resposta inválida da Loggi');
+    loggiSt[idx] = 'ok';
+    st.className = 'loggi-st lst-ok'; st.textContent = '✓ OK';
+    btn.textContent = '✓'; btn.style.background = '#1a8a4a'; btn.style.color = '#fff';
+    if (order.trackingKey) {
+      const a = document.createElement('a');
+      a.className = 'loggi-track';
+      a.href = 'https://www.loggi.com/rastreio/' + order.trackingKey;
+      a.target = '_blank';
+      a.textContent = '🔗 Rastrear #' + order.trackingKey;
+      document.querySelector('#lgrow-' + idx + ' .loggi-info').appendChild(a);
     }
-    toast('Pedido enviado! #'+(order.trackingKey||order.pk),'ok');
+    showToast('Pedido enviado! #' + (order.trackingKey || order.pk), 'ok');
   } catch(err) {
-    loggiSt[i]='err';
-    st.className='lg-st lg-er'; st.textContent='⚠ erro';
-    btn.disabled=false; btn.textContent='↻';
-    toast('Erro: '+err.message,'err');
+    loggiSt[idx] = 'err';
+    st.className = 'loggi-st lst-er'; st.textContent = '⚠ erro';
+    btn.disabled = false; btn.textContent = '↻';
+    showToast('Erro Loggi: ' + err.message, 'err');
+    console.error(err);
   }
-  const done=Object.values(loggiSt).filter(v=>v==='ok').length;
-  document.getElementById('ml-count').textContent=done+' de '+loggiOrds.length+' enviados';
-  document.getElementById('ml-prog').style.width=Math.round(done/loggiOrds.length*100)+'%';
+
+  const done = Object.values(loggiSt).filter(v => v==='ok').length;
+  document.getElementById('ml-count').textContent = done + ' de ' + loggiOrders.length + ' enviados';
+  document.getElementById('ml-prog').style.width = Math.round(done / loggiOrders.length * 100) + '%';
 }
 
 async function dispararTodos() {
-  const btn=document.getElementById('btn-all'); btn.disabled=true; btn.textContent='⟳ Enviando...';
-  for(let i=0;i<loggiOrds.length;i++){if(loggiSt[i]==='ok') continue; await dispatchOne(i); await new Promise(r=>setTimeout(r,600));}
-  btn.textContent='✓ Concluído';
-}
-
-// ─── LIMPAR ────────────────────────────────────
-function limpar() {
-  selOrigin=null; curRoute=[]; routeSt={}; routeTr={};
-  ['f-cliente','f-titulo','f-material','f-servico','f-exibidor','f-origem'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value='';
-  });
-  document.getElementById('origin-ok').style.display='none';
-  document.getElementById('prog-right').innerHTML=`<div class="welcome"><div class="welcome-icon">🎬</div><h3>Formulário limpo</h3><p>Selecione um envio importado ou busque o cinema de origem.</p></div>`;
-  toast('Formulário limpo.','info');
-}
-
-// ─── CONFIG LOGGI ──────────────────────────────
-function initCfgDots() {
-  if(LOGGI_CFG.token || LOGGI_CFG.clientId) {
-    document.getElementById('nav-dot').classList.add('ok');
+  const btn = document.getElementById('btn-all');
+  btn.disabled = true; btn.textContent = '⟳ Enviando...';
+  for (let i = 0; i < loggiOrders.length; i++) {
+    if (loggiSt[i] === 'ok') continue;
+    await dispatchOne(i);
+    await new Promise(r => setTimeout(r, 600));
   }
+  btn.textContent = '✓ Concluído';
 }
 
+// ── CONFIG ─────────────────────────────────────
 async function autenticarOAuth() {
-  const cid=document.getElementById('cfg-cid').value.trim();
-  const cs=document.getElementById('cfg-cs').value.trim();
-  if(!cid||!cs){toast('Preencha Client ID e Client Secret.','err');return;}
-  showCfgMsg('Autenticando...','var(--t3)');
+  const cid = document.getElementById('cfg-cid').value.trim();
+  const cs  = document.getElementById('cfg-cs').value.trim();
+  if (!cid || !cs) { showToast('Preencha Client ID e Client Secret.', 'err'); return; }
+  setCfgMsg('Autenticando...', '#888');
   try {
-    const r=await fetch('https://api.loggi.com/v2/oauth2/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:cid,client_secret:cs})});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const d=await r.json();
-    const token = d.access_token;
-    if(!token) throw new Error('Token não retornado: '+JSON.stringify(d));
-    LOGGI_CFG.token=token; LOGGI_CFG.clientId=cid;
-    document.getElementById('cfg-token').value='••••••••••••••••';
-    localStorage.setItem('etcf_lcfg',JSON.stringify(LOGGI_CFG));
-    document.getElementById('nav-dot').classList.add('ok');
-    showCfgMsg('✓ Autenticado com sucesso!','var(--gn)');
-    toast('✓ Autenticado!','ok');
-  } catch(e){showCfgMsg('Erro: '+e.message,'var(--rd)');toast('Falha: '+e.message,'err');}
+    const r = await fetch('https://api.loggi.com/v2/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: cid, client_secret: cs })
+    });
+    const d = await r.json();
+    if (!d.access_token) throw new Error(JSON.stringify(d));
+    LOGGI.token = d.access_token;
+    LOGGI.clientId = cid;
+    document.getElementById('cfg-token').value = '••••••••••••••••';
+    localStorage.setItem('etc_loggi', JSON.stringify(LOGGI));
+    setDot(true);
+    setCfgMsg('✓ Autenticado!', '#1a8a4a');
+    showToast('Autenticado com sucesso!', 'ok');
+  } catch(e) { setCfgMsg('Erro: ' + e.message, '#c0392b'); showToast('Falha na autenticação.', 'err'); }
 }
 
 async function testarConexao() {
-  const tok=(document.getElementById('cfg-token').value.trim()||LOGGI_CFG.token);
-  if(!tok||tok==='••••••••••••••••'){toast('Configure o token primeiro.','err');return;}
-  showCfgMsg('Testando...','var(--t3)');
+  const tok = LOGGI.token;
+  if (!tok) { showToast('Configure o token primeiro.', 'err'); return; }
+  setCfgMsg('Testando...', '#888');
   try {
-    const d=await callLoggi('query{__typename}',{});
-    if(d?.data){showCfgMsg('✓ Conectado!','var(--gn)');document.getElementById('nav-dot').classList.add('ok');toast('✓ Conectado!','ok');}
+    const r = await fetch('https://www.loggi.com/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
+      body: JSON.stringify({ query: 'query{__typename}' })
+    });
+    const d = await r.json();
+    if (d&&d.data) { setDot(true); setCfgMsg('✓ Conectado!', '#1a8a4a'); showToast('Conectado!', 'ok'); }
     else throw new Error(JSON.stringify(d).substring(0,100));
-  } catch(e){showCfgMsg('Erro: '+e.message,'var(--rd)');toast('Falha: '+e.message,'err');}
+  } catch(e) { setDot(false); setCfgMsg('Erro: ' + e.message, '#c0392b'); }
 }
 
 function salvarCfg() {
-  const tok=document.getElementById('cfg-token').value.trim();
-  LOGGI_CFG={
-    ...LOGGI_CFG,
-    token:    tok==='••••••••••••••••'?LOGGI_CFG.token:tok,
-    shopPk:   document.getElementById('cfg-shop-pk').value.trim(),
-    phone:    document.getElementById('cfg-phone').value.trim().replace(/[^0-9]/g,''),
-    etcAddressId: document.getElementById('cfg-etc-addr').value.trim(),
+  const tok = document.getElementById('cfg-token').value.trim();
+  LOGGI = {
+    ...LOGGI,
+    token:  tok === '••••••••••••••••' ? LOGGI.token : tok,
+    shopPk: document.getElementById('cfg-shopk').value.trim(),
+    phone:  document.getElementById('cfg-phone').value.trim().replace(/[^0-9]/g,''),
+    etcId:  document.getElementById('cfg-etc-id').value.trim(),
     clientId: document.getElementById('cfg-cid').value.trim(),
   };
-  localStorage.setItem('etcf_lcfg',JSON.stringify(LOGGI_CFG));
-  if(LOGGI_CFG.token||LOGGI_CFG.clientId) document.getElementById('nav-dot').classList.add('ok');
-  showCfgMsg('✓ Configuração salva!','var(--gn)');
-  toast('Salvo!','ok');
+  localStorage.setItem('etc_loggi', JSON.stringify(LOGGI));
+  if (LOGGI.token) setDot(true);
+  setCfgMsg('✓ Salvo!', '#1a8a4a');
+  showToast('Configuração salva!', 'ok');
 }
 
 function salvarEmpresa() {
-  EMPRESA={
-    nome:    document.getElementById('cfg-nome').value.trim(),
-    addr:    document.getElementById('cfg-addr').value.trim(),
-    cep:     document.getElementById('cfg-cep').value.trim(),
-    contato: document.getElementById('cfg-contato').value.trim(),
+  EMPRESA = {
+    nome:    document.getElementById('cfg-emp-nome').value.trim(),
+    addr:    document.getElementById('cfg-emp-addr').value.trim(),
+    cep:     document.getElementById('cfg-emp-cep').value.trim(),
+    contato: document.getElementById('cfg-emp-contato').value.trim(),
   };
-  localStorage.setItem('etcf_emp',JSON.stringify(EMPRESA));
-  toast('Empresa salva!','ok');
+  localStorage.setItem('etc_empresa', JSON.stringify(EMPRESA));
+  showToast('Empresa salva!', 'ok');
 }
 
-function showCfgMsg(msg,color) {
-  const el=document.getElementById('cfg-msg');
-  el.textContent=msg; el.style.color=color; el.style.display='block';
+function setDot(ok) {
+  document.getElementById('loggi-dot').style.background = ok ? '#1a8a4a' : '#ccc';
+}
+function setCfgMsg(msg, color) {
+  const el = document.getElementById('cfg-msg');
+  el.textContent = msg; el.style.color = color; el.style.display = 'block';
 }
 
-// ─── INIT ──────────────────────────────────────
+// ── INIT ───────────────────────────────────────
 document.getElementById('f-saida').value = new Date().toISOString().split('T')[0];
-initCfgDots();
+if (LOGGI.token || LOGGI.clientId) setDot(true);
 </script>
 </body>
 </html>
