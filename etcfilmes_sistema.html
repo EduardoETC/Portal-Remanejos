@@ -191,10 +191,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <button class="nav-btn" id="nb-prog" onclick="goTo('prog')">
     <span class="icon">&#9889;</span> Programar
   </button>
-  <div class="sidebar-section">Configuracao</div>
   <button class="nav-btn" id="nb-upload" onclick="goTo('upload')">
     <span class="icon">&#128228;</span> Upload Pedidos
   </button>
+  <button class="nav-btn" id="nb-dash" onclick="goTo('dash')">
+    <span class="icon">&#128202;</span> Dashboard
+    <span class="nav-badge" id="badge-dash" style="display:none;background:#e65100">0</span>
+  </button>
+  <div class="sidebar-section">Configuracao</div>
   <button class="nav-btn" id="nb-loggi" onclick="goTo('loggi')">
     <span class="icon">&#128230;</span> Loggi
   </button>
@@ -333,6 +337,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   </div>
 </div>
 
+<!-- VIEW: DASHBOARD -->
+<div class="view" id="view-dash">
+  <div class="ph">
+    <div><h1>Dashboard</h1><p id="dash-sub">Visao geral das programacoes</p></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="renderDash()">Atualizar</button>
+    </div>
+  </div>
+  <div style="padding:16px 22px;flex:1;overflow-y:auto">
+    <div id="dash-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
+    <div style="font-size:14px;font-weight:600;margin-bottom:10px">Atividade recente</div>
+    <div id="dash-andamento"></div>
+    <div id="dash-pendentes" style="display:none"></div>
+    <div id="dash-concluidos" style="display:none"></div>
+  </div>
+</div>
+
 <!-- VIEW: LOGGI CONFIG -->
 <div class="view" id="view-loggi">
   <div class="ph"><div><h1>Integracao Loggi</h1><p>Credenciais da API corporativa</p></div></div>
@@ -407,10 +428,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   </div>
 </div>
 
+<!-- MODAL: Detalhes programacao -->
+<div class="overlay" id="modal-prog-detail">
+  <div class="modal" style="width:620px">
+    <div class="modal-head">
+      <div><h3 id="mpd-title">Detalhes da programacao</h3><p id="mpd-sub"></p></div>
+      <button class="modal-close" onclick="closeModal('modal-prog-detail')">x</button>
+    </div>
+    <div class="modal-body" id="mpd-body"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modal-prog-detail')">Fechar</button>
+      <button class="btn btn-primary" id="mpd-load-btn" onclick="loadFromDetail()">Abrir no editor</button>
+      <button class="btn btn-orange" id="mpd-loggi-btn" onclick="loggiFromDetail()">Loggi</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
-
+"""
+<script>
 const DB = [
   {id:1422,name:"Cine Cultura Maceio 2",city:"MACEIO",uf:"AL",pct:20,lat:-9.6658,lon:-35.735},
   {id:1418,name:"Cineart Maceio 8",city:"MACEIO",uf:"AL",pct:100,lat:-9.6658,lon:-35.735},
@@ -419,7 +457,7 @@ const DB = [
   {id:1421,name:"Cinesercla Parque Shopping Maceio 3",city:"MACEIO",uf:"AL",pct:80,lat:-9.6658,lon:-35.735},
   {id:1428,name:"Cine Cultura Manaus 2",city:"MANAUS",uf:"AM",pct:40,lat:-3.1019,lon:-60.025},
   {id:1426,name:"Cineflix Manaus 5",city:"MANAUS",uf:"AM",pct:60,lat:-3.1019,lon:-60.025},
-  {id:1429,name:"Espaço Cinesescla Manaus 3",city:"MANAUS",uf:"AM",pct:20,lat:-3.1019,lon:-60.025},
+  {id:1429,name:"Espaco Cinesescla Manaus 3",city:"MANAUS",uf:"AM",pct:20,lat:-3.1019,lon:-60.025},
   {id:1400,name:"Kinoplex Amazonas 6",city:"MANAUS",uf:"AM",pct:100,lat:-3.1019,lon:-60.025},
   {id:1401,name:"Multiplex Millenium 8",city:"MANAUS",uf:"AM",pct:100,lat:-3.11,lon:-60.015},
   {id:1423,name:"Multiplex Studio 5",city:"MANAUS",uf:"AM",pct:100,lat:-3.1019,lon:-60.025},
@@ -930,6 +968,7 @@ function goTo(v) {
   if (v === 'envios') renderTable();
   if (v === 'prog')   renderImportList();
   if (v === 'upload') renderUploadList();
+  if (v === 'dash') renderDash();
   updateBadges();
 }
 
@@ -951,6 +990,10 @@ function updateBadges() {
   else badge.style.display = 'none';
   document.getElementById('sidebar-footer').textContent = n + ' envios carregados';
   document.getElementById('upload-count').textContent = n;
+  // dash badge
+  var andCount = SAVED.filter(function(s){var ok=(s.route||[]).filter(function(r){return r.status==='ok';}).length;return ok>0&&ok<(s.route||[]).length;}).length;
+  var db=document.getElementById('badge-dash');
+  if(db){if(andCount>0){db.textContent=andCount;db.style.display='inline';}else db.style.display='none';}
 }
 
 // XLS UPLOAD - accumulates, does not replace
@@ -1146,20 +1189,41 @@ function abrirProg(idx) {
     showOriginBadge(r.cinema, (r.cidade||'') + (r.uf?' - '+r.uf:'') + ' (importado)');
     document.getElementById('f-origem').value = r.cinema;
   }
+  if (origin) origin._envioIdx = idx;
   toast('Pedido selecionado. Clique em Gerar rota.', 'info');
 }
 
 function renderImportList() {
   var el = document.getElementById('import-list');
-  if (!ENVIOS.length) { el.innerHTML = '<div style="font-size:12px;color:#aaa">Importe pedidos via "Upload Pedidos".</div>'; return; }
-  el.innerHTML = ENVIOS.slice(0, 15).map(function(r, i) {
-    return '<div onclick="abrirProg(' + i + ')" style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid #f0efeb;cursor:pointer">'
-      + '<span class="badge badge-dark" style="font-size:10px;font-family:monospace;flex-shrink:0">#' + (r.material||'?') + '</span>'
-      + '<div style="flex:1;min-width:0">'
-      + '<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (r.tituloPN||r.titulo||'--') + '</div>'
-      + '<div style="font-size:10px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.cinema + '</div>'
-      + '</div></div>';
-  }).join('') + (ENVIOS.length > 15 ? '<div style="font-size:11px;color:#aaa;text-align:center;padding-top:6px">+' + (ENVIOS.length-15) + ' mais</div>' : '');
+  // Show only the currently selected envio (if any), plus a "trocar" button
+  if (!ENVIOS.length) {
+    el.innerHTML = '<div style="font-size:12px;color:#aaa">Importe pedidos via Upload Pedidos.</div>';
+    return;
+  }
+  if (origin && origin._envioIdx !== undefined) {
+    var r = ENVIOS[origin._envioIdx];
+    if (r) {
+      el.innerHTML = '<div style="background:#edf9f3;border:1px solid rgba(26,138,74,.2);border-radius:6px;padding:8px 10px;font-size:12px">'
+        + '<div style="font-weight:600;margin-bottom:2px">' + (r.tituloPN||r.titulo||'--') + '</div>'
+        + '<div style="color:#888">HD #' + r.material + ' - ' + r.cinema + '</div>'
+        + '<button onclick="mostrarListaPedidos()" style="margin-top:6px;background:none;border:1px solid #d0cec9;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit">Trocar pedido</button>'
+        + '</div>';
+      return;
+    }
+  }
+  // Show compact list to pick one
+  el.innerHTML = '<div style="font-size:11px;color:#888;margin-bottom:6px">Selecione o pedido:</div>'
+    + ENVIOS.slice(0, 12).map(function(r, i) {
+      return '<div onclick="abrirProg(' + i + ')" style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid #f0efeb;cursor:pointer">'
+        + '<span class="badge badge-dark" style="font-size:10px;font-family:monospace;flex-shrink:0">#' + (r.material||'?') + '</span>'
+        + '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (r.tituloPN||r.titulo||'--') + '</div>'
+        + '<div style="font-size:10px;color:#aaa">' + r.cinema + '</div></div></div>';
+    }).join('') + (ENVIOS.length > 12 ? '<div style="font-size:11px;color:#aaa;text-align:center;padding-top:6px">+' + (ENVIOS.length-12) + ' mais em Primeiros Envios</div>' : '');
+}
+
+function mostrarListaPedidos() {
+  origin._envioIdx = undefined;
+  renderImportList();
 }
 
 // SUGGEST ORIGIN
@@ -1668,7 +1732,179 @@ function setCfgMsg(msg, color) {
   el.textContent = msg; el.style.color = color; el.style.display = 'block';
 }
 
-// INIT
+
+// DASHBOARD
+var _detailIdx = null;
+
+function renderDash() {
+  var hoje     = new Date().toDateString();
+  var total    = SAVED.length;
+  var andamento= SAVED.filter(function(s){
+    var ok=( s.route||[]).filter(function(r){return r.status==='ok';}).length;
+    return ok>0 && ok<(s.route||[]).length;
+  }).length;
+  var entreguesHoje = SAVED.filter(function(s){
+    return (s.route||[]).every(function(r){return r.status==='ok';}) &&
+           s.savedAt && new Date(s.savedAt).toDateString()===hoje;
+  }).length;
+  var emRota = SAVED.reduce(function(t,s){
+    return t+(s.route||[]).filter(function(r){return r.status==='em rota';}).length;
+  },0);
+
+  document.getElementById('dash-sub').textContent =
+    total + ' programacoes - ' + emRota + ' pedidos em rota agora';
+
+  // Badge on sidebar
+  var badge = document.getElementById('badge-dash');
+  if(badge){
+    if(andamento>0){badge.textContent=andamento;badge.style.display='inline';}
+    else badge.style.display='none';
+  }
+
+  // KPIs
+  var kpis = [
+    {label:'Total de programacoes', val:total,          color:'#1a4fff', bg:'#eaedff'},
+    {label:'Em andamento',          val:andamento,      color:'#e65100', bg:'#fff2e8'},
+    {label:'Entregues hoje',        val:entreguesHoje,  color:'#1a8a4a', bg:'#e5f5ec'},
+    {label:'Pedidos em rota',       val:emRota,         color:'#996a00', bg:'#fdf4df'},
+  ];
+  document.getElementById('dash-kpis').innerHTML = kpis.map(function(k){
+    return '<div style="background:#fff;border-radius:8px;border:1px solid #e0deda;padding:14px 16px">'
+      +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aaa;margin-bottom:6px">'+k.label+'</div>'
+      +'<div style="font-size:32px;font-weight:700;font-family:monospace;color:'+k.color+'">'+k.val+'</div>'
+      +'</div>';
+  }).join('');
+
+  // Recent activity - all saved, sorted by savedAt desc
+  var sorted = SAVED.slice().sort(function(a,b){
+    return new Date(b.savedAt||0) - new Date(a.savedAt||0);
+  });
+
+  var el = document.getElementById('dash-andamento');
+  if(!sorted.length){
+    el.innerHTML='<div style="font-size:13px;color:#aaa;padding:12px 0">Nenhuma programacao ainda.</div>';
+    document.getElementById('dash-pendentes').innerHTML='';
+    document.getElementById('dash-concluidos').innerHTML='';
+    return;
+  }
+
+  el.innerHTML = sorted.slice(0,10).map(function(s){
+    var idx  = SAVED.indexOf(s);
+    var done = (s.route||[]).filter(function(r){return r.status==='ok';}).length;
+    var tot  = (s.route||[]).length;
+    var pct  = tot>0 ? Math.round(done/tot*100) : 0;
+    var city = (s.origin&&s.origin.city) ? s.origin.city+'/'+s.origin.uf : '--';
+    var dt   = s.savedAt ? new Date(s.savedAt).toLocaleDateString('pt-BR') : '';
+    var emR  = (s.route||[]).filter(function(r){return r.status==='em rota';}).length;
+    var cls  = done===tot&&tot>0 ? '#1a8a4a' : emR>0 ? '#e65100' : done>0 ? '#1a4fff' : '#996a00';
+    var lbl  = done===tot&&tot>0 ? 'concluido' : emR>0 ? 'em rota' : done>0 ? 'parcial' : 'pendente';
+    return '<div onclick="abrirDetalhe('+idx+')" style="background:#fff;border:1px solid #e0deda;border-radius:8px;padding:12px 14px;margin-bottom:7px;cursor:pointer;display:flex;align-items:center;gap:12px" onmouseenter="this.style.borderColor='#1a4fff'" onmouseleave="this.style.borderColor='#e0deda'">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.titulo||'--')+'</div>'
+      +'<div style="font-size:11px;color:#888;margin-top:2px">'+city+' - HD #'+(s.material||'--')+' - '+dt+'</div>'
+      +'<div style="height:4px;background:#e0deda;border-radius:2px;margin-top:6px;overflow:hidden">'
+      +'<div style="height:100%;width:'+pct+'%;background:'+cls+';border-radius:2px"></div></div>'
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+      +'<div style="font-size:20px;font-weight:700;font-family:monospace;color:'+cls+'">'+done+'/'+tot+'</div>'
+      +'<div style="font-size:10px;font-weight:600;color:'+cls+'">'+lbl+'</div>'
+      +'</div></div>';
+  }).join('');
+
+  // Hide unused sections
+  document.getElementById('dash-pendentes').innerHTML='';
+  document.getElementById('dash-concluidos').innerHTML='';
+}
+
+
+// DETAIL MODAL
+function abrirDetalhe(idx) {
+  var s = SAVED[idx]; if (!s) return;
+  _detailIdx = idx;
+  document.getElementById('mpd-title').textContent = s.titulo || '--';
+  document.getElementById('mpd-sub').textContent = (s.origin&&s.origin.city||'') + '/' + (s.origin&&s.origin.uf||'') + ' - HD #' + (s.material||'--');
+  var body = '<div style="background:#f5f4f0;border-radius:6px;padding:12px 14px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px">'
+    + '<div><div style="color:#888;font-size:10px">Cliente</div><div style="font-weight:500">' + (s.cliente||'--') + '</div></div>'
+    + '<div><div style="color:#888;font-size:10px">Material</div><div style="font-weight:500;font-family:monospace">#' + (s.material||'--') + '</div></div>'
+    + '<div><div style="color:#888;font-size:10px">Data saida</div><div style="font-weight:500">' + fmtDate(s.saida) + '</div></div>'
+    + '<div><div style="color:#888;font-size:10px">Exibidor</div><div style="font-weight:500">' + (s.exibidor||'--') + '</div></div>'
+    + '</div>';
+  body += '<div style="border:1px solid #e0deda;border-radius:8px;overflow:hidden">';
+  // Origin
+  body += '<div style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:#eef1ff;border-bottom:1px solid #e0deda">'
+    + '<span style="background:#1c1c1a;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">ORIGEM</span>'
+    + '<div style="flex:1"><div style="font-weight:500;font-size:13px">' + (s.origin&&s.origin.name||'--') + '</div>'
+    + '<div style="font-size:11px;color:#888">' + (s.transpSaida||'--') + '</div></div>'
+    + buildStatusSel(idx, -1) + '</div>';
+  (s.route||[]).forEach(function(r, i) {
+    var sd = s.stepData && s.stepData[i] || {};
+    var pct100 = r.pct===100;
+    body += '<div style="padding:10px 13px;border-bottom:1px solid #f0efeb">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+      + '<span style="background:' + (pct100?'#e5f5ec':r.pct>=80?'#fdf4df':'#f0efeb') + ';color:' + (pct100?'#1a8a4a':r.pct>=80?'#996a00':'#888') + ';padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600">' + (i+1) + '</span>'
+      + '<div style="flex:1"><div style="font-weight:500;font-size:13px">' + r.name + '</div>'
+      + '<div style="font-size:11px;color:#888">' + r.city + ' - ' + r.transp + ' - ' + r.pct + '%</div></div>'
+      + buildStatusSel(idx, i) + '</div>'
+      + '<div style="display:grid;grid-template-columns:160px 1fr;gap:8px">'
+      + '<div><div style="font-size:10px;color:#aaa;margin-bottom:3px">Horario recebimento</div>'
+      + '<input type="datetime-local" value="' + (sd.recHora||'') + '" onchange="updDel(' + idx + ',' + i + ','recHora',this.value)" style="width:100%;padding:4px 7px;border:1px solid #d0cec9;border-radius:4px;font-size:11px;font-family:inherit;outline:none"></div>'
+      + '<div><div style="font-size:10px;color:#aaa;margin-bottom:3px">Recebido por</div>'
+      + '<input type="text" value="' + (sd.recNome||'') + '" placeholder="Nome" onchange="updDel(' + idx + ',' + i + ','recNome',this.value)" style="width:100%;padding:4px 7px;border:1px solid #d0cec9;border-radius:4px;font-size:11px;font-family:inherit;outline:none"></div>'
+      + '</div>'
+      + (sd.tracking ? '<div style="margin-top:5px"><a href="https://www.loggi.com/rastreio/' + sd.tracking + '" target="_blank" style="font-size:11px;color:#1a4fff">Rastrear Loggi #' + sd.tracking + '</a></div>' : '')
+      + '</div>';
+  });
+  body += '</div>';
+  document.getElementById('mpd-body').innerHTML = body;
+  openModal('modal-prog-detail');
+}
+
+function buildStatusSel(schedIdx, stepIdx) {
+  var s  = SAVED[schedIdx]; if (!s) return '';
+  var st = stepIdx >= 0 ? ((s.route&&s.route[stepIdx]&&s.route[stepIdx].status)||'pendente') : 'pendente';
+  var sd = s.stepData && s.stepData[stepIdx] || {};
+  if (sd.status) st = sd.status;
+  var bg = st==='ok'?'background:#e5f5ec;color:#1a8a4a;border-color:#1a8a4a' : st==='em rota'?'background:#fdf4df;color:#996a00;border-color:#996a00' : st==='erro'?'background:#fdecea;color:#c0392b;border-color:#c0392b' : 'background:#f0efeb;color:#888;border-color:#ccc';
+  return '<select onchange="updStepStatus(' + schedIdx + ',' + stepIdx + ',this.value)" style="padding:3px 7px;border:1px solid #ccc;border-radius:5px;font-size:11px;cursor:pointer;outline:none;' + bg + '">'
+    + ['pendente','em rota','ok','erro'].map(function(o){ return '<option value="' + o + '"' + (o===st?' selected':'') + '>' + o + '</option>'; }).join('')
+    + '</select>';
+}
+
+function updStepStatus(schedIdx, stepIdx, val) {
+  var s = SAVED[schedIdx]; if (!s) return;
+  if (!s.stepData) s.stepData = {};
+  if (!s.stepData[stepIdx]) s.stepData[stepIdx] = {};
+  s.stepData[stepIdx].status = val;
+  if (stepIdx >= 0 && s.route && s.route[stepIdx]) s.route[stepIdx].status = val;
+  if (val === 'ok' && !s.stepData[stepIdx].recHora) {
+    var now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    s.stepData[stepIdx].recHora = now.toISOString().slice(0,16);
+  }
+  localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+  abrirDetalhe(schedIdx);
+  renderDash();
+}
+
+function updDel(schedIdx, stepIdx, field, val) {
+  var s = SAVED[schedIdx]; if (!s) return;
+  if (!s.stepData) s.stepData = {};
+  if (!s.stepData[stepIdx]) s.stepData[stepIdx] = {};
+  s.stepData[stepIdx][field] = val;
+  localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+}
+
+function loadFromDetail() {
+  if (_detailIdx === null) return;
+  loadSaved(_detailIdx); closeModal('modal-prog-detail'); goTo('prog');
+}
+
+function loggiFromDetail() {
+  if (_detailIdx === null) return;
+  loadSaved(_detailIdx); closeModal('modal-prog-detail'); goTo('prog');
+  setTimeout(function(){ abrirLoggi(); }, 300);
+}
+
+// -- INIT
 document.getElementById('f-saida').value = new Date().toISOString().split('T')[0];
 updateBadges();
 renderTable();
