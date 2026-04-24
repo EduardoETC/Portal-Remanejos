@@ -119,6 +119,8 @@ nav{background:#1c1c1a;height:46px;display:flex;align-items:center;padding:0 20p
 .step-info{flex:1;min-width:0}
 .step-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .step-meta{font-size:11px;color:#888;margin-top:1px}
+.step-skip{opacity:.4;}
+.step-skip .step-info{text-decoration:line-through;color:#aaa}
 .step-connector{display:flex;align-items:center;padding:3px 14px 3px 22px;border-bottom:1px solid #ebebeb}
 .connector-line{flex:1;border-top:1px dashed #ddd}
 .connector-label{font-size:10px;color:#aaa;margin:0 7px;white-space:nowrap}
@@ -924,6 +926,7 @@ let route       = [];   // calculated route
 let routeSt     = {};   // status per step
 let routeTr     = {};   // transp per step
 let loggiOrders = [];
+let routeIncl   = {};
 let loggiSt     = {};
 
 // ── NAV ────────────────────────────────────────
@@ -1006,7 +1009,7 @@ function handleFile(input) {
 function clean(v) { return String(v || '').trim(); }
 
 function fmtDate(s) {
-  if (!s) return '—';
+  if (!s) return '--';
   const p = s.split(' ')[0].split('T')[0].split('-');
   return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : s;
 }
@@ -1048,14 +1051,14 @@ function renderTable() {
                 : r.transp.toLowerCase().includes('acordo')  ? 'badge-green'
                 : 'badge-gray';
 
-    const endShort = r.endereco ? r.endereco.substring(0, 32) + (r.endereco.length > 32 ? '…' : '') : '—';
+    const endShort = r.endereco ? r.endereco.substring(0, 32) + (r.endereco.length > 32 ? '…' : '') : '--';
 
     html += '<div class="table-row" style="grid-template-columns:' + cols + '" onclick="abrirProg(' + idx + ')">'
-      + '<div><span class="badge badge-dark" style="font-family:monospace;font-size:11px">#' + (r.material || '—') + '</span></div>'
-      + '<div><div class="cell-name">' + (r.tituloPN || r.titulo || '—') + '</div><div class="cell-sub">' + r.cliente + '</div></div>'
+      + '<div><span class="badge badge-dark" style="font-family:monospace;font-size:11px">#' + (r.material || '--') + '</span></div>'
+      + '<div><div class="cell-name">' + (r.tituloPN || r.titulo || '--') + '</div><div class="cell-sub">' + r.cliente + '</div></div>'
       + '<div><div class="cell-name">' + r.cinema + '</div><div class="cell-sub">' + (r.cidade || '') + (r.uf ? ' · ' + r.uf : '') + '</div></div>'
-      + '<div><div class="cell-name" title="' + r.endereco + '">' + endShort + '</div><div class="cell-sub"><span class="badge ' + trCls + '" style="font-size:10px">' + (r.transp || '—') + '</span></div></div>'
-      + '<div><span class="badge ' + stCls + '">' + (r.status || '—') + '</span></div>'
+      + '<div><div class="cell-name" title="' + r.endereco + '">' + endShort + '</div><div class="cell-sub"><span class="badge ' + trCls + '" style="font-size:10px">' + (r.transp || '--') + '</span></div></div>'
+      + '<div><span class="badge ' + stCls + '">' + (r.status || '--') + '</span></div>'
       + '<div style="font-size:12px;color:#555">' + fmtDate(r.saida) + '</div>'
       + '<div><button class="btn" style="padding:4px 9px;font-size:12px" onclick="event.stopPropagation();abrirProg(' + idx + ')" title="Programar remanejamento">→</button></div>'
       + '</div>';
@@ -1195,7 +1198,7 @@ function renderImportList() {
     '<div onclick="abrirProg(' + i + ')" style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid #f0efeb;cursor:pointer">'
     + '<span class="badge badge-dark" style="font-size:10px;font-family:monospace;flex-shrink:0">#' + (r.material || '?') + '</span>'
     + '<div style="flex:1;min-width:0">'
-    + '<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (r.tituloPN || r.titulo || '—') + '</div>'
+    + '<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (r.tituloPN || r.titulo || '--') + '</div>'
     + '<div style="font-size:10px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.cinema + '</div>'
     + '</div></div>'
   ).join('') + (envios.length > 12 ? '<div style="font-size:11px;color:#aaa;text-align:center;padding-top:6px">+' + (envios.length - 12) + ' mais</div>' : '');
@@ -1244,15 +1247,16 @@ function gerarRota() {
     else showToast('Origem sem coordenadas — ordenando por percentual.', 'info');
   }
 
-  routeSt = {};
-  routeTr = {};
+  routeSt   = {};
+  routeTr   = {};
+  routeIncl = {};
   renderRoute();
 }
 
 // ── RENDER ROUTE ───────────────────────────────
 function renderRoute() {
-  const titulo  = document.getElementById('f-titulo').value  || '—';
-  const mat     = document.getElementById('f-material').value || '—';
+  const titulo  = document.getElementById('f-titulo').value  || '--';
+  const mat     = document.getElementById('f-material').value || '--';
   const trSaida = document.getElementById('f-transp-saida').value;
   const trRem   = document.getElementById('f-transp-rem').value || autoTr(origin.uf || '');
   const totalD  = route.reduce((s, c) => s + (c.legDist || 0), 0);
@@ -1281,7 +1285,7 @@ function renderRoute() {
   html += '<div class="step step-origin">'
     + '<div class="step-num sn-orig">✦</div>'
     + '<div class="step-info"><div class="step-name">' + origin.name + ' <span class="badge badge-dark" style="font-size:10px;margin-left:4px">ORIGEM</span></div>'
-    + '<div class="step-meta">1º destino do HD · ' + (trSaida || '—') + '</div></div>'
+    + '<div class="step-meta">1º destino do HD · ' + (trSaida || '--') + '</div></div>'
     + '<select class="sel-status" onchange="updSt(-1,this)"><option value="pendente">pendente</option><option value="em rota">em rota</option><option value="ok">✓ OK</option><option value="erro">⚠ erro</option></select>'
     + '</div>';
 
@@ -1291,29 +1295,32 @@ function renderRoute() {
     const cls = c.pct === 100 ? 'sn-100' : c.pct >= 80 ? 'sn-80' : 'sn-lo';
     const isBest = i === 0 && c.pct === 100;
 
+    const checked = routeIncl[i] !== false; // default: included
+
     html += '<div class="step-connector">'
       + '<div class="connector-line"></div>'
       + '<div class="connector-label">remanejar' + ((c.legDist||0) > 0 ? ' · ' + c.legDist.toFixed(1) + 'km' : '') + '</div>'
       + '<div class="connector-line"></div>'
       + '</div>';
 
-    html += '<div class="step' + (isBest ? ' step-best' : '') + '">'
+    html += '<div class="step' + (isBest ? ' step-best' : '') + (checked ? '' : ' step-skip') + '">'
+      + '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="updIncl(' + i + ',this)" style="margin-right:4px;cursor:pointer;flex-shrink:0;width:16px;height:16px;accent-color:#1a4fff">'
       + '<div class="step-num ' + cls + '">' + (i + 1) + '</div>'
       + '<div class="step-info"><div class="step-name">' + c.name
-      + (i === 0 ? ' <span class="badge badge-green" style="font-size:10px;margin-left:4px">mais próximo</span>' : '')
+      + (i === 0 ? ' <span class="badge badge-green" style="font-size:10px;margin-left:4px">mais proximo</span>' : '')
       + '</div><div class="step-meta">' + c.city + ' · ' + c.uf + ' · ' + c.pct + '%</div></div>'
-      + '<select class="sel-transp" onchange="updTr(' + i + ',this)">'
+      + '<select class="sel-transp" onchange="updTr(' + i + ',this)" ' + (checked ? '' : 'disabled') + '>'
       + '<option' + (tr==='Loggi'?' selected':'') + '>Loggi</option>'
-      + '<option' + (tr==='STM Serviços'?' selected':'') + '>STM Serviços</option>'
+      + '<option' + (tr==='STM Serviços'?' selected':'') + '>STM Servicos</option>'
       + '<option' + (tr==='BEM TRANSPORTES'?' selected':'') + '>BEM TRANSPORTES</option>'
       + '<option' + (tr==='Acordo ETC Filmes'?' selected':'') + '>Acordo ETC Filmes</option>'
       + '<option' + (tr==='Logcine Transportes'?' selected':'') + '>Logcine Transportes</option>'
       + '</select>'
-      + '<select class="sel-status ' + (st==='ok'?'ok':st==='rota'?'rota':st==='erro'?'erro':'') + '" onchange="updSt(' + i + ',this)">'
+      + '<select class="sel-status ' + (st==='ok'?'ok':st==='rota'?'rota':st==='erro'?'erro':'') + '" onchange="updSt(' + i + ',this)" ' + (checked ? '' : 'disabled') + '>'
       + '<option value="pendente"' + (st==='pendente'?' selected':'') + '>pendente</option>'
       + '<option value="em rota"' + (st==='em rota'?' selected':'') + '>em rota</option>'
-      + '<option value="ok"' + (st==='ok'?' selected':'') + '>✓ OK</option>'
-      + '<option value="erro"' + (st==='erro'?' selected':'') + '>⚠ erro</option>'
+      + '<option value="ok"' + (st==='ok'?' selected':'') + '>OK</option>'
+      + '<option value="erro"' + (st==='erro'?' selected':'') + '>erro</option>'
       + '</select>'
       + '</div>';
   });
@@ -1328,9 +1335,9 @@ function renderRoute() {
       const tot  = (s.route||[]).length;
       const cls  = done===tot&&tot>0 ? 'badge-green' : done>0 ? 'badge-amber' : 'badge-gray';
       const lbl  = done===tot&&tot>0 ? 'completo'    : done>0 ? 'andamento'   : 'pendente';
-      html += '<div data-idx="' + i + '" onclick="loadSaved(this.dataset.idx)" style="background:#fff;border:1px solid #e0deda;border-radius:8px;padding:10px 13px;margin-bottom:6px;cursor:pointer;display:flex;align-items:flex-start;gap:8px">';
+      html += '<div style="background:#fff;border:1px solid #e0deda;border-radius:8px;padding:10px 13px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:8px" onclick="loadSaved(' + i + ')">';
         + '<div style="flex:1;min-width:0">'
-        + '<div style="font-size:13px;font-weight:500">' + (s.titulo||'—') + '</div>'
+        + '<div style="font-size:13px;font-weight:500">' + (s.titulo||'--') + '</div>'
         + '<div style="font-size:11px;color:#888;margin-top:1px">' + (s.origin&&s.origin.city||'') + '/' + (s.origin&&s.origin.uf||'') + ' · HD #' + (s.material||'') + ' · ' + done + '/' + tot + ' ok</div>'
         + '</div>'
         + '<span class="badge ' + cls + '">' + lbl + '</span>'
@@ -1349,6 +1356,11 @@ function updSt(i, sel) {
   if (i >= 0) routeSt[i] = v;
 }
 function updTr(i, sel) { routeTr[i] = sel.value; }
+function updIncl(i, cb) {
+  routeIncl[i] = cb.checked;
+  // Re-render to update disabled state and visual
+  renderRoute();
+}
 
 // ── SAVE / LOAD ────────────────────────────────
 function buildSchedObj() {
@@ -1463,7 +1475,7 @@ function abrirLoggi() {
   if (!LOGGI.token && !LOGGI.clientId) { showToast('Configure as credenciais Loggi (aba ⚙ Loggi).', 'err'); return; }
   if (!origin || !route.length) { showToast('Gere a rota primeiro.', 'err'); return; }
 
-  const mat    = document.getElementById('f-material').value || '—';
+  const mat    = document.getElementById('f-material').value || '--';
   const titulo = document.getElementById('f-titulo').value   || 'Filme';
   const trRem  = document.getElementById('f-transp-rem').value || autoTr(origin.uf||'');
   const trS    = document.getElementById('f-transp-saida').value;
