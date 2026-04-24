@@ -1336,7 +1336,7 @@ function renderRoute() {
 
   document.getElementById('prog-right').innerHTML = html;
   // Render saved cards via DOM (avoids quote escaping issues)
-  if (SAVED.length && document.getElementById('saved-cards')) {
+  if (SAVED.length) { setTimeout(function() { var sc = document.getElementById('saved-cards'); if(!sc) return;
     SAVED.slice(0, 4).forEach((s, i) => {
       const done = (s.route||[]).filter(r=>r.status==='ok').length;
       const tot  = (s.route||[]).length;
@@ -1356,9 +1356,9 @@ function renderRoute() {
         + '</div>'
         + '<span class="badge ' + cls + '">' + lbl + '</span>'
         + '<button onclick="event.stopPropagation();delSaved(' + i + ')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:16px;padding:0 3px">x</button>';
-      document.getElementById('saved-cards').appendChild(el);
+      sc.appendChild(el);
     });
-  }
+  }, 0); }
 }
 
 function updSt(i, sel) {
@@ -1388,7 +1388,7 @@ function buildSchedObj() {
     prazo:      document.getElementById('f-prazo').value,
     transpSaida:document.getElementById('f-transp-saida').value,
     origin:     {...origin},
-    route:      route.map((c, i) => ({...c, transp: routeTr[i]||trRem, status: routeSt[i]||'pendente'})),
+    route:      route.filter((c, i) => routeIncl[i] !== false).map((c, i) => ({...c, transp: routeTr[route.indexOf(c)]||trRem, status: routeSt[route.indexOf(c)]||'pendente'})),
     totalDist:  Math.round(route.reduce((s,c) => s+(c.legDist||0), 0)),
   };
 }
