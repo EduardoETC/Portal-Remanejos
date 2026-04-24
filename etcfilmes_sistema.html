@@ -428,7 +428,7 @@ const DB = [
   {id:1421,name:"Cinesercla Parque Shopping Maceio 3",city:"MACEIO",uf:"AL",pct:80,lat:-9.6658,lon:-35.735},
   {id:1428,name:"Cine Cultura Manaus 2",city:"MANAUS",uf:"AM",pct:40,lat:-3.1019,lon:-60.025},
   {id:1426,name:"Cineflix Manaus 5",city:"MANAUS",uf:"AM",pct:60,lat:-3.1019,lon:-60.025},
-  {id:1429,name:"Espaço Cinesescla Manaus 3",city:"MANAUS",uf:"AM",pct:20,lat:-3.1019,lon:-60.025},
+  {id:1429,name:"Espaco Cinesescla Manaus 3",city:"MANAUS",uf:"AM",pct:20,lat:-3.1019,lon:-60.025},
   {id:1400,name:"Kinoplex Amazonas 6",city:"MANAUS",uf:"AM",pct:100,lat:-3.1019,lon:-60.025},
   {id:1401,name:"Multiplex Millenium 8",city:"MANAUS",uf:"AM",pct:100,lat:-3.11,lon:-60.015},
   {id:1423,name:"Multiplex Studio 5",city:"MANAUS",uf:"AM",pct:100,lat:-3.1019,lon:-60.025},
@@ -915,9 +915,9 @@ const DB = [
 ];
 
 
-// ── STATE ──────────────────────────────────────
+// -- STATE --------------------------------------
 let LOGGI   = JSON.parse(localStorage.getItem('etc_loggi')   || '{}');
-let EMPRESA = JSON.parse(localStorage.getItem('etc_empresa') || '{"nome":"ETC Filmes","addr":"Av. Escola Politécnica, 1700, Jaguaré, São Paulo, SP, 05319-000","cep":"05319-000","contato":"ETC Filmes — Expedição"}');
+let EMPRESA = JSON.parse(localStorage.getItem('etc_empresa') || '{"nome":"ETC Filmes","addr":"Av. Escola Politecnica, 1700, Jaguare, Sao Paulo, SP, 05319-000","cep":"05319-000","contato":"ETC Filmes -- Expedicao"}');
 let SAVED   = JSON.parse(localStorage.getItem('etc_saved')   || '[]');
 
 let envios      = [];   // imported rows
@@ -929,7 +929,7 @@ let loggiOrders = [];
 let routeIncl   = {};
 let loggiSt     = {};
 
-// ── NAV ────────────────────────────────────────
+// -- NAV ----------------------------------------
 function goTo(v) {
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.ntab').forEach(b  => b.classList.remove('active'));
@@ -949,7 +949,7 @@ function showToast(msg, type) {
   t._timer = setTimeout(() => t.className = 'toast', 3000);
 }
 
-// ── FILE IMPORT ────────────────────────────────
+// -- FILE IMPORT --------------------------------
 function handleFile(input) {
   const file = input.files && input.files[0];
   if (!file) return;
@@ -966,12 +966,12 @@ function handleFile(input) {
       if (!rows.length) { showToast('Planilha vazia.', 'err'); return; }
 
       envios = rows
-        .filter(r => r['Cinema'] || r['Código'])
+        .filter(r => r['Cinema'] || r['Codigo'])
         .map(r => ({
-          codigo:   clean(r['Código']),
+          codigo:   clean(r['Codigo']),
           cliente:  clean(r['Cliente']),
-          titulo:   clean(r['Título'] || r['Titulo']),
-          tituloPN: clean(r['Título Português'] || r['Titulo Portugues']),
+          titulo:   clean(r['Titulo'] || r['Titulo']),
+          tituloPN: clean(r['Titulo Portugues'] || r['Titulo Portugues']),
           exibidor: clean(r['Exibidor']),
           cinema:   clean(r['Cinema']),
           uf:       clean(r['UF']),
@@ -980,7 +980,7 @@ function handleFile(input) {
           transp:   clean(r['Logistica: Transp']),
           saida:    clean(r['Logistica: Saida'] || r['Primeira Saida']),
           endereco: clean(r['Cinema Endereco']),
-          servico:  clean(r['Código Serviço'] || r['Codigo Servico']),
+          servico:  clean(r['Codigo Servico'] || r['Codigo Servico']),
           status:   clean(r['Status']),
           cnpj:     clean(r['Cinema CNPJ']),
         }));
@@ -988,7 +988,7 @@ function handleFile(input) {
       // Update drop area
       const da = document.getElementById('drop-area');
       da.className = 'drop-area has-file';
-      da.innerHTML = '<div class="drop-icon" style="opacity:1">✓</div><div class="drop-title">' + envios.length + ' saídas importadas</div><div class="drop-sub">' + file.name + '</div>';
+      da.innerHTML = '<div class="drop-icon" style="opacity:1">OK</div><div class="drop-title">' + envios.length + ' saidas importadas</div><div class="drop-sub">' + file.name + '</div>';
 
       document.getElementById('envios-info').textContent =
         envios.length + ' envios · ' + new Set(envios.map(e => e.titulo)).size + ' filmes';
@@ -1014,7 +1014,7 @@ function fmtDate(s) {
   return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : s;
 }
 
-// ── RENDER TABLE ───────────────────────────────
+// -- RENDER TABLE -------------------------------
 function renderTable() {
   const q = (document.getElementById('search-q').value || '').toLowerCase();
   const list = envios.filter(r =>
@@ -1036,7 +1036,7 @@ function renderTable() {
   const cols = '85px 1fr 160px 1fr 100px 90px 44px';
 
   let html = '<div class="table-wrap"><div class="table-head" style="grid-template-columns:' + cols + '">' +
-    '<div>HD</div><div>Filme</div><div>Cinema</div><div>Endereço</div><div>Status</div><div>Saída</div><div></div>' +
+    '<div>HD</div><div>Filme</div><div>Cinema</div><div>Endereco</div><div>Status</div><div>Saida</div><div></div>' +
     '</div>';
 
   list.forEach(r => {
@@ -1051,7 +1051,7 @@ function renderTable() {
                 : r.transp.toLowerCase().includes('acordo')  ? 'badge-green'
                 : 'badge-gray';
 
-    const endShort = r.endereco ? r.endereco.substring(0, 32) + (r.endereco.length > 32 ? '…' : '') : '--';
+    const endShort = r.endereco ? r.endereco.substring(0, 32) + (r.endereco.length > 32 ? '...' : '') : '--';
 
     html += '<div class="table-row" style="grid-template-columns:' + cols + '" onclick="abrirProg(' + idx + ')">'
       + '<div><span class="badge badge-dark" style="font-family:monospace;font-size:11px">#' + (r.material || '--') + '</span></div>'
@@ -1060,7 +1060,7 @@ function renderTable() {
       + '<div><div class="cell-name" title="' + r.endereco + '">' + endShort + '</div><div class="cell-sub"><span class="badge ' + trCls + '" style="font-size:10px">' + (r.transp || '--') + '</span></div></div>'
       + '<div><span class="badge ' + stCls + '">' + (r.status || '--') + '</span></div>'
       + '<div style="font-size:12px;color:#555">' + fmtDate(r.saida) + '</div>'
-      + '<div><button class="btn" style="padding:4px 9px;font-size:12px" onclick="event.stopPropagation();abrirProg(' + idx + ')" title="Programar remanejamento">→</button></div>'
+      + '<div><button class="btn" style="padding:4px 9px;font-size:12px" onclick="event.stopPropagation();abrirProg(' + idx + ')" title="Programar remanejamento">-></button></div>'
       + '</div>';
   });
 
@@ -1074,12 +1074,12 @@ function exportCSV() {
     csv += '"' + [r.codigo,r.cliente,r.titulo,r.tituloPN,r.cinema,r.uf,r.cidade,r.material,r.exibidor,r.transp,r.saida.split(' ')[0],r.status,r.endereco,r.servico].join('","') + '"\n';
   });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob(['﻿' + csv], {type:'text/csv'}));
+  a.href = URL.createObjectURL(new Blob(['' + csv], {type:'text/csv'}));
   a.download = 'envios_' + new Date().toISOString().split('T')[0] + '.csv';
   a.click();
 }
 
-// ── DRAG & DROP ────────────────────────────────
+// -- DRAG & DROP --------------------------------
 (function() {
   const da  = document.getElementById('drop-area');
   const inp = document.getElementById('file-xls');
@@ -1105,14 +1105,14 @@ function exportCSV() {
   document.addEventListener('drop',     e => e.preventDefault());
 })();
 
-// ── OPEN PROG FROM ROW ─────────────────────────
+// -- OPEN PROG FROM ROW -------------------------
 function abrirProg(idx) {
   const r = envios[idx];
   if (!r) return;
   goTo('prog');
 
   // Fill form
-  document.getElementById('f-titulo').value   = r.tituloPN ? r.titulo + ' — ' + r.tituloPN : r.titulo;
+  document.getElementById('f-titulo').value   = r.tituloPN ? r.titulo + ' -- ' + r.tituloPN : r.titulo;
   document.getElementById('f-cliente').value  = r.cliente;
   document.getElementById('f-material').value = r.material;
   document.getElementById('f-servico').value  = r.servico;
@@ -1133,16 +1133,16 @@ function abrirProg(idx) {
   if (match) {
     setOrigin(match);
   } else {
-    // Cinema not in DB — use imported data
+    // Cinema not in DB -- use imported data
     origin = { id: -1, name: r.cinema, city: r.cidade, uf: r.uf, pct: 100, lat: null, lon: null, _addr: r.endereco };
     showOriginBadge(r.cinema, r.cidade + (r.uf ? ' · ' + r.uf : '') + ' (importado)');
     document.getElementById('f-origem').value = r.cinema;
   }
 
-  showToast('Saída selecionada. Clique em ⚡ Gerar rota.', 'info');
+  showToast('Saida selecionada. Clique em  Gerar rota.', 'info');
 }
 
-// ── SUGGEST ORIGIN ─────────────────────────────
+// -- SUGGEST ORIGIN -----------------------------
 function suggestOrigin(q) {
   const box = document.getElementById('sug-origin');
   if (q.length < 2) { box.style.display = 'none'; return; }
@@ -1179,7 +1179,7 @@ function setOrigin(c) {
 function showOriginBadge(name, meta) {
   const el = document.getElementById('origin-badge');
   el.style.display = 'block';
-  el.innerHTML = '<div class="notice ok"><span>✓</span><div><strong>' + name + '</strong><br><span style="opacity:.75;font-size:11px">' + meta + '</span></div></div>';
+  el.innerHTML = '<div class="notice ok"><span>OK</span><div><strong>' + name + '</strong><br><span style="opacity:.75;font-size:11px">' + meta + '</span></div></div>';
 }
 
 document.addEventListener('click', e => {
@@ -1187,7 +1187,7 @@ document.addEventListener('click', e => {
     document.getElementById('sug-origin').style.display = 'none';
 });
 
-// ── IMPORT LIST (sidebar) ──────────────────────
+// -- IMPORT LIST (sidebar) ----------------------
 function renderImportList() {
   const el = document.getElementById('import-list');
   if (!envios.length) {
@@ -1204,7 +1204,7 @@ function renderImportList() {
   ).join('') + (envios.length > 12 ? '<div style="font-size:11px;color:#aaa;text-align:center;padding-top:6px">+' + (envios.length - 12) + ' mais</div>' : '');
 }
 
-// ── ROUTE GENERATION ───────────────────────────
+// -- ROUTE GENERATION ---------------------------
 function haversine(la1, lo1, la2, lo2) {
   const R = 6371, dr = (la2-la1)*Math.PI/180, dc = (lo2-lo1)*Math.PI/180;
   const a = Math.sin(dr/2)**2 + Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dc/2)**2;
@@ -1214,7 +1214,7 @@ function haversine(la1, lo1, la2, lo2) {
 function autoTr(uf) {
   if (['SP'].includes(uf))                          return 'Loggi';
   if (['RJ','MG','PR','RS','SC'].includes(uf))      return 'BEM TRANSPORTES';
-  return 'STM Serviços';
+  return 'STM Servicos';
 }
 
 function gerarRota() {
@@ -1243,8 +1243,8 @@ function gerarRota() {
     route = result;
   } else {
     route = candidates.sort((a, b) => b.pct - a.pct).map(c => ({ ...c, legDist: 0 }));
-    if (!route.length) { showToast('Nenhum cinema elegível encontrado.', 'err'); }
-    else showToast('Origem sem coordenadas — ordenando por percentual.', 'info');
+    if (!route.length) { showToast('Nenhum cinema elegivel encontrado.', 'err'); }
+    else showToast('Origem sem coordenadas -- ordenando por percentual.', 'info');
   }
 
   routeSt   = {};
@@ -1253,7 +1253,7 @@ function gerarRota() {
   renderRoute();
 }
 
-// ── RENDER ROUTE ───────────────────────────────
+// -- RENDER ROUTE -------------------------------
 function renderRoute() {
   const titulo  = document.getElementById('f-titulo').value  || '--';
   const mat     = document.getElementById('f-material').value || '--';
@@ -1266,27 +1266,27 @@ function renderRoute() {
   // Film header
   html += '<div class="route-card">'
     + '<div class="route-header">'
-    + '<div class="route-header-icon">🎬</div>'
+    + '<div class="route-header-icon">?</div>'
     + '<div class="route-header-info">'
     + '<div class="route-header-title">' + titulo + '</div>'
     + '<div class="route-header-sub">HD #' + mat + ' · ' + (origin.city||'') + '/' + (origin.uf||'') + ' · ' + route.length + ' remanejamentos · ' + Math.round(totalD) + 'km</div>'
     + '</div>'
     + '<div class="route-header-actions">'
-    + '<button class="btn" style="padding:5px 10px;font-size:12px" onclick="buildConfirm()">✓ Salvar</button>'
-    + '<button class="btn btn-orange" style="padding:5px 10px;font-size:12px" onclick="abrirLoggi()">📦 Loggi</button>'
+    + '<button class="btn" style="padding:5px 10px;font-size:12px" onclick="buildConfirm()">OK Salvar</button>'
+    + '<button class="btn btn-orange" style="padding:5px 10px;font-size:12px" onclick="abrirLoggi()">? Loggi</button>'
     + '</div>'
     + '</div>';
 
   if (!route.length) {
-    html += '<div class="notice warn" style="margin:12px"><span>⚠</span><div>Nenhum cinema encontrado em ' + (origin.city||'') + '/' + (origin.uf||'') + ' com o filtro atual. Tente reduzir o % mínimo.</div></div>';
+    html += '<div class="notice warn" style="margin:12px"><span>?</span><div>Nenhum cinema encontrado em ' + (origin.city||'') + '/' + (origin.uf||'') + ' com o filtro atual. Tente reduzir o % minimo.</div></div>';
   }
 
   // Origin step
   html += '<div class="step step-origin">'
-    + '<div class="step-num sn-orig">✦</div>'
+    + '<div class="step-num sn-orig">?</div>'
     + '<div class="step-info"><div class="step-name">' + origin.name + ' <span class="badge badge-dark" style="font-size:10px;margin-left:4px">ORIGEM</span></div>'
-    + '<div class="step-meta">1º destino do HD · ' + (trSaida || '--') + '</div></div>'
-    + '<select class="sel-status" onchange="updSt(-1,this)"><option value="pendente">pendente</option><option value="em rota">em rota</option><option value="ok">✓ OK</option><option value="erro">⚠ erro</option></select>'
+    + '<div class="step-meta">1? destino do HD · ' + (trSaida || '--') + '</div></div>'
+    + '<select class="sel-status" onchange="updSt(-1,this)"><option value="pendente">pendente</option><option value="em rota">em rota</option><option value="ok">OK OK</option><option value="erro">? erro</option></select>'
     + '</div>';
 
   route.forEach((c, i) => {
@@ -1311,7 +1311,7 @@ function renderRoute() {
       + '</div><div class="step-meta">' + c.city + ' · ' + c.uf + ' · ' + c.pct + '%</div></div>'
       + '<select class="sel-transp" onchange="updTr(' + i + ',this)" ' + (checked ? '' : 'disabled') + '>'
       + '<option' + (tr==='Loggi'?' selected':'') + '>Loggi</option>'
-      + '<option' + (tr==='STM Serviços'?' selected':'') + '>STM Servicos</option>'
+      + '<option' + (tr==='STM Servicos'?' selected':'') + '>STM Servicos</option>'
       + '<option' + (tr==='BEM TRANSPORTES'?' selected':'') + '>BEM TRANSPORTES</option>'
       + '<option' + (tr==='Acordo ETC Filmes'?' selected':'') + '>Acordo ETC Filmes</option>'
       + '<option' + (tr==='Logcine Transportes'?' selected':'') + '>Logcine Transportes</option>'
@@ -1329,25 +1329,36 @@ function renderRoute() {
 
   // Saved schedules
   if (SAVED.length) {
-    html += '<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;margin-bottom:8px">Programações salvas (' + SAVED.length + ')</div>';
-    SAVED.slice(0, 4).forEach((s, i) => {
-      const done = (s.route||[]).filter(r=>r.status==='ok').length;
-      const tot  = (s.route||[]).length;
-      const cls  = done===tot&&tot>0 ? 'badge-green' : done>0 ? 'badge-amber' : 'badge-gray';
-      const lbl  = done===tot&&tot>0 ? 'completo'    : done>0 ? 'andamento'   : 'pendente';
-      html += '<div style="background:#fff;border:1px solid #e0deda;border-radius:8px;padding:10px 13px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:8px" onclick="loadSaved(' + i + ')">';
-        + '<div style="flex:1;min-width:0">'
-        + '<div style="font-size:13px;font-weight:500">' + (s.titulo||'--') + '</div>'
-        + '<div style="font-size:11px;color:#888;margin-top:1px">' + (s.origin&&s.origin.city||'') + '/' + (s.origin&&s.origin.uf||'') + ' · HD #' + (s.material||'') + ' · ' + done + '/' + tot + ' ok</div>'
-        + '</div>'
-        + '<span class="badge ' + cls + '">' + lbl + '</span>'
-        + '<button onclick="event.stopPropagation();delSaved(' + i + ')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:0 2px">✕</button>'
-        + '</div>';
+    html += '<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;margin-bottom:8px">Programac?es salvas (' + SAVED.length + ')</div><div id="saved-cards"></div></div>';
     });
     html += '</div>';
   }
 
   document.getElementById('prog-right').innerHTML = html;
+  // Render saved cards via DOM (avoids quote escaping issues)
+  if (SAVED.length && document.getElementById('saved-cards')) {
+    SAVED.slice(0, 4).forEach((s, i) => {
+      const done = (s.route||[]).filter(r=>r.status==='ok').length;
+      const tot  = (s.route||[]).length;
+      const pct  = tot > 0 ? Math.round(done/tot*100) : 0;
+      const cls  = done===tot&&tot>0 ? 'badge-green' : done>0 ? 'badge-amber' : 'badge-gray';
+      const lbl  = done===tot&&tot>0 ? 'completo'    : done>0 ? 'andamento'   : 'pendente';
+      const city = (s.origin&&s.origin.city) ? s.origin.city+'/'+s.origin.uf : '--';
+      const dt   = s.savedAt ? new Date(s.savedAt).toLocaleDateString('pt-BR') : '';
+      const el   = document.createElement('div');
+      el.style.cssText = 'background:#fff;border:1px solid #e0deda;border-radius:8px;padding:11px 14px;margin-bottom:7px;cursor:pointer;display:flex;align-items:center;gap:10px';
+      el.onclick = function(){ loadSaved(i); };
+      el.innerHTML =
+        '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (s.titulo||'--') + '</div>'
+        + '<div style="font-size:11px;color:#888;margin-top:2px">' + city + ' &middot; HD #' + (s.material||'--') + ' &middot; ' + done + '/' + tot + ' OK &middot; ' + dt + '</div>'
+        + '<div style="height:3px;background:#e0deda;border-radius:2px;margin-top:5px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:#1a4fff;border-radius:2px"></div></div>'
+        + '</div>'
+        + '<span class="badge ' + cls + '">' + lbl + '</span>'
+        + '<button onclick="event.stopPropagation();delSaved(' + i + ')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:16px;padding:0 3px">x</button>';
+      document.getElementById('saved-cards').appendChild(el);
+    });
+  }
 }
 
 function updSt(i, sel) {
@@ -1362,7 +1373,7 @@ function updIncl(i, cb) {
   renderRoute();
 }
 
-// ── SAVE / LOAD ────────────────────────────────
+// -- SAVE / LOAD --------------------------------
 function buildSchedObj() {
   const trRem = document.getElementById('f-transp-rem').value || autoTr(origin.uf || '');
   return {
@@ -1392,11 +1403,11 @@ function buildConfirm() {
     + '<div><div style="color:#888;font-size:10px">Filme</div><div style="font-weight:500">' + s.titulo + '</div></div>'
     + '<div><div style="color:#888;font-size:10px">Cliente</div><div style="font-weight:500">' + s.cliente + '</div></div>'
     + '<div><div style="color:#888;font-size:10px">Material</div><div style="font-weight:500;font-family:monospace">#' + s.material + '</div></div>'
-    + '<div><div style="color:#888;font-size:10px">Data saída</div><div style="font-weight:500">' + fmtDate(s.saida) + '</div></div>'
+    + '<div><div style="color:#888;font-size:10px">Data saida</div><div style="font-weight:500">' + fmtDate(s.saida) + '</div></div>'
     + '</div>'
     + '<div style="border:1px solid #e0deda;border-radius:6px;overflow:hidden;font-size:12px">'
     + '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#eef1ff;border-bottom:1px solid #e0deda">'
-    + '<span class="badge badge-dark" style="font-size:10px">✦</span><strong>' + s.origin.name + '</strong>'
+    + '<span class="badge badge-dark" style="font-size:10px">?</span><strong>' + s.origin.name + '</strong>'
     + '<span style="margin-left:auto;color:#888;font-size:11px">' + (s.origin.city||'') + '/' + (s.origin.uf||'') + '</span></div>';
 
   s.route.forEach((c, i) => {
@@ -1416,7 +1427,7 @@ function salvarProg(withLoggi) {
   SAVED.unshift(s);
   localStorage.setItem('etc_saved', JSON.stringify(SAVED));
   closeModal('modal-confirm');
-  showToast('Programação salva!', 'ok');
+  showToast('Programacao salva!', 'ok');
   renderRoute();
   if (withLoggi) setTimeout(() => abrirLoggi(), 200);
 }
@@ -1440,15 +1451,15 @@ function loadSaved(i) {
   document.getElementById('f-origem').value    = s.origin.name;
   showOriginBadge(s.origin.name, (s.origin.city||'') + ' · ' + (s.origin.uf||'') + ' · ' + (s.origin.pct||'') + '%');
   renderRoute();
-  showToast('Programação carregada.', 'ok');
+  showToast('Programacao carregada.', 'ok');
 }
 
 function delSaved(i) {
-  if (!confirm('Excluir esta programação?')) return;
+  if (!confirm('Excluir esta programacao?')) return;
   SAVED.splice(i, 1);
   localStorage.setItem('etc_saved', JSON.stringify(SAVED));
   renderRoute();
-  showToast('Excluída.', 'info');
+  showToast('Excluida.', 'info');
 }
 
 function limpar() {
@@ -1457,22 +1468,22 @@ function limpar() {
     document.getElementById(id).value = '';
   });
   document.getElementById('origin-badge').style.display = 'none';
-  document.getElementById('prog-right').innerHTML = '<div class="empty"><div class="empty-icon">🎬</div><h3>Formulário limpo</h3><p>Selecione um envio importado ou busque o cinema de origem.</p></div>';
+  document.getElementById('prog-right').innerHTML = '<div class="empty"><div class="empty-icon">?</div><h3>Formul?rio limpo</h3><p>Selecione um envio importado ou busque o cinema de origem.</p></div>';
   showToast('Limpo.', 'info');
 }
 
-// ── LOGGI ──────────────────────────────────────
+// -- LOGGI --------------------------------------
 function resolveAddr(name) {
   // Check imported envios for address
   const env = envios.find(r => r.cinema === name);
   if (env && env.endereco)
-    return { rawAddress: env.endereco + ', ' + env.cidade + ', ' + env.uf, label: name + ' — Operação', resolved: 'imported' };
+    return { rawAddress: env.endereco + ', ' + env.cidade + ', ' + env.uf, label: name + ' -- Operacao', resolved: 'imported' };
   const c = DB.find(x => x.name === name);
-  return { rawAddress: (c ? name + ', ' + c.city + ', ' + c.uf : name) + ', Brasil', label: name + ' — Operação', resolved: 'geocoded' };
+  return { rawAddress: (c ? name + ', ' + c.city + ', ' + c.uf : name) + ', Brasil', label: name + ' -- Operacao', resolved: 'geocoded' };
 }
 
 function abrirLoggi() {
-  if (!LOGGI.token && !LOGGI.clientId) { showToast('Configure as credenciais Loggi (aba ⚙ Loggi).', 'err'); return; }
+  if (!LOGGI.token && !LOGGI.clientId) { showToast('Configure as credenciais Loggi (aba ? Loggi).', 'err'); return; }
   if (!origin || !route.length) { showToast('Gere a rota primeiro.', 'err'); return; }
 
   const mat    = document.getElementById('f-material').value || '--';
@@ -1490,10 +1501,10 @@ function abrirLoggi() {
       ? { addressId: LOGGI.etcId, label: EMPRESA.contato, resolved: 'saved' }
       : { rawAddress: EMPRESA.addr, label: EMPRESA.contato, resolved: 'manual' };
     loggiOrders.push({
-      i: -1, seq: '✦', fromName: 'ETC Filmes', from: fromAddr,
+      i: -1, seq: '?', fromName: 'ETC Filmes', from: fromAddr,
       toName: origin.name, to: resolveAddr(origin.name),
-      desc: 'HD #' + mat + ' | ' + titulo + ' | 1ª entrega',
-      instr: 'FILME: ' + titulo + ' | HD: ' + mat + ' | ETC Filmes → ' + origin.name,
+      desc: 'HD #' + mat + ' | ' + titulo + ' | 1? entrega',
+      instr: 'FILME: ' + titulo + ' | HD: ' + mat + ' | ETC Filmes -> ' + origin.name,
       extId: 'ETCF-' + mat + '-000', phone
     });
   }
@@ -1506,7 +1517,7 @@ function abrirLoggi() {
       i, seq: i+1, fromName: from.name, from: resolveAddr(from.name),
       toName: c.name, to: resolveAddr(c.name),
       desc: 'HD #' + mat + ' | ' + titulo + ' | Rem. ' + (i+1),
-      instr: 'FILME: ' + titulo + ' | HD: ' + mat + ' | ' + from.name + ' → ' + c.name,
+      instr: 'FILME: ' + titulo + ' | HD: ' + mat + ' | ' + from.name + ' -> ' + c.name,
       extId: 'ETCF-' + mat + '-' + String(i+1).padStart(3,'0'), phone
     });
   });
@@ -1531,7 +1542,7 @@ function abrirLoggi() {
     '<div class="loggi-row" id="lgrow-' + idx + '">'
     + '<div class="loggi-num">' + o.seq + '</div>'
     + '<div class="loggi-info">'
-    + '<div class="loggi-route">' + o.fromName + ' ' + addrBadge(o.from&&o.from.resolved||'geocoded') + ' → ' + o.toName + ' ' + addrBadge(o.to&&o.to.resolved||'geocoded') + '</div>'
+    + '<div class="loggi-route">' + o.fromName + ' ' + addrBadge(o.from&&o.from.resolved||'geocoded') + ' -> ' + o.toName + ' ' + addrBadge(o.to&&o.to.resolved||'geocoded') + '</div>'
     + '<div class="loggi-desc">' + o.desc + '</div>'
     + '</div>'
     + '<span class="loggi-st lst-pd" id="lgst-' + idx + '">pendente</span>'
@@ -1542,7 +1553,7 @@ function abrirLoggi() {
   document.getElementById('ml-prog').style.width = '0%';
   document.getElementById('ml-count').textContent = '0 enviados';
   document.getElementById('btn-all').disabled = false;
-  document.getElementById('btn-all').textContent = '📦 Disparar todos';
+  document.getElementById('btn-all').textContent = '? Disparar todos';
   openModal('modal-loggi');
 }
 
@@ -1552,7 +1563,7 @@ async function dispatchOne(idx) {
   const btn = document.getElementById('lgbtn-' + idx);
   const st  = document.getElementById('lgst-'  + idx);
   btn.disabled = true; btn.textContent = '...';
-  st.className = 'loggi-st lst-sn'; st.textContent = '⟳ enviando...';
+  st.className = 'loggi-st lst-sn'; st.textContent = '? enviando...';
 
   try {
     const fromA = o.from&&o.from.addressId ? {addressId:o.from.addressId} : {rawAddress:o.from&&o.from.rawAddress||o.fromName};
@@ -1576,23 +1587,23 @@ async function dispatchOne(idx) {
     const cr   = data&&data.data&&data.data.createOrder;
     if (cr&&cr.errors&&cr.errors.length) throw new Error(cr.errors.map(e=>e.messages.join(' ')).join('; '));
     const order = cr && cr.order;
-    if (!order||!order.pk) throw new Error('Resposta inválida da Loggi');
+    if (!order||!order.pk) throw new Error('Resposta inv?lida da Loggi');
     loggiSt[idx] = 'ok';
-    st.className = 'loggi-st lst-ok'; st.textContent = '✓ OK';
-    btn.textContent = '✓'; btn.style.background = '#1a8a4a'; btn.style.color = '#fff';
+    st.className = 'loggi-st lst-ok'; st.textContent = 'OK OK';
+    btn.textContent = 'OK'; btn.style.background = '#1a8a4a'; btn.style.color = '#fff';
     if (order.trackingKey) {
       const a = document.createElement('a');
       a.className = 'loggi-track';
       a.href = 'https://www.loggi.com/rastreio/' + order.trackingKey;
       a.target = '_blank';
-      a.textContent = '🔗 Rastrear #' + order.trackingKey;
+      a.textContent = '? Rastrear #' + order.trackingKey;
       document.querySelector('#lgrow-' + idx + ' .loggi-info').appendChild(a);
     }
     showToast('Pedido enviado! #' + (order.trackingKey || order.pk), 'ok');
   } catch(err) {
     loggiSt[idx] = 'err';
-    st.className = 'loggi-st lst-er'; st.textContent = '⚠ erro';
-    btn.disabled = false; btn.textContent = '↻';
+    st.className = 'loggi-st lst-er'; st.textContent = '? erro';
+    btn.disabled = false; btn.textContent = '?';
     showToast('Erro Loggi: ' + err.message, 'err');
     console.error(err);
   }
@@ -1604,16 +1615,16 @@ async function dispatchOne(idx) {
 
 async function dispararTodos() {
   const btn = document.getElementById('btn-all');
-  btn.disabled = true; btn.textContent = '⟳ Enviando...';
+  btn.disabled = true; btn.textContent = '? Enviando...';
   for (let i = 0; i < loggiOrders.length; i++) {
     if (loggiSt[i] === 'ok') continue;
     await dispatchOne(i);
     await new Promise(r => setTimeout(r, 600));
   }
-  btn.textContent = '✓ Concluído';
+  btn.textContent = 'OK Concluido';
 }
 
-// ── CONFIG ─────────────────────────────────────
+// -- CONFIG -------------------------------------
 async function autenticarOAuth() {
   const cid = document.getElementById('cfg-cid').value.trim();
   const cs  = document.getElementById('cfg-cs').value.trim();
@@ -1629,12 +1640,12 @@ async function autenticarOAuth() {
     if (!d.access_token) throw new Error(JSON.stringify(d));
     LOGGI.token = d.access_token;
     LOGGI.clientId = cid;
-    document.getElementById('cfg-token').value = '••••••••••••••••';
+    document.getElementById('cfg-token').value = '????????????????';
     localStorage.setItem('etc_loggi', JSON.stringify(LOGGI));
     setDot(true);
-    setCfgMsg('✓ Autenticado!', '#1a8a4a');
+    setCfgMsg('OK Autenticado!', '#1a8a4a');
     showToast('Autenticado com sucesso!', 'ok');
-  } catch(e) { setCfgMsg('Erro: ' + e.message, '#c0392b'); showToast('Falha na autenticação.', 'err'); }
+  } catch(e) { setCfgMsg('Erro: ' + e.message, '#c0392b'); showToast('Falha na autenticacao.', 'err'); }
 }
 
 async function testarConexao() {
@@ -1648,7 +1659,7 @@ async function testarConexao() {
       body: JSON.stringify({ query: 'query{__typename}' })
     });
     const d = await r.json();
-    if (d&&d.data) { setDot(true); setCfgMsg('✓ Conectado!', '#1a8a4a'); showToast('Conectado!', 'ok'); }
+    if (d&&d.data) { setDot(true); setCfgMsg('OK Conectado!', '#1a8a4a'); showToast('Conectado!', 'ok'); }
     else throw new Error(JSON.stringify(d).substring(0,100));
   } catch(e) { setDot(false); setCfgMsg('Erro: ' + e.message, '#c0392b'); }
 }
@@ -1657,7 +1668,7 @@ function salvarCfg() {
   const tok = document.getElementById('cfg-token').value.trim();
   LOGGI = {
     ...LOGGI,
-    token:  tok === '••••••••••••••••' ? LOGGI.token : tok,
+    token:  tok === '????????????????' ? LOGGI.token : tok,
     shopPk: document.getElementById('cfg-shopk').value.trim(),
     phone:  document.getElementById('cfg-phone').value.trim().replace(/[^0-9]/g,''),
     etcId:  document.getElementById('cfg-etc-id').value.trim(),
@@ -1665,8 +1676,8 @@ function salvarCfg() {
   };
   localStorage.setItem('etc_loggi', JSON.stringify(LOGGI));
   if (LOGGI.token) setDot(true);
-  setCfgMsg('✓ Salvo!', '#1a8a4a');
-  showToast('Configuração salva!', 'ok');
+  setCfgMsg('OK Salvo!', '#1a8a4a');
+  showToast('Configuracao salva!', 'ok');
 }
 
 function salvarEmpresa() {
@@ -1688,7 +1699,7 @@ function setCfgMsg(msg, color) {
   el.textContent = msg; el.style.color = color; el.style.display = 'block';
 }
 
-// ── INIT ───────────────────────────────────────
+// -- INIT ---------------------------------------
 document.getElementById('f-saida').value = new Date().toISOString().split('T')[0];
 if (LOGGI.token || LOGGI.clientId) setDot(true);
 </script>
