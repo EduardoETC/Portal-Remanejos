@@ -346,7 +346,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     </div>
   </div>
   <div style="padding:16px 22px;flex:1;overflow-y:auto">
-    <div id="dash-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
+    <div id="dash-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px"></div>
+    <input id="dash-search" class="search-input" placeholder="Buscar por titulo, cinema ou HD..." oninput="renderDash()" style="margin-bottom:14px">
     <div style="font-size:14px;font-weight:600;margin-bottom:10px">Atividade recente</div>
     <div id="dash-andamento"></div>
     <div id="dash-pendentes" style="display:none"></div>
@@ -1463,39 +1464,7 @@ function renderRoute() {
     right.appendChild(warn);
   }
 
-  // Saved schedules
-  if (SAVED.length) {
-    var savedDiv = document.createElement('div');
-    savedDiv.style.marginTop = '6px';
-    var savedTitle = document.createElement('div');
-    savedTitle.style.cssText = 'font-size:13px;font-weight:600;margin-bottom:8px';
-    savedTitle.textContent = 'Programacoes salvas (' + SAVED.length + ')';
-    savedDiv.appendChild(savedTitle);
 
-    SAVED.slice(0, 5).forEach(function(s, i) {
-      var done = (s.route||[]).filter(function(r){ return r.status==='ok'; }).length;
-      var tot  = (s.route||[]).length;
-      var pct  = tot > 0 ? Math.round(done/tot*100) : 0;
-      var cls  = done===tot&&tot>0 ? 'badge-green' : done>0 ? 'badge-amber' : 'badge-gray';
-      var lbl  = done===tot&&tot>0 ? 'completo'    : done>0 ? 'andamento'   : 'pendente';
-      var city = (s.origin&&s.origin.city) ? s.origin.city+'/'+s.origin.uf : '--';
-      var dt   = s.savedAt ? new Date(s.savedAt).toLocaleDateString('pt-BR') : '';
-
-      var card = document.createElement('div');
-      card.className = 'saved-card';
-      card.innerHTML = '<div class="saved-card-info">'
-        + '<div class="saved-card-title">' + (s.titulo||'--') + '</div>'
-        + '<div class="saved-card-meta">' + city + ' - HD #' + (s.material||'--') + ' - ' + done + '/' + tot + ' OK - ' + dt + '</div>'
-        + '<div class="saved-card-bar"><div class="saved-card-fill" style="width:' + pct + '%"></div></div>'
-        + '</div>'
-        + '<span class="badge ' + cls + '">' + lbl + '</span>'
-        + '<button style="background:none;border:none;color:#ccc;cursor:pointer;font-size:16px;padding:0 3px;flex-shrink:0" title="Excluir">x</button>';
-
-      card.onclick = (function(idx){ return function(e){ if(e.target.tagName==='BUTTON') delSaved(idx); else loadSaved(idx); }; })(i);
-      savedDiv.appendChild(card);
-    });
-    right.appendChild(savedDiv);
-  }
 }
 
 function updSt(i, sel) {
@@ -1893,7 +1862,14 @@ function renderDash() {
     'em andamento':emAndamento,
     concluido:     concluidos,
   };
-  var list = (filterMap[_dashFilter] || SAVED).slice().sort(function(a,b){
+  var dashQ = (document.getElementById('dash-search') && document.getElementById('dash-search').value || '').toLowerCase();
+  var list = (filterMap[_dashFilter] || SAVED).filter(function(s){
+    if (!dashQ) return true;
+    return (s.titulo||'').toLowerCase().includes(dashQ)
+      || (s.material||'').toString().includes(dashQ)
+      || (s.origin&&s.origin.name||'').toLowerCase().includes(dashQ)
+      || (s.route||[]).some(function(r){ return (r.name||'').toLowerCase().includes(dashQ); });
+  }).slice().sort(function(a,b){
     return new Date(b.savedAt||0) - new Date(a.savedAt||0);
   });
 
