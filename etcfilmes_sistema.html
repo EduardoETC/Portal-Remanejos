@@ -1796,7 +1796,7 @@ function renderDash() {
     var emR  = (s.route||[]).filter(function(r){return r.status==='em rota';}).length;
     var cls  = done===tot&&tot>0 ? '#1a8a4a' : emR>0 ? '#e65100' : done>0 ? '#1a4fff' : '#996a00';
     var lbl  = done===tot&&tot>0 ? 'concluido' : emR>0 ? 'em rota' : done>0 ? 'parcial' : 'pendente';
-    return '<div onclick="abrirDetalhe('+idx+')" style="background:#fff;border:1px solid #e0deda;border-radius:8px;padding:12px 14px;margin-bottom:7px;cursor:pointer;display:flex;align-items:center;gap:12px" onmouseenter="this.style.borderColor='#1a4fff'" onmouseleave="this.style.borderColor='#e0deda'">'
+    return '<div onclick="abrirDetalhe('+idx+')" style="background:#fff;border:1px solid #e0deda;border-radius:8px;padding:12px 14px;margin-bottom:7px;cursor:pointer;display:flex;align-items:center;gap:12px">'
       +'<div style="flex:1;min-width:0">'
       +'<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.titulo||'--')+'</div>'
       +'<div style="font-size:11px;color:#888;margin-top:2px">'+city+' - HD #'+(s.material||'--')+' - '+dt+'</div>'
@@ -1817,6 +1817,7 @@ function renderDash() {
 
 // DETAIL MODAL
 function abrirDetalhe(idx) {
+  idx = parseInt(idx);
   var s = SAVED[idx]; if (!s) return;
   _detailIdx = idx;
   document.getElementById('mpd-title').textContent = s.titulo || '--';
