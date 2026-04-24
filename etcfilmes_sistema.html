@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ETC Filmes v19:38:44</title>
+<title>ETC Filmes</title>
 <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -181,7 +181,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 <nav class="sidebar">
   <div class="sidebar-logo">
     <h1>ETC Filmes</h1>
-    <p>Remanejamento HD · 19:38:44</p>
+    <p>Remanejamento HD</p>
   </div>
   <div class="sidebar-section">Principal</div>
   <button class="nav-btn active" id="nb-envios" onclick="goTo('envios')">
@@ -403,8 +403,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     <div class="modal-body" id="mc-body"></div>
     <div class="modal-foot">
       <button class="btn" onclick="closeModal('modal-confirm')">Cancelar</button>
-      <button class="btn btn-dark" onclick="salvarProg(false)">Salvar</button>
-      <button class="btn btn-orange" onclick="salvarProg(true)">Salvar + Loggi</button>
+      <button class="btn btn-dark" onclick="salvarProg()">Salvar e enviar e-mail</button>
     </div>
   </div>
 </div>
@@ -440,6 +439,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <button class="btn" onclick="closeModal('modal-prog-detail')">Fechar</button>
       <button class="btn btn-primary" id="mpd-load-btn" onclick="loadFromDetail()">Abrir no editor</button>
       <button class="btn btn-orange" id="mpd-loggi-btn" onclick="loggiFromDetail()">Loggi</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: E-mail para cinema -->
+<div class="overlay" id="modal-email">
+  <div class="modal" style="width:620px">
+    <div class="modal-head">
+      <div><h3>Enviar e-mail ao cinema</h3><p id="me-sub">Confirmacao de recebimento e solicitacao de liberacao do HD</p></div>
+      <button class="modal-close" onclick="closeModal('modal-email')">x</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:12px;font-weight:500;color:#555;margin-bottom:4px">Para (e-mail do cinema)</label>
+        <input id="email-para" type="email" placeholder="cinema@exemplo.com.br" style="width:100%;padding:7px 10px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;font-family:inherit;outline:none">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:500;color:#555;margin-bottom:4px;display:block">Assunto</label>
+        <input id="email-assunto" type="text" style="width:100%;padding:7px 10px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;font-family:inherit;outline:none">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:#555;margin-bottom:4px;display:block">Mensagem</label>
+        <textarea id="email-corpo" rows="9" style="width:100%;padding:7px 10px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;font-family:inherit;outline:none;resize:vertical;line-height:1.6"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="pularEmail()">Pular (so salvar)</button>
+      <button class="btn btn-primary" onclick="abrirEmailCliente()">Abrir no e-mail</button>
     </div>
   </div>
 </div>
@@ -955,6 +982,7 @@ var routeSt    = {};
 var routeTr    = {};
 var routeIncl  = {};
 var lgOrders   = [];
+var _activeSchedIdx = null;
 var lgSt       = {};
 
 // NAV
@@ -1188,6 +1216,7 @@ function abrirProg(idx) {
     document.getElementById('f-origem').value = r.cinema;
   }
   if (origin) origin._envioIdx = idx;
+  renderImportList();
   toast('Pedido selecionado. Clique em Gerar rota.', 'info');
 }
 
@@ -1330,6 +1359,21 @@ function renderRoute() {
     + '</div></div>';
 
   // Route steps
+  // Selecionar/Desmarcar todos
+  var selBtns = document.createElement('div');
+  selBtns.style.cssText = 'display:flex;gap:8px;margin-bottom:10px';
+  var btnDessel = document.createElement('button');
+  btnDessel.className = 'btn';
+  btnDessel.textContent = 'Desmarcar todos';
+  btnDessel.onclick = function(){ route.forEach(function(c,i){ routeIncl[i]=false; }); renderRoute(); };
+  var btnSel = document.createElement('button');
+  btnSel.className = 'btn';
+  btnSel.textContent = 'Marcar todos';
+  btnSel.onclick = function(){ route.forEach(function(c,i){ routeIncl[i]=true; }); renderRoute(); };
+  selBtns.appendChild(btnDessel);
+  selBtns.appendChild(btnSel);
+  right.appendChild(selBtns);
+
   var stepsWrap = document.createElement('div');
   stepsWrap.style.cssText = 'background:#fff;border-radius:8px;border:1px solid #e0deda;overflow:hidden;margin-bottom:14px';
 
@@ -1496,7 +1540,7 @@ function buildConfirm() {
   if (!origin || !filteredRoute().length) { toast('Selecione ao menos um cinema e gere a rota.', 'err'); return; }
   var s = buildSchedObj();
   var trRem = document.getElementById('f-transp-rem').value || autoTr(origin.uf||'');
-  document.getElementById('mc-sub').textContent = s.route.length + ' remanejamentos - ' + (s.origin.city||'') + '/' + (s.origin.uf||'');
+  document.getElementById('mc-sub').textContent = filteredRoute().length + ' remanejamentos - ' + (s.origin.city||'') + '/' + (s.origin.uf||'');
   var body = '<div style="background:#f5f4f0;border-radius:6px;padding:12px 14px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px">'
     + '<div><div style="color:#888;font-size:10px">Filme</div><div style="font-weight:500">' + (s.titulo||'--') + '</div></div>'
     + '<div><div style="color:#888;font-size:10px">Cliente</div><div style="font-weight:500">' + (s.cliente||'--') + '</div></div>'
@@ -1508,7 +1552,7 @@ function buildConfirm() {
     + '<span class="badge badge-dark" style="font-size:10px">ORIGEM</span>'
     + '<strong>' + s.origin.name + '</strong>'
     + '<span style="margin-left:auto;color:#888;font-size:11px">' + (s.origin.city||'') + '/' + (s.origin.uf||'') + '</span></div>';
-  s.route.forEach(function(c, i) {
+  filteredRoute().forEach(function(c, i) {
     body += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #f0efeb">'
       + '<span class="badge ' + (c.pct===100?'badge-green':c.pct>=80?'badge-amber':'badge-gray') + '" style="font-size:10px">' + (i+1) + '</span>'
       + '<strong style="flex:1">' + c.name + '</strong>'
@@ -1519,14 +1563,75 @@ function buildConfirm() {
   openModal('modal-confirm');
 }
 
-function salvarProg(withLoggi) {
+function salvarProg() {
   var s = buildSchedObj();
+  s.progStatus = 'aguardando';
   SAVED.unshift(s);
   localStorage.setItem('etc_saved', JSON.stringify(SAVED));
   closeModal('modal-confirm');
-  toast('Programacao salva!', 'ok');
   renderRoute();
-  if (withLoggi) setTimeout(function(){ abrirLoggi(); }, 200);
+  updateBadges();
+  // Open email modal
+  _emailSchedIdx = 0; // just saved at index 0
+  abrirModalEmail(0);
+}
+
+function pularEmail() {
+  closeModal('modal-email');
+  toast('Programacao salva!', 'ok');
+  renderDash();
+}
+
+var _emailSchedIdx = 0;
+
+function abrirModalEmail(idx) {
+  var s = SAVED[idx]; if (!s) return;
+  _emailSchedIdx = idx;
+  var fr = s.route || [];
+  var destino = fr.length > 0 ? fr[0].name : '--';
+  var prazo   = s.prazo ? new Date(s.prazo + 'T12:00').toLocaleDateString('pt-BR') : '--';
+  var titulo  = s.titulo || '--';
+  var mat     = s.material || '--';
+  var origem  = (s.origin && s.origin.name) || '--';
+
+  document.getElementById('email-assunto').value = 'HD #' + mat + ' - ' + titulo + ' - Ingeste e Liberacao';
+  document.getElementById('me-sub').textContent  = 'Para: ' + origem;
+  document.getElementById('email-para').value    = '';
+
+  var corpo = 'Ola, equipe ' + origem + '! Tudo bem?
+
+'
+    + 'Enviamos para voces o HD ' + mat + ' do filme ' + titulo + ' e precisamos movimenta-lo para outro cinema. '
+    + 'Peco, por gentileza, que realizem o ingeste, testem o filme na sala e, apos esses procedimentos, liberem o HD para coleta.
+'
+    + 'Ficamos no aguardo da liberacao. Obrigada!
+
+'
+    + 'Equipe ETC Filmes, por favor, assim que o pessoal do ' + origem + ' liberar o HD, coletar e entregar no ' + destino
+    + (s.prazo ? ' ate ' + prazo : '') + '. Por favor nos avise da movimentacao.
+'
+    + 'Abs.';
+
+  document.getElementById('email-corpo').value = corpo;
+  openModal('modal-email');
+}
+
+function abrirEmailCliente() {
+  var para    = document.getElementById('email-para').value.trim();
+  var assunto = document.getElementById('email-assunto').value;
+  var corpo   = document.getElementById('email-corpo').value;
+  var uri = 'mailto:' + encodeURIComponent(para)
+    + '?subject=' + encodeURIComponent(assunto)
+    + '&body='    + encodeURIComponent(corpo);
+  window.open(uri);
+  // Mark as aguardando
+  if (SAVED[_emailSchedIdx]) {
+    SAVED[_emailSchedIdx].progStatus = 'aguardando';
+    localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+  }
+  closeModal('modal-email');
+  toast('E-mail aberto! Programacao aguardando liberacao.', 'ok');
+  renderDash();
 }
 
 function loadSaved(i) {
@@ -1575,7 +1680,9 @@ function resolveAddr(name) {
   return { rawAddress: (c ? name + ', ' + c.city + ', ' + c.uf : name) + ', Brasil', label: name + ' - Operacao', resolved: 'geocoded' };
 }
 
-function abrirLoggi() {
+function abrirLoggi(schedIdx) {
+  if (schedIdx !== undefined) { loadSaved(schedIdx); }
+  _activeSchedIdx = schedIdx !== undefined ? schedIdx : null;
   if (!LOGGI.token && !LOGGI.clientId) { toast('Configure as credenciais Loggi.', 'err'); return; }
   var fr = filteredRoute();
   if (!origin || !fr.length) { toast('Gere a rota com ao menos um cinema selecionado.', 'err'); return; }
@@ -1651,6 +1758,11 @@ async function dispatchOne(idx) {
     lgSt[idx] = 'ok';
     st.className = 'lg-st lg-ok'; st.textContent = 'OK';
     btn.textContent = 'OK'; btn.style.background = '#1a8a4a'; btn.style.color = '#fff';
+    // Update prog status to 'em andamento' when first Loggi order sent
+    if (_activeSchedIdx !== null && SAVED[_activeSchedIdx]) {
+      SAVED[_activeSchedIdx].progStatus = 'em andamento';
+      localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+    }
     if (order.trackingKey) {
       var a = document.createElement('a'); a.className = 'lg-track';
       a.href = 'https://www.loggi.com/rastreio/' + order.trackingKey; a.target = '_blank';
@@ -1735,87 +1847,110 @@ function setCfgMsg(msg, color) {
 var _detailIdx = null;
 
 function renderDash() {
-  var hoje     = new Date().toDateString();
-  var total    = SAVED.length;
-  var andamento= SAVED.filter(function(s){
-    var ok=( s.route||[]).filter(function(r){return r.status==='ok';}).length;
-    return ok>0 && ok<(s.route||[]).length;
-  }).length;
-  var entreguesHoje = SAVED.filter(function(s){
-    return (s.route||[]).every(function(r){return r.status==='ok';}) &&
-           s.savedAt && new Date(s.savedAt).toDateString()===hoje;
-  }).length;
-  var emRota = SAVED.reduce(function(t,s){
-    return t+(s.route||[]).filter(function(r){return r.status==='em rota';}).length;
-  },0);
+  var hoje = new Date().toDateString();
+  var total = SAVED.length;
+
+  // Categorize by progStatus
+  var aguardando  = SAVED.filter(function(s){ return s.progStatus === 'aguardando'; });
+  var emAndamento = SAVED.filter(function(s){ return s.progStatus === 'em andamento'; });
+  var concluidos  = SAVED.filter(function(s){
+    var n = (s.route||[]).length;
+    return n > 0 && (s.route||[]).every(function(r){ return r.status === 'ok'; });
+  });
+  var entreguesHoje = concluidos.filter(function(s){
+    return s.savedAt && new Date(s.savedAt).toDateString() === hoje;
+  });
 
   document.getElementById('dash-sub').textContent =
-    total + ' programacoes - ' + emRota + ' pedidos em rota agora';
+    total + ' programacoes - ' + emAndamento.length + ' em andamento - ' + aguardando.length + ' aguardando liberacao';
 
-  // Badge on sidebar
   var badge = document.getElementById('badge-dash');
-  if(badge){
-    if(andamento>0){badge.textContent=andamento;badge.style.display='inline';}
-    else badge.style.display='none';
-  }
+  if(badge){ if(emAndamento.length>0){badge.textContent=emAndamento.length;badge.style.display='inline';}else badge.style.display='none'; }
 
-  // KPIs
+  // KPIs - clickable to filter
+  var _dashFilter = window._dashFilter || 'all';
   var kpis = [
-    {label:'Total de programacoes', val:total,          color:'#1a4fff', bg:'#eaedff'},
-    {label:'Em andamento',          val:andamento,      color:'#e65100', bg:'#fff2e8'},
-    {label:'Entregues hoje',        val:entreguesHoje,  color:'#1a8a4a', bg:'#e5f5ec'},
-    {label:'Pedidos em rota',       val:emRota,         color:'#996a00', bg:'#fdf4df'},
+    {label:'Total',              val:total,                filter:'all',        color:'#1a4fff'},
+    {label:'Aguardando liberacao', val:aguardando.length,  filter:'aguardando', color:'#996a00'},
+    {label:'Em andamento',       val:emAndamento.length,   filter:'em andamento',color:'#e65100'},
+    {label:'Entregues hoje',     val:entreguesHoje.length, filter:'concluido',  color:'#1a8a4a'},
   ];
+
   document.getElementById('dash-kpis').innerHTML = kpis.map(function(k){
-    return '<div style="background:#fff;border-radius:8px;border:1px solid #e0deda;padding:14px 16px">'
-      +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aaa;margin-bottom:6px">'+k.label+'</div>'
-      +'<div style="font-size:32px;font-weight:700;font-family:monospace;color:'+k.color+'">'+k.val+'</div>'
-      +'</div>';
+    var isActive = _dashFilter === k.filter;
+    return '<div onclick="setDashFilter(' + "'" + k.filter + "'" + ')" style="background:#fff;border-radius:8px;border:' + (isActive?'2px solid '+k.color:'1px solid #e0deda') + ';padding:14px 16px;cursor:pointer;transition:all .14s">'
+      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aaa;margin-bottom:8px">' + k.label + '</div>'
+      + '<div style="font-size:32px;font-weight:700;font-family:monospace;color:' + k.color + ';line-height:1">' + k.val + '</div>'
+      + '</div>';
   }).join('');
 
-  // Recent activity - all saved, sorted by savedAt desc
-  var sorted = SAVED.slice().sort(function(a,b){
+  // Filtered list
+  var filterMap = {
+    all:           SAVED,
+    aguardando:    aguardando,
+    'em andamento':emAndamento,
+    concluido:     concluidos,
+  };
+  var list = (filterMap[_dashFilter] || SAVED).slice().sort(function(a,b){
     return new Date(b.savedAt||0) - new Date(a.savedAt||0);
   });
 
   var el = document.getElementById('dash-andamento');
-  if(!sorted.length){
-    el.innerHTML='<div style="font-size:13px;color:#aaa;padding:12px 0">Nenhuma programacao ainda.</div>';
-    document.getElementById('dash-pendentes').innerHTML='';
-    document.getElementById('dash-concluidos').innerHTML='';
+  if (!list.length) {
+    el.innerHTML = '<div style="font-size:13px;color:#aaa;padding:12px 0">Nenhuma programacao nesta categoria.</div>';
+    document.getElementById('dash-pendentes').innerHTML = '';
+    document.getElementById('dash-concluidos').innerHTML = '';
     return;
   }
 
-  el.innerHTML = sorted.slice(0,10).map(function(s){
-    var idx  = SAVED.indexOf(s);
-    var done = (s.route||[]).filter(function(r){return r.status==='ok';}).length;
-    var tot  = (s.route||[]).length;
-    var pct  = tot>0 ? Math.round(done/tot*100) : 0;
-    var city = (s.origin&&s.origin.city) ? s.origin.city+'/'+s.origin.uf : '--';
-    var dt   = s.savedAt ? new Date(s.savedAt).toLocaleDateString('pt-BR') : '';
-    var emR  = (s.route||[]).filter(function(r){return r.status==='em rota';}).length;
-    var cls  = done===tot&&tot>0 ? '#1a8a4a' : emR>0 ? '#e65100' : done>0 ? '#1a4fff' : '#996a00';
-    var lbl  = done===tot&&tot>0 ? 'concluido' : emR>0 ? 'em rota' : done>0 ? 'parcial' : 'pendente';
-    return '<div onclick="abrirDetalhe('+idx+')" style="background:#fff;border:1px solid #e0deda;border-radius:8px;padding:12px 14px;margin-bottom:7px;cursor:pointer;display:flex;align-items:center;gap:12px">'
-      +'<div style="flex:1;min-width:0">'
-      +'<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.titulo||'--')+'</div>'
-      +'<div style="font-size:11px;color:#888;margin-top:2px">'+city+' - HD #'+(s.material||'--')+' - '+dt+'</div>'
-      +'<div style="height:4px;background:#e0deda;border-radius:2px;margin-top:6px;overflow:hidden">'
-      +'<div style="height:100%;width:'+pct+'%;background:'+cls+';border-radius:2px"></div></div>'
-      +'</div>'
-      +'<div style="text-align:right;flex-shrink:0">'
-      +'<div style="font-size:20px;font-weight:700;font-family:monospace;color:'+cls+'">'+done+'/'+tot+'</div>'
-      +'<div style="font-size:10px;font-weight:600;color:'+cls+'">'+lbl+'</div>'
-      +'</div></div>';
+  el.innerHTML = list.map(function(s) {
+    var idx     = SAVED.indexOf(s);
+    var done    = (s.route||[]).filter(function(r){ return r.status==='ok'; }).length;
+    var tot     = (s.route||[]).length;
+    var pct     = tot > 0 ? Math.round(done/tot*100) : 0;
+    var city    = (s.origin&&s.origin.city) ? s.origin.city + '/' + s.origin.uf : '--';
+    var dt      = s.savedAt ? new Date(s.savedAt).toLocaleDateString('pt-BR') : '';
+    var ps      = s.progStatus || 'aguardando';
+    var cinemas = (s.route||[]).map(function(r){ return r.name; }).join(' -> ');
+    var psColor = ps==='concluido'||ps==='ok' ? '#1a8a4a' : ps==='em andamento' ? '#e65100' : '#996a00';
+    var psLabel = ps==='em andamento' ? 'Em andamento' : ps==='concluido'||done===tot&&tot>0 ? 'Concluido' : 'Aguardando liberacao';
+
+    return '<div style="background:#fff;border:1px solid #e0deda;border-radius:8px;padding:13px 15px;margin-bottom:8px">'
+      // Header row
+      + '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">'
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (s.titulo||'--') + '</div>'
+      + '<div style="font-size:11px;color:#888;margin-top:2px">' + city + ' - HD #' + (s.material||'--') + ' - ' + dt + '</div>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
+      + '<span style="font-size:11px;font-weight:600;color:' + psColor + ';background:' + (psColor==='#1a8a4a'?'#e5f5ec':psColor==='#e65100'?'#fff2e8':'#fdf4df') + ';padding:2px 9px;border-radius:12px">' + psLabel + '</span>'
+      + '<span style="font-size:16px;font-weight:700;font-family:monospace;color:' + psColor + '">' + done + '/' + tot + '</span>'
+      + '</div></div>'
+      // Cinema route
+      + '<div style="font-size:11px;color:#888;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+      + '<strong style="color:#555">Rota:</strong> ' + ((s.origin&&s.origin.name)||'--') + (cinemas ? ' -> ' + cinemas : '')
+      + '</div>'
+      // Progress bar
+      + '<div style="height:4px;background:#e0deda;border-radius:2px;margin-bottom:10px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + psColor + ';border-radius:2px"></div></div>'
+      // Actions
+      + '<div style="display:flex;gap:6px">'
+      + '<button onclick="abrirDetalhe(' + idx + ')" style="flex:1;padding:5px 10px;background:none;border:1px solid #d0cec9;border-radius:5px;font-size:12px;cursor:pointer;font-family:inherit">Ver detalhes</button>'
+      + '<button onclick="abrirModalEmail(' + idx + ')" style="padding:5px 10px;background:none;border:1px solid #996a00;color:#996a00;border-radius:5px;font-size:12px;cursor:pointer;font-family:inherit">E-mail</button>'
+      + '<button onclick="abrirLoggi(' + idx + ')" style="padding:5px 10px;background:#e65100;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-family:inherit">Loggi</button>'
+      + '</div>'
+      + '</div>';
   }).join('');
 
-  // Hide unused sections
-  document.getElementById('dash-pendentes').innerHTML='';
-  document.getElementById('dash-concluidos').innerHTML='';
+  document.getElementById('dash-pendentes').innerHTML = '';
+  document.getElementById('dash-concluidos').innerHTML = '';
+}
+
+function setDashFilter(f) {
+  window._dashFilter = f;
+  renderDash();
 }
 
 
-// DETAIL MODAL
 function abrirDetalhe(idx) {
   idx = parseInt(idx);
   var s = SAVED[idx]; if (!s) return;
