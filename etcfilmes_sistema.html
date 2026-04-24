@@ -1328,7 +1328,7 @@ function renderRoute() {
       const tot  = (s.route||[]).length;
       const cls  = done===tot&&tot>0 ? 'badge-green' : done>0 ? 'badge-amber' : 'badge-gray';
       const lbl  = done===tot&&tot>0 ? 'completo'    : done>0 ? 'andamento'   : 'pendente';
-      html += '<div onclick="loadSaved(' + i + ')" style="background:#fff;border:1px solid #e0deda;border-radius:8px;padding:10px 13px;margin-bottom:6px;cursor:pointer;display:flex;align-items:flex-start;gap:8px;transition:border-color .14s" onmouseover="this.style.borderColor='#1a4fff'" onmouseout="this.style.borderColor='#e0deda'">'
+      html += '<div data-idx="' + i + '" onclick="loadSaved(this.dataset.idx)" style="background:#fff;border:1px solid #e0deda;border-radius:8px;padding:10px 13px;margin-bottom:6px;cursor:pointer;display:flex;align-items:flex-start;gap:8px">';
         + '<div style="flex:1;min-width:0">'
         + '<div style="font-size:13px;font-weight:500">' + (s.titulo||'—') + '</div>'
         + '<div style="font-size:11px;color:#888;margin-top:1px">' + (s.origin&&s.origin.city||'') + '/' + (s.origin&&s.origin.uf||'') + ' · HD #' + (s.material||'') + ' · ' + done + '/' + tot + ' ok</div>'
@@ -1410,6 +1410,7 @@ function salvarProg(withLoggi) {
 }
 
 function loadSaved(i) {
+  i = parseInt(i);
   const s = SAVED[i];
   if (!s) return;
   origin = s.origin;
