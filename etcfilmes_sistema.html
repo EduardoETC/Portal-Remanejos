@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETC Filmes — Remanejamento</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f5f4f0;--bg2:#fff;--bg3:#eceae5;
+  --bdr:rgba(0,0,0,.1);--bdr2:rgba(0,0,0,.18);
+  --t:#1a1a18;--t2:#585854;--t3:#97968e;
+  --ac:#1a4fff;--al:#eaedff;
+  --gn:#1a8a4a;--gl:#e5f5ec;
+  --am:#996a00;--yl:#fdf4df;
+  --rd:#c0392b;--rl:#fdecea;
+  --or:#e65100;--ol:#fff2e8;
+  --nav:#18181600;
+  --r:8px;--rs:5px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--t);font-size:14px}
+
+/* NAV */
+nav{background:#1a1a18;display:flex;align-items:center;padding:0 20px;height:48px;gap:6px;position:sticky;top:0;z-index:100}
+.nav-brand{color:#fff;font-size:13px;font-weight:600;margin-right:16px;white-space:nowrap}
+.nav-brand span{color:rgba(255,255,255,.4);font-weight:400;margin-left:4px;font-size:12px}
+.nav-btn{padding:6px 14px;border-radius:var(--rs);border:none;cursor:pointer;font-size:13px;font-family:inherit;font-weight:500;transition:all .14s}
+.nav-btn.off{background:none;color:rgba(255,255,255,.5)}
+.nav-btn.off:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-btn.on{background:rgba(255,255,255,.15);color:#fff}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.loggi-dot{width:7px;height:7px;border-radius:50%;background:#555;display:inline-block;margin-left:6px}
+.loggi-dot.ok{background:var(--gn)}
+
+/* VIEWS */
+.view{display:none}.view.on{display:block}
+
+/* PAGE HEADER */
+.ph{background:var(--bg2);border-bottom:1px solid var(--bdr2);padding:14px 24px;display:flex;align-items:center;gap:12px}
+.ph h1{font-size:16px;font-weight:600}
+.ph-sub{font-size:12px;color:var(--t3);margin-top:1px}
+.ph-right{margin-left:auto;display:flex;gap:7px;align-items:center}
+
+/* BUTTONS */
+.btn{padding:7px 14px;border-radius:var(--rs);font-family:inherit;font-size:13px;cursor:pointer;border:1px solid var(--bdr2);background:none;color:var(--t2);font-weight:500;transition:all .14s;white-space:nowrap}
+.btn:hover{border-color:var(--ac);color:var(--ac)}
+.btn.pri{background:var(--ac);color:#fff;border-color:var(--ac)}
+.btn.pri:hover{background:#1237cc}
+.btn.grn{background:var(--gn);color:#fff;border-color:var(--gn)}
+.btn.grn:hover{background:#157a3e}
+.btn.orn{background:var(--or);color:#fff;border-color:var(--or)}
+.btn.orn:hover{background:#bf4000}
+.btn.sm{padding:4px 10px;font-size:12px}
+
+/* CONTENT */
+.pad{padding:20px 24px}
+
+/* DROP ZONE */
+.dropzone{border:2px dashed var(--bdr2);border-radius:var(--r);padding:32px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg2);margin-bottom:16px}
+.dropzone:hover,.dropzone.drag{border-color:var(--ac);background:var(--al)}
+.dropzone.loaded{border-style:solid;border-color:var(--gn);background:var(--gl);cursor:default}
+.dz-icon{font-size:32px;margin-bottom:8px;opacity:.5}
+.dz-title{font-size:14px;font-weight:600;color:var(--t)}
+.dz-sub{font-size:12px;color:var(--t2);margin-top:3px}
+#file-input{display:none}
+
+/* TABLE */
+.tbl-wrap{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden}
+.tbl-head{display:grid;padding:9px 14px;background:var(--bg3);border-bottom:1px solid var(--bdr2);font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;gap:0}
+.tbl-row{display:grid;padding:10px 14px;border-bottom:1px solid var(--bdr);align-items:center;gap:0;transition:background .12s;cursor:pointer}
+.tbl-row:last-child{border-bottom:none}
+.tbl-row:hover{background:#f8f7f4}
+.tbl-row.sel{background:var(--al);border-left:3px solid var(--ac)}
+.cell-main{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell-sub{font-size:11px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mono{font-family:'SF Mono',Monaco,'IBM Plex Mono',monospace}
+
+/* GRID for envios table: HD | Filme | Cinema | Exibidor | Transp | Data | Status | Ação */
+.grid-envios{grid-template-columns:85px 1fr 155px 180px 90px 90px 40px}
+
+/* BADGES */
+.badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge.gn{background:var(--gl);color:var(--gn)}
+.badge.am{background:var(--yl);color:var(--am)}
+.badge.gy{background:var(--bg3);color:var(--t3)}
+.badge.ac{background:var(--al);color:var(--ac)}
+.badge.or{background:var(--ol);color:var(--or)}
+.badge.dk{background:#1a1a18;color:#fff}
+.badge.rd{background:var(--rl);color:var(--rd)}
+
+/* FORM */
+.fld{margin-bottom:11px}
+.fld label{display:block;font-size:12px;color:var(--t2);margin-bottom:4px;font-weight:500}
+.fld input,.fld select{width:100%;padding:7px 10px;border:1px solid var(--bdr2);border-radius:var(--rs);font-family:inherit;font-size:13px;color:var(--t);background:#fff;outline:none;transition:border-color .14s}
+.fld input:focus,.fld select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(26,79,255,.09)}
+.fld2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fld3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* SPLIT LAYOUT for route screen */
+.split{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 48px)}
+.split-l{background:var(--bg2);border-right:1px solid var(--bdr2);overflow-y:auto;display:flex;flex-direction:column}
+.split-r{overflow-y:auto;padding:20px 24px;background:var(--bg)}
+.psec{padding:14px 16px;border-bottom:1px solid var(--bdr)}
+.psec h3{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px}
+
+/* SUGGEST */
+.sug-wrap{position:relative}
+.sug-box{position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1px solid var(--ac);border-radius:var(--rs);z-index:200;max-height:200px;overflow-y:auto;display:none;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.sug-item{padding:8px 11px;cursor:pointer;border-bottom:1px solid var(--bdr);font-size:13px}
+.sug-item:last-child{border-bottom:none}
+.sug-item:hover{background:var(--al)}
+.sug-name{font-weight:500}
+.sug-meta{font-size:11px;color:var(--t3);margin-top:1px}
+
+/* ROUTE STEPS */
+.route-wrap{display:flex;flex-direction:column;gap:0;border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;background:#fff;margin-bottom:16px}
+.step{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--bdr);transition:background .12s}
+.step:last-child{border-bottom:none}
+.step.origin-step{background:#eef1ff}
+.step.best-step{background:var(--gl)}
+.step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.sn-orig{background:#1a1a18;color:#fff}
+.sn-100{background:var(--gl);color:var(--gn);border:1.5px solid var(--gn)}
+.sn-80{background:var(--yl);color:var(--am);border:1.5px solid var(--am)}
+.sn-lo{background:var(--bg3);color:var(--t3);border:1.5px solid var(--bdr2)}
+.step-info{flex:1;min-width:0}
+.step-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step-meta{font-size:11px;color:var(--t3);margin-top:1px}
+.step-dist{font-size:11px;color:var(--t3);flex-shrink:0;font-family:monospace}
+.step-arrow{display:flex;align-items:center;padding:3px 14px 3px 18px;border-bottom:1px solid var(--bdr);background:#fff;gap:6px}
+.step-arrow-line{flex:1;height:0;border-top:1px dashed var(--bdr2)}
+.step-arrow-txt{font-size:10px;color:var(--t3);white-space:nowrap}
+
+/* STATUS SELECT */
+.st-sel{padding:3px 7px;border:1px solid var(--bdr2);border-radius:var(--rs);font-size:11px;font-family:monospace;background:#fff;cursor:pointer;outline:none;max-width:90px}
+.st-ok{background:var(--gl);color:var(--gn);border-color:var(--gn)}
+.st-rt{background:var(--yl);color:var(--am);border-color:var(--am)}
+.st-er{background:var(--rl);color:var(--rd);border-color:var(--rd)}
+.st-pd{background:var(--bg3);color:var(--t3)}
+
+/* TRANSP SELECT */
+.tr-sel{padding:3px 7px;border:1px solid var(--bdr2);border-radius:var(--rs);font-size:11px;font-family:inherit;background:#fff;cursor:pointer;outline:none}
+
+/* INFO BOX */
+.info-box{border-radius:var(--rs);padding:10px 13px;font-size:12px;margin-bottom:12px;display:flex;align-items:flex-start;gap:7px;line-height:1.5;border:1px solid}
+.info-box.inf{background:var(--al);color:#1237cc;border-color:rgba(26,79,255,.2)}
+.info-box.ok{background:var(--gl);color:var(--gn);border-color:rgba(26,138,74,.2)}
+.info-box.wrn{background:var(--yl);color:var(--am);border-color:rgba(153,106,0,.2)}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center}
+.overlay.on{display:flex}
+.modal{background:#fff;border-radius:10px;box-shadow:0 16px 48px rgba(0,0,0,.18);display:flex;flex-direction:column;max-height:88vh;width:580px;max-width:95vw}
+.modal.lg{width:680px}
+.m-head{padding:16px 20px 13px;border-bottom:1px solid var(--bdr);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
+.m-head h3{font-size:15px;font-weight:600}
+.m-sub{font-size:12px;color:var(--t3);margin-top:2px}
+.m-body{padding:16px 20px;overflow-y:auto;flex:1}
+.m-foot{padding:12px 20px;border-top:1px solid var(--bdr);display:flex;gap:7px;justify-content:flex-end;flex-shrink:0}
+.m-close{background:none;border:1px solid var(--bdr2);border-radius:var(--rs);padding:4px 10px;cursor:pointer;font-size:12px;color:var(--t2);font-family:inherit}
+
+/* LOGGI MODAL */
+.lg-row{display:flex;align-items:center;gap:9px;padding:10px 16px;border-bottom:1px solid rgba(230,81,0,.1);font-size:12px}
+.lg-row:hover{background:rgba(230,81,0,.03)}
+.lg-row:last-child{border-bottom:none}
+.lg-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;background:rgba(230,81,0,.15);color:#bf4000}
+.lg-info{flex:1;min-width:0}
+.lg-route{font-weight:500;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg-desc{font-size:10px;color:var(--t3);margin-top:1px}
+.lg-track{font-size:10px;font-family:monospace;color:var(--ac);text-decoration:none;display:block;margin-top:2px}
+.lg-st{font-size:10px;font-family:monospace;padding:2px 7px;border-radius:8px;flex-shrink:0}
+.lg-pd{background:var(--bg3);color:var(--t3)}
+.lg-sn{background:var(--ol);color:var(--or)}
+.lg-ok{background:var(--gl);color:var(--gn)}
+.lg-er{background:var(--rl);color:var(--rd)}
+.lg-prog-bar{height:3px;background:rgba(230,81,0,.15);border-radius:2px;margin:0 16px 10px;overflow:hidden}
+.lg-prog-fill{height:100%;background:var(--or);border-radius:2px;transition:width .4s}
+.btn-orange{padding:7px 14px;background:var(--or);color:#fff;border:none;border-radius:var(--rs);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .14s}
+.btn-orange:hover{background:#bf4000}
+.btn-orange:disabled{background:var(--t3);cursor:not-allowed}
+
+/* WELCOME */
+.welcome{text-align:center;padding:60px 30px;color:var(--t3)}
+.welcome-icon{font-size:40px;margin-bottom:12px;opacity:.4}
+.welcome h3{font-size:16px;font-weight:600;color:var(--t);margin-bottom:6px}
+.welcome p{font-size:13px;color:var(--t2);line-height:1.6}
+
+/* SEARCH */
+.search-input{width:100%;padding:8px 12px;border:1px solid var(--bdr2);border-radius:var(--rs);font-family:inherit;font-size:13px;outline:none;background:#fff;margin-bottom:12px}
+.search-input:focus{border-color:var(--ac)}
+
+/* TOAST */
+.toast{position:fixed;bottom:18px;right:18px;padding:10px 16px;border-radius:var(--r);font-size:13px;font-weight:500;z-index:9999;opacity:0;transform:translateY(6px);transition:all .22s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{background:var(--gn);color:#fff}
+.toast.err{background:var(--rd);color:#fff}
+.toast.info{background:#1a1a18;color:#fff}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">ETC Filmes <span>Remanejamento HD</span></div>
+  <button class="nav-btn on" id="nb-envios"    onclick="goTo('envios')">📋 Primeiros Envios</button>
+  <button class="nav-btn off" id="nb-prog"     onclick="goTo('prog')">⚡ Programar Remanejamento</button>
+  <button class="nav-btn off" id="nb-loggi-cfg" onclick="goTo('cfg')">⚙ Loggi<span class="loggi-dot" id="nav-dot"></span></button>
+</nav>
+
+<!-- ═══ PRIMEIROS ENVIOS ═══════════════════════ -->
+<div class="view on" id="view-envios">
+  <div class="ph">
+    <div>
+      <h1>Primeiros Envios</h1>
+      <div class="ph-sub" id="envios-sub">Importe a planilha do sistema legado</div>
+    </div>
+    <div class="ph-right">
+      <label for="xls-file" class="btn" style="cursor:pointer">📂 Importar XLS</label>
+      <input type="file" id="xls-file" accept=".xls,.xlsx" onchange="importXLS(this)" style="display:none">
+      <button class="btn" id="btn-export-csv" onclick="exportEnviosCSV()" style="display:none">⬇ Exportar CSV</button>
+    </div>
+  </div>
+  <div class="pad">
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('xls-file').click()">
+      <div class="dz-icon">📂</div>
+      <div class="dz-title">Clique ou arraste a planilha aqui</div>
+      <div class="dz-sub">Exportação do sistema desktop (.xls ou .xlsx)</div>
+    </div>
+    <input class="search-input" id="envios-search" placeholder="Buscar por filme, cinema, HD, exibidor..." oninput="renderEnvios()" style="display:none">
+    <div id="envios-table"></div>
+  </div>
+</div>
+
+<!-- ═══ PROGRAMAR REMANEJAMENTO ════════════════ -->
+<div class="view" id="view-prog">
+  <div class="split">
+
+    <!-- LEFT: form -->
+    <div class="split-l">
+      <div class="psec" style="background:#1a1a18;padding:14px 16px">
+        <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">Programar Remanejamento</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.45)">Selecione origem → sistema sugere a rota</div>
+      </div>
+
+      <!-- From import -->
+      <div class="psec" id="from-import-sec">
+        <h3>Usar primeiro envio importado</h3>
+        <div id="import-sel-list">
+          <div style="font-size:12px;color:var(--t3)">Nenhuma planilha importada ainda. Vá em "Primeiros Envios" e importe o XLS.</div>
+        </div>
+      </div>
+
+      <!-- Dados do filme -->
+      <div class="psec">
+        <h3>Dados do filme</h3>
+        <div class="fld"><label>Cliente</label><input id="f-cliente" placeholder="Ex: Diamond Films Brazil"></div>
+        <div class="fld"><label>Título / Título PT</label><input id="f-titulo" placeholder="Ex: SHELTER — Missão Refúgio"></div>
+        <div class="fld2">
+          <div class="fld" style="margin-bottom:0"><label>Material (HD nº)</label><input id="f-material" placeholder="3598"></div>
+          <div class="fld" style="margin-bottom:0"><label>Cód. serviço</label><input id="f-servico" placeholder="67392"></div>
+        </div>
+      </div>
+
+      <!-- Cinema de origem -->
+      <div class="psec">
+        <h3>Cinema de origem (1º destino)</h3>
+        <div class="fld sug-wrap">
+          <label>Buscar cinema</label>
+          <input id="f-origem" placeholder="Digite o nome do cinema..." oninput="suggestOrigin(this.value)" autocomplete="off">
+          <div class="sug-box" id="sug-origin"></div>
+        </div>
+        <div id="origin-ok" style="display:none">
+          <div class="info-box ok" style="margin-bottom:8px"><span>✓</span><div><strong id="origin-nome"></strong><br><span id="origin-meta" style="opacity:.8;font-size:11px"></span></div></div>
+        </div>
+        <div class="fld2">
+          <div class="fld" style="margin-bottom:0"><label>Data saída</label><input type="date" id="f-saida"></div>
+          <div class="fld" style="margin-bottom:0"><label>Exibidor</label><input id="f-exibidor" placeholder="CNMK"></div>
+        </div>
+        <div class="fld"><label>Transportadora (1ª entrega)</label>
+          <select id="f-transp-saida">
+            <option value="">— selecione —</option>
+            <option>Loggi</option><option>STM Serviços</option>
+            <option>BEM TRANSPORTES</option><option>Acordo ETC Filmes</option>
+            <option>Logcine Transportes</option><option>Portador Cinema</option><option>NTC</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="psec">
+        <h3>Filtros de rota</h3>
+        <div class="fld2">
+          <div class="fld" style="margin-bottom:0"><label>% mínimo</label>
+            <select id="f-pct">
+              <option value="100">Só 100%</option>
+              <option value="80" selected>80%+</option>
+              <option value="60">60%+</option>
+              <option value="0">Todos</option>
+            </select>
+          </div>
+          <div class="fld" style="margin-bottom:0"><label>Transp. remanejamento</label>
+            <select id="f-transp-rem">
+              <option value="">auto por região</option>
+              <option>Loggi</option><option>STM Serviços</option>
+              <option>BEM TRANSPORTES</option><option>Acordo ETC Filmes</option>
+            </select>
+          </div>
+        </div>
+        <div class="fld"><label>Prazo retorno</label><input type="date" id="f-prazo"></div>
+        <button class="btn pri" style="width:100%;margin-top:4px" onclick="gerarRota()">⚡ Gerar rota otimizada</button>
+        <button class="btn" style="width:100%;margin-top:6px" onclick="limpar()">Limpar</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: results -->
+    <div class="split-r" id="prog-right">
+      <div class="welcome">
+        <div class="welcome-icon">🎬</div>
+        <h3>Selecione o cinema de origem</h3>
+        <p>Escolha um primeiro envio importado ou busque o cinema manualmente. O sistema calculará a melhor sequência de remanejamento.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONFIG LOGGI ════════════════════════════ -->
+<div class="view" id="view-cfg">
+  <div class="ph"><h1>Configurações — Loggi</h1></div>
+  <div class="pad" style="max-width:520px">
+    <div class="info-box wrn" style="margin-bottom:16px"><span>📋</span><div>Acesse <strong>developers.loggi.com</strong> para obter o <code>client_id</code> e <code>client_secret</code> da sua conta corporativa.</div></div>
+    <div style="background:#fff;border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Credenciais API</div>
+      <div class="fld2">
+        <div class="fld" style="margin-bottom:10px"><label>Client ID</label><input id="cfg-cid" placeholder="client_id"></div>
+        <div class="fld" style="margin-bottom:10px"><label>Client Secret</label><input type="password" id="cfg-cs" placeholder="client_secret"></div>
+      </div>
+      <div class="fld" style="margin-bottom:10px"><label>Bearer Token <span style="font-size:10px;color:var(--t3)">(gerado pelo botão abaixo ou cole direto)</span></label>
+        <input type="password" id="cfg-token" placeholder="Bearer token...">
+      </div>
+      <div class="fld2" style="margin-bottom:10px">
+        <div class="fld" style="margin-bottom:0"><label>Shop PK</label><input id="cfg-shop-pk" placeholder="33552"></div>
+        <div class="fld" style="margin-bottom:0"><label>Telefone remetente</label><input id="cfg-phone" placeholder="11999990000"></div>
+      </div>
+      <div class="fld" style="margin-bottom:10px"><label>Address ID — ETC Filmes <span style="font-size:10px;color:var(--t3)">(após sincronizar)</span></label><input id="cfg-etc-addr" placeholder="ID do endereço da ETC na Loggi"></div>
+      <div style="display:flex;gap:7px">
+        <button class="btn" onclick="autenticarOAuth()">🔑 Autenticar OAuth</button>
+        <button class="btn" onclick="testarConexao()">↻ Testar</button>
+        <button class="btn pri" onclick="salvarCfg()">Salvar</button>
+      </div>
+      <div id="cfg-msg" style="display:none;font-size:11px;margin-top:8px"></div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--bdr);border-radius:var(--r);padding:16px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Empresa remetente</div>
+      <div class="fld"><label>Nome</label><input id="cfg-nome" value="ETC Filmes"></div>
+      <div class="fld"><label>Endereço</label><input id="cfg-addr" value="Av. Escola Politécnica, 1700, Jaguaré, São Paulo, SP, 05319-000"></div>
+      <div class="fld2">
+        <div class="fld" style="margin-bottom:0"><label>CEP</label><input id="cfg-cep" value="05319-000"></div>
+        <div class="fld" style="margin-bottom:0"><label>Contato</label><input id="cfg-contato" value="ETC Filmes — Expedição"></div>
+      </div>
+      <button class="btn pri" style="margin-top:10px" onclick="salvarEmpresa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+
+<!-- Confirm / save -->
+<div class="overlay" id="modal-confirm">
+  <div class="modal">
+    <div class="m-head"><div><h3>Salvar programação</h3><div class="m-sub" id="mc-sub"></div></div><button class="m-close" onclick="closeModal('modal-confirm')">✕</button></div>
+    <div class="m-body" id="mc-body"></div>
+    <div class="m-foot">
+      <button class="btn" onclick="closeModal('modal-confirm')">Cancelar</button>
+      <button class="btn" onclick="salvarProg()" style="background:#333;color:#fff;border-color:#333">✓ Salvar</button>
+      <button class="btn-orange" onclick="salvarELoggi()">📦 Salvar + Enviar Loggi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loggi dispatch -->
+<div class="overlay" id="modal-loggi">
+  <div class="modal lg" style="border-top:3px solid var(--or)">
+    <div class="m-head" style="background:var(--ol)">
+      <div><h3 style="color:var(--or)">Enviar pedidos — Loggi</h3><div class="m-sub" id="ml-sub" style="color:#a03500"></div></div>
+      <button class="m-close" onclick="closeModal('modal-loggi')">✕</button>
+    </div>
+    <div style="padding:11px 16px;background:#fffaf7;border-bottom:1px solid rgba(230,81,0,.1)" id="ml-pkg"></div>
+    <div id="ml-orders" style="max-height:360px;overflow-y:auto;background:#fffaf7"></div>
+    <div class="lg-prog-bar"><div class="lg-prog-fill" id="ml-prog" style="width:0%"></div></div>
+    <div class="m-foot" style="border-top:1px solid rgba(230,81,0,.15);justify-content:space-between">
+      <span style="font-size:12px;color:var(--t3)" id="ml-count">0 enviados</span>
+      <div style="display:flex;gap:7px">
+        <button class="btn" onclick="closeModal('modal-loggi')">Fechar</button>
+        <button class="btn-orange" id="btn-all" onclick="dispararTodos()">📦 Disparar todos</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA: flat cinema DB ──────────────────────
+const DB = [
+  {id:1422,name:"Cine Cultura Maceio 2",city:"MACEIO",uf:"AL",pct:20,lat:-9.6658,lon:-35.735},
+  {id:1418,name:"Cineart Maceio 8",city:"MACEIO",uf:"AL",pct:100,lat:-9.6658,lon:-35.735},
+  {id:1420,name:"Cinemais Maceio 5",city:"MACEIO",uf:"AL",pct:100,lat:-9.6658,lon:-35.735},
+  {id:1419,name:"Cinematica Pajucara 5",city:"MACEIO",uf:"AL",pct:100,lat:-9.6658,lon:-35.735},
+  {id:1421,name:"Cinesercla Parque Shopping Maceio 3",city:"MACEIO",uf:"AL",pct:80,lat:-9.6658,lon:-35.735},
+  {id:1428,name:"Cine Cultura Manaus 2",city:"MANAUS",uf:"AM",pct:40,lat:-3.1019,lon:-60.025},
+  {id:1426,name:"Cineflix Manaus 5",city:"MANAUS",uf:"AM",pct:60,lat:-3.1019,lon:-60.025},
+  {id:1429,name:"Espaço Cinesescla Manaus 3",city:"MANAUS",uf:"AM",pct:20,lat:-3.1019,lon:-60.025},
+  {id:1400,name:"Kinoplex Amazonas 6",city:"MANAUS",uf:"AM",pct:100,lat:-3.1019,lon:-60.025},
+  {id:1401,name:"Multiplex Millenium 8",city:"MANAUS",uf:"AM",pct:100,lat:-3.11,lon:-60.015},
+  {id:1423,name:"Multiplex Studio 5",city:"MANAUS",uf:"AM",pct:100,lat:-3.1019,lon:-60.025},
+  {id:1427,name:"Studio 5 Cineplex 5",city:"MANAUS",uf:"AM",pct:60,lat:-3.1019,lon:-60.025},
+  {id:1424,name:"Studio 5 Manaus",city:"MANAUS",uf:"AM",pct:100,lat:-3.1019,lon:-60.025},
+  {id:1425,name:"UCI Amazonas 10",city:"MANAUS",uf:"AM",pct:80,lat:-3.1019,lon:-60.025},
+  {id:1432,name:"Cine Cult Macapa 1",city:"MACAPA",uf:"AP",pct:40,lat:0.0356,lon:-51.0705},
+  {id:1431,name:"Cinesercla Macapa 4",city:"MACAPA",uf:"AP",pct:80,lat:0.0356,lon:-51.0705},
+  {id:1430,name:"UCI Kinoplex Macapa 6",city:"MACAPA",uf:"AP",pct:100,lat:0.0356,lon:-51.0705},
+  {id:1433,name:"Cineplace Feira de Santana 4",city:"FEIRA DE SANTANA",uf:"BA",pct:60,lat:-12.2664,lon:-38.9663},
+  {id:907,name:"Cinesercla Avenida 5",city:"FEIRA DE SANTANA",uf:"BA",pct:100,lat:-12.2664,lon:-38.9663},
+  {id:1434,name:"Cine Golden 2",city:"JEQUIE",uf:"BA",pct:60,lat:-13.8536,lon:-40.0825},
+  {id:1435,name:"Sao Jose 2",city:"JEQUIE",uf:"BA",pct:60,lat:-13.8536,lon:-40.0825},
+  {id:1436,name:"Cine Plaza 1",city:"PORTO SEGURO",uf:"BA",pct:40,lat:-16.4455,lon:-39.0645},
+  {id:1437,name:"Cine Plaza 1 (mudou a rede)",city:"PORTO SEGURO",uf:"BA",pct:40,lat:-16.4455,lon:-39.0645},
+  {id:900,name:"785 Salvador 10",city:"SALVADOR",uf:"BA",pct:100,lat:-12.9714,lon:-38.5014},
+  {id:1438,name:"Cine Glauber Rocha 4",city:"SALVADOR",uf:"BA",pct:80,lat:-12.9714,lon:-38.5014},
+  {id:1441,name:"Cine Imperial 2 Salvador",city:"SALVADOR",uf:"BA",pct:20,lat:-12.9714,lon:-38.5014},
+  {id:901,name:"Cineflix Salvador 9",city:"SALVADOR",uf:"BA",pct:100,lat:-12.98,lon:-38.51},
+  {id:902,name:"Cinepolis Salvador Norte 8",city:"SALVADOR",uf:"BA",pct:100,lat:-12.95,lon:-38.48},
+  {id:903,name:"Cinesercla Cajazeiras 4",city:"SALVADOR",uf:"BA",pct:100,lat:-12.92,lon:-38.46},
+  {id:1440,name:"Saladearte Cine Paseo 2",city:"SALVADOR",uf:"BA",pct:40,lat:-12.9714,lon:-38.5014},
+  {id:1442,name:"Saladearte Cinema do Museu 1",city:"SALVADOR",uf:"BA",pct:20,lat:-12.9714,lon:-38.5014},
+  {id:904,name:"UCI Orient Barra Salvador 8",city:"SALVADOR",uf:"BA",pct:100,lat:-13.01,lon:-38.53},
+  {id:905,name:"UCI Orient Paralela 6",city:"SALVADOR",uf:"BA",pct:100,lat:-12.935,lon:-38.455},
+  {id:906,name:"UCI Orient Shopping da Bahia 12",city:"SALVADOR",uf:"BA",pct:100,lat:-12.968,lon:-38.508},
+  {id:1439,name:"UCI Orient Shopping da Bahia Delux 3",city:"SALVADOR",uf:"BA",pct:80,lat:-12.9714,lon:-38.5014},
+  {id:908,name:"Centerplex Vitoria da Conquista 6",city:"VITORIA DA CONQUISTA",uf:"BA",pct:100,lat:-14.8619,lon:-40.8444},
+  {id:1443,name:"Moviecom Conquista Sul 3",city:"VITORIA DA CONQUISTA",uf:"BA",pct:60,lat:-14.8619,lon:-40.8444},
+  {id:1444,name:"Cine Eusebio 5",city:"EUSEBIO",uf:"CE",pct:80,lat:-3.8896,lon:-38.4553},
+  {id:1445,name:"Cine Terrazo Eusebio",city:"EUSEBIO",uf:"CE",pct:20,lat:-3.8896,lon:-38.4553},
+  {id:1000,name:"Centerplex Messejana 5",city:"FORTALEZA",uf:"CE",pct:100,lat:-3.853,lon:-38.492},
+  {id:1001,name:"Centerplex Via Sul Shop. 6",city:"FORTALEZA",uf:"CE",pct:100,lat:-3.82,lon:-38.53},
+  {id:1448,name:"Cinema do Dragao 2",city:"FORTALEZA",uf:"CE",pct:20,lat:-3.7319,lon:-38.5267},
+  {id:1002,name:"Cinepolis North Shopping Joquei 5",city:"FORTALEZA",uf:"CE",pct:100,lat:-3.76,lon:-38.56},
+  {id:1003,name:"Cinepolis RioMar Fortaleza 10",city:"FORTALEZA",uf:"CE",pct:100,lat:-3.7319,lon:-38.5267},
+  {id:1004,name:"Cinepolis RioMar Kennedy 6",city:"FORTALEZA",uf:"CE",pct:100,lat:-3.745,lon:-38.51},
+  {id:1447,name:"Fortaleza 2",city:"FORTALEZA",uf:"CE",pct:60,lat:-3.7319,lon:-38.5267},
+  {id:1446,name:"Kinoplex North Shopping 6",city:"FORTALEZA",uf:"CE",pct:80,lat:-3.7319,lon:-38.5267},
+  {id:1005,name:"UCI Kinoplex Iguatemi Fortaleza 12",city:"FORTALEZA",uf:"CE",pct:100,lat:-3.78,lon:-38.505},
+  {id:1006,name:"UCI Parangaba 6",city:"FORTALEZA",uf:"CE",pct:100,lat:-3.77,lon:-38.57},
+  {id:1007,name:"Multicine Sobral 5",city:"SOBRAL",uf:"CE",pct:100,lat:-3.6886,lon:-40.35},
+  {id:1008,name:"Renato Aragao 3",city:"SOBRAL",uf:"CE",pct:100,lat:-3.695,lon:-40.36},
+  {id:800,name:"718 Taguatinga 9",city:"BRASILIA",uf:"DF",pct:100,lat:-15.838,lon:-48.048},
+  {id:801,name:"720 Pier 21 13",city:"BRASILIA",uf:"DF",pct:100,lat:-15.7975,lon:-47.8919},
+  {id:802,name:"769 Iguatemi Brasilia 6",city:"BRASILIA",uf:"DF",pct:100,lat:-15.83,lon:-47.92},
+  {id:1449,name:"Arcoplex Aguas Claras 4",city:"BRASILIA",uf:"DF",pct:80,lat:-15.7975,lon:-47.8919},
+  {id:1454,name:"Cine Brasilia 1",city:"BRASILIA",uf:"DF",pct:40,lat:-15.7975,lon:-47.8919},
+  {id:1450,name:"Cine Drive-in 1",city:"BRASILIA",uf:"DF",pct:80,lat:-15.7975,lon:-47.8919},
+  {id:1455,name:"Cine Imperial 2 Brasilia",city:"BRASILIA",uf:"DF",pct:40,lat:-15.7975,lon:-47.8919},
+  {id:803,name:"Cineflix Shopping JK Brasilia 6",city:"BRASILIA",uf:"DF",pct:100,lat:-15.81,lon:-47.9},
+  {id:1451,name:"Cinesystem Brasilia 9",city:"BRASILIA",uf:"DF",pct:80,lat:-15.7975,lon:-47.8919},
+  {id:1456,name:"Espaco Itau de Cinema Brasilia 9",city:"BRASILIA",uf:"DF",pct:40,lat:-15.7975,lon:-47.8919},
+  {id:1453,name:"Kinoplex Boulevard 4",city:"BRASILIA",uf:"DF",pct:60,lat:-15.7975,lon:-47.8919},
+  {id:804,name:"Kinoplex Parkshopping 11",city:"BRASILIA",uf:"DF",pct:100,lat:-15.835,lon:-48.03},
+  {id:1452,name:"Kinoplex Patio Brasil 6",city:"BRASILIA",uf:"DF",pct:80,lat:-15.7975,lon:-47.8919},
+  {id:805,name:"Multicine Santa Maria 6",city:"BRASILIA",uf:"DF",pct:100,lat:-16.019,lon:-48.059},
+  {id:1457,name:"Cine Show Cachoeiro 4",city:"CACHOEIRO DE ITAPEMIRIM",uf:"ES",pct:80,lat:-20.849,lon:-41.1131},
+  {id:1459,name:"Cinepolis Moxuara 5",city:"CARIACICA",uf:"ES",pct:80,lat:-20.2636,lon:-40.4197},
+  {id:1458,name:"Cinesercla Moxuara 5",city:"CARIACICA",uf:"ES",pct:100,lat:-20.2636,lon:-40.4197},
+  {id:1462,name:"Cine Show Serra 5",city:"SERRA",uf:"ES",pct:80,lat:-20.1286,lon:-40.3075},
+  {id:1460,name:"Cinesercla Vitoria 4",city:"SERRA",uf:"ES",pct:100,lat:-20.1286,lon:-40.3075},
+  {id:1461,name:"UCI Serra 10",city:"SERRA",uf:"ES",pct:100,lat:-20.1286,lon:-40.3075},
+  {id:1465,name:"Cine Arte 1",city:"VITORIA",uf:"ES",pct:20,lat:-20.3155,lon:-40.3128},
+  {id:1464,name:"Cine Show Vitoria 5",city:"VITORIA",uf:"ES",pct:80,lat:-20.3155,lon:-40.3128},
+  {id:1463,name:"UCI Kinoplex Shopping Vitoria 10",city:"VITORIA",uf:"ES",pct:100,lat:-20.3155,lon:-40.3128},
+  {id:709,name:"Cinemais Anapolis 5",city:"ANAPOLIS",uf:"GO",pct:100,lat:-16.3281,lon:-48.953},
+  {id:1406,name:"Prime Anapolis 4",city:"ANAPOLIS",uf:"GO",pct:60,lat:-16.3281,lon:-48.953},
+  {id:704,name:"Cineflix Aparecida de Goiania 5",city:"APARECIDA DE GOIANIA",uf:"GO",pct:100,lat:-16.823,lon:-49.2498},
+  {id:705,name:"Moviecom Buriti 6",city:"APARECIDA DE GOIANIA",uf:"GO",pct:100,lat:-16.835,lon:-49.24},
+  {id:700,name:"2113 Passeio das Aguas 7",city:"GOIANIA",uf:"GO",pct:100,lat:-16.6869,lon:-49.2648},
+  {id:701,name:"2133 Flamboyant Goiania 8",city:"GOIANIA",uf:"GO",pct:100,lat:-16.7,lon:-49.25},
+  {id:1413,name:"Cine Cultura Goiania 2",city:"GOIANIA",uf:"GO",pct:20,lat:-16.6869,lon:-49.2648},
+  {id:1412,name:"Cine Lume Goiania 2",city:"GOIANIA",uf:"GO",pct:40,lat:-16.6869,lon:-49.2648},
+  {id:1410,name:"CineX Oscar Niemeyer 2",city:"GOIANIA",uf:"GO",pct:60,lat:-16.6869,lon:-49.2648},
+  {id:1407,name:"Cinemais Bougainville 5",city:"GOIANIA",uf:"GO",pct:80,lat:-16.6869,lon:-49.2648},
+  {id:1411,name:"Cinemais Portal Norte 3",city:"GOIANIA",uf:"GO",pct:60,lat:-16.6869,lon:-49.2648},
+  {id:1408,name:"Cinemais Portal Sul 4",city:"GOIANIA",uf:"GO",pct:80,lat:-16.6869,lon:-49.2648},
+  {id:702,name:"Cinepolis Cerrado 7",city:"GOIANIA",uf:"GO",pct:100,lat:-16.675,lon:-49.275},
+  {id:703,name:"Kinoplex Goiania 6",city:"GOIANIA",uf:"GO",pct:100,lat:-16.695,lon:-49.26},
+  {id:1409,name:"Multicine Cidade Jardim 3",city:"GOIANIA",uf:"GO",pct:80,lat:-16.6869,lon:-49.2648},
+  {id:1416,name:"CineLuz Neo",city:"LUZIANIA",uf:"GO",pct:20,lat:-16.2525,lon:-47.9508},
+  {id:1414,name:"CineStar Luziania 4",city:"LUZIANIA",uf:"GO",pct:60,lat:-16.2525,lon:-47.9508},
+  {id:1415,name:"Cinex Luziania 3",city:"LUZIANIA",uf:"GO",pct:60,lat:-16.2525,lon:-47.9508},
+  {id:706,name:"CineA Rio Verde 3",city:"RIO VERDE",uf:"GO",pct:100,lat:-17.7981,lon:-50.9269},
+  {id:707,name:"Cineflix Rio Verde 5",city:"RIO VERDE",uf:"GO",pct:100,lat:-17.805,lon:-50.92},
+  {id:708,name:"Cineflix Valparaiso 6",city:"VALPARAISO",uf:"GO",pct:100,lat:-16.0722,lon:-47.9919},
+  {id:1417,name:"Multicine Paraiso Mega Center 5",city:"VALPARAISO",uf:"GO",pct:80,lat:-16.0722,lon:-47.9919},
+  {id:1466,name:"Cine Laser - Imperatriz 5",city:"IMPERATRIZ",uf:"MA",pct:100,lat:-5.526,lon:-47.4916},
+  {id:1467,name:"Moviecom Imperatriz 4",city:"IMPERATRIZ",uf:"MA",pct:80,lat:-5.526,lon:-47.4916},
+  {id:1470,name:"Cine Show Sao Luis 5",city:"SAO LUIS",uf:"MA",pct:80,lat:-2.5307,lon:-44.3068},
+  {id:1468,name:"Cinepolis Sao Luis 8",city:"SAO LUIS",uf:"MA",pct:100,lat:-2.5307,lon:-44.3068},
+  {id:1471,name:"Espaco Unidade 1",city:"SAO LUIS",uf:"MA",pct:40,lat:-2.5307,lon:-44.3068},
+  {id:1469,name:"UCI Kinoplex Sao Luis 10",city:"SAO LUIS",uf:"MA",pct:100,lat:-2.5307,lon:-44.3068},
+  {id:1473,name:"Cine Teatro Barbacena 2",city:"BARBACENA",uf:"MG",pct:60,lat:-21.2264,lon:-43.7736},
+  {id:1472,name:"Cineart Barbacena 4",city:"BARBACENA",uf:"MG",pct:80,lat:-21.2264,lon:-43.7736},
+  {id:400,name:"697 Patio Savassi 8",city:"BELO HORIZONTE",uf:"MG",pct:100,lat:-19.937,lon:-43.937},
+  {id:401,name:"767 Diamond Mall 6",city:"BELO HORIZONTE",uf:"MG",pct:100,lat:-19.947,lon:-43.944},
+  {id:402,name:"768 BH Shopping 10",city:"BELO HORIZONTE",uf:"MG",pct:100,lat:-19.956,lon:-43.958},
+  {id:1475,name:"Centro Cultural Unimed - BH Minas 2",city:"BELO HORIZONTE",uf:"MG",pct:60,lat:-19.9167,lon:-43.9345},
+  {id:403,name:"Cineart Cidade 8",city:"BELO HORIZONTE",uf:"MG",pct:100,lat:-19.923,lon:-43.939},
+  {id:404,name:"Cineart Del Rey 7",city:"BELO HORIZONTE",uf:"MG",pct:100,lat:-19.98,lon:-43.98},
+  {id:1476,name:"Cineart Ponteio 4",city:"BELO HORIZONTE",uf:"MG",pct:60,lat:-19.9167,lon:-43.9345},
+  {id:405,name:"Cinepolis Estacao BH 6",city:"BELO HORIZONTE",uf:"MG",pct:100,lat:-19.916,lon:-43.932},
+  {id:406,name:"Cinesercla Shopping Norte 5",city:"BELO HORIZONTE",uf:"MG",pct:100,lat:-19.882,lon:-43.921},
+  {id:407,name:"Multiplex Boulevard Shopping 6",city:"BELO HORIZONTE",uf:"MG",pct:100,lat:-19.898,lon:-43.95},
+  {id:422,name:"Multiplex Minas 6",city:"BELO HORIZONTE",uf:"MG",pct:80,lat:-19.9167,lon:-43.9345},
+  {id:1477,name:"Una Belas Artes 3",city:"BELO HORIZONTE",uf:"MG",pct:40,lat:-19.9167,lon:-43.9345},
+  {id:1474,name:"Via Shopping 5",city:"BELO HORIZONTE",uf:"MG",pct:80,lat:-19.9167,lon:-43.9345},
+  {id:408,name:"2111 Metropolitan Garden Shop Betim 7",city:"BETIM",uf:"MG",pct:100,lat:-19.9678,lon:-44.1989},
+  {id:409,name:"Monte Carmo 7",city:"BETIM",uf:"MG",pct:100,lat:-19.975,lon:-44.21},
+  {id:410,name:"Cineart Contagem 8",city:"CONTAGEM",uf:"MG",pct:100,lat:-19.9314,lon:-44.0536},
+  {id:411,name:"Cinesercla Big Shopping 5",city:"CONTAGEM",uf:"MG",pct:100,lat:-19.94,lon:-44.06},
+  {id:1478,name:"Itau Power 6",city:"CONTAGEM",uf:"MG",pct:80,lat:-19.9314,lon:-44.0536},
+  {id:1479,name:"Espaco Cinemax - Atletico 2",city:"ITABIRA",uf:"MG",pct:20,lat:-19.6189,lon:-43.2272},
+  {id:1480,name:"Ritz Gabiroba Itabira 1",city:"ITABIRA",uf:"MG",pct:20,lat:-19.6189,lon:-43.2272},
+  {id:412,name:"Cinemais Juiz de Fora Jardim Norte 6",city:"JUIZ DE FORA",uf:"MG",pct:100,lat:-21.7642,lon:-43.3503},
+  {id:413,name:"Uci Kinoplex Independencia 5",city:"JUIZ DE FORA",uf:"MG",pct:100,lat:-21.77,lon:-43.36},
+  {id:1482,name:"Cineflix Montes Claros",city:"MONTES CLAROS",uf:"MG",pct:40,lat:-16.7286,lon:-43.8614},
+  {id:418,name:"Cinemais Montes Claros 5",city:"MONTES CLAROS",uf:"MG",pct:100,lat:-16.7286,lon:-43.8614},
+  {id:1481,name:"Ibi Cinemas 4",city:"MONTES CLAROS",uf:"MG",pct:60,lat:-16.7286,lon:-43.8614},
+  {id:419,name:"Cine Marquise Ultravisao 4",city:"POCOS DE CALDAS",uf:"MG",pct:100,lat:-21.7882,lon:-46.5619},
+  {id:420,name:"Cineflix Pocos de Caldas 4",city:"POCOS DE CALDAS",uf:"MG",pct:100,lat:-21.795,lon:-46.57},
+  {id:421,name:"CineA Pouso Alegre 3",city:"POUSO ALEGRE",uf:"MG",pct:100,lat:-22.2297,lon:-45.9365},
+  {id:1483,name:"Cineart Serra Sul 4",city:"POUSO ALEGRE",uf:"MG",pct:80,lat:-22.2297,lon:-45.9365},
+  {id:1485,name:"Gloria 1",city:"SAO JOAO DEL REI",uf:"MG",pct:20,lat:-21.1339,lon:-44.2605},
+  {id:1484,name:"Gloria Shopping 1",city:"SAO JOAO DEL REI",uf:"MG",pct:60,lat:-21.1339,lon:-44.2605},
+  {id:416,name:"Cinemais Uberaba 8",city:"UBERABA",uf:"MG",pct:100,lat:-19.7478,lon:-47.9317},
+  {id:417,name:"Kinoplex Uberaba 6",city:"UBERABA",uf:"MG",pct:100,lat:-19.755,lon:-47.94},
+  {id:414,name:"2101 Cmk Uberlandia 5",city:"UBERLANDIA",uf:"MG",pct:100,lat:-18.9186,lon:-48.2772},
+  {id:415,name:"Cinepolis Uberlandia 10",city:"UBERLANDIA",uf:"MG",pct:100,lat:-18.925,lon:-48.285},
+  {id:1488,name:"Cine Show Campo Grande 5",city:"CAMPO GRANDE",uf:"MS",pct:60,lat:-20.4697,lon:-54.6201},
+  {id:1486,name:"Cinepolis Campo Grande 8",city:"CAMPO GRANDE",uf:"MS",pct:100,lat:-20.4697,lon:-54.6201},
+  {id:1487,name:"GNC Campo Grande 6",city:"CAMPO GRANDE",uf:"MS",pct:80,lat:-20.4697,lon:-54.6201},
+  {id:1492,name:"Cine Arte Cuiaba 2",city:"CUIABA",uf:"MT",pct:40,lat:-15.6014,lon:-56.0979},
+  {id:1493,name:"Cine Cultura Cuiaba 2",city:"CUIABA",uf:"MT",pct:20,lat:-15.6014,lon:-56.0979},
+  {id:1491,name:"Cine Show Cuiaba 5",city:"CUIABA",uf:"MT",pct:80,lat:-15.6014,lon:-56.0979},
+  {id:1489,name:"Kinoplex Cuiaba 6",city:"CUIABA",uf:"MT",pct:100,lat:-15.6014,lon:-56.0979},
+  {id:1490,name:"UCI Kinoplex Cuiaba 8",city:"CUIABA",uf:"MT",pct:100,lat:-15.6014,lon:-56.0979},
+  {id:1494,name:"Cine Laser - Sinop 4",city:"SINOP",uf:"MT",pct:100,lat:-11.8642,lon:-55.5014},
+  {id:1495,name:"Cineflix Sinop 5",city:"SINOP",uf:"MT",pct:80,lat:-11.8642,lon:-55.5014},
+  {id:1402,name:"Cinepolis Boulevard Belem 7",city:"BELEM",uf:"PA",pct:100,lat:-1.4558,lon:-48.4902},
+  {id:1403,name:"Cinepolis Parque Belem 7",city:"BELEM",uf:"PA",pct:100,lat:-1.465,lon:-48.48},
+  {id:1404,name:"Moviecom Belem 6",city:"BELEM",uf:"PA",pct:100,lat:-1.448,lon:-48.5},
+  {id:1405,name:"UCI Bosque Grao Para 6",city:"BELEM",uf:"PA",pct:100,lat:-1.46,lon:-48.49},
+  {id:1496,name:"Cine Show Maraba 5",city:"MARABA",uf:"PA",pct:80,lat:-5.3686,lon:-49.1178},
+  {id:1497,name:"Cineflix Maraba 4",city:"MARABA",uf:"PA",pct:60,lat:-5.3686,lon:-49.1178},
+  {id:1498,name:"Cineart Campina Grande 5",city:"CAMPINA GRANDE",uf:"PB",pct:100,lat:-7.2306,lon:-35.8811},
+  {id:1499,name:"Multiplex Campina Grande 4",city:"CAMPINA GRANDE",uf:"PB",pct:80,lat:-7.2306,lon:-35.8811},
+  {id:1503,name:"Cine Show Joao Pessoa 5",city:"JOAO PESSOA",uf:"PB",pct:60,lat:-7.1195,lon:-34.845},
+  {id:1500,name:"Cinepolis Manaira 8",city:"JOAO PESSOA",uf:"PB",pct:100,lat:-7.1195,lon:-34.845},
+  {id:1501,name:"Kinoplex Joao Pessoa 6",city:"JOAO PESSOA",uf:"PB",pct:100,lat:-7.1195,lon:-34.845},
+  {id:1504,name:"Patos 3",city:"JOAO PESSOA",uf:"PB",pct:40,lat:-7.1195,lon:-34.845},
+  {id:1502,name:"UCI Kinoplex Joao Pessoa 10",city:"JOAO PESSOA",uf:"PB",pct:100,lat:-7.1195,lon:-34.845},
+  {id:1100,name:"2107 Riomar Recife 12",city:"RECIFE",uf:"PE",pct:100,lat:-8.0522,lon:-34.9286},
+  {id:1101,name:"Kinoplex Boa Vista 6",city:"RECIFE",uf:"PE",pct:100,lat:-8.06,lon:-34.937},
+  {id:1102,name:"UCI Kinoplex Recife Delux 4",city:"RECIFE",uf:"PE",pct:100,lat:-8.048,lon:-34.92},
+  {id:1103,name:"UCI Kinoplex Shopping Recife 10",city:"RECIFE",uf:"PE",pct:100,lat:-8.055,lon:-34.925},
+  {id:1104,name:"UCI Kinoplex Tacaruna 10",city:"RECIFE",uf:"PE",pct:100,lat:-8.04,lon:-34.91},
+  {id:1105,name:"Uci Kinoplex Casa Forte 5",city:"RECIFE",uf:"PE",pct:100,lat:-8.035,lon:-34.93},
+  {id:1505,name:"Cine Show Parnaiba 3",city:"PARNAIBA",uf:"PI",pct:80,lat:-2.9052,lon:-41.7761},
+  {id:1506,name:"Cineflix Parnaiba 3",city:"PARNAIBA",uf:"PI",pct:60,lat:-2.9052,lon:-41.7761},
+  {id:1507,name:"Cine Laser - Teresina 5",city:"TERESINA",uf:"PI",pct:100,lat:-5.092,lon:-42.8038},
+  {id:1508,name:"UCI Kinoplex Teresina 8",city:"TERESINA",uf:"PI",pct:100,lat:-5.092,lon:-42.8038},
+  {id:516,name:"Cine Laser - Cascavel 4",city:"CASCAVEL",uf:"PR",pct:100,lat:-24.9555,lon:-53.4552},
+  {id:1510,name:"Cineflix Cinemas Cascavel 5",city:"CASCAVEL",uf:"PR",pct:40,lat:-24.9555,lon:-53.4552},
+  {id:1511,name:"West Side (mudou de rede)",city:"CASCAVEL",uf:"PR",pct:20,lat:-24.9555,lon:-53.4552},
+  {id:1509,name:"West Side 3",city:"CASCAVEL",uf:"PR",pct:60,lat:-24.9555,lon:-53.4552},
+  {id:500,name:"698 Muller 8",city:"CURITIBA",uf:"PR",pct:100,lat:-25.429,lon:-49.2671},
+  {id:501,name:"700 Parkshop Barigui 8",city:"CURITIBA",uf:"PR",pct:100,lat:-25.44,lon:-49.32},
+  {id:1514,name:"Cine Passeio 2",city:"CURITIBA",uf:"PR",pct:40,lat:-25.429,lon:-49.2671},
+  {id:1515,name:"Cineflix Park Shopping Boulevard 5",city:"CURITIBA",uf:"PR",pct:40,lat:-25.429,lon:-49.2671},
+  {id:1516,name:"Cineflix Shopping Curitiba 3",city:"CURITIBA",uf:"PR",pct:20,lat:-25.429,lon:-49.2671},
+  {id:1513,name:"Cineplex Batel 5",city:"CURITIBA",uf:"PR",pct:60,lat:-25.429,lon:-49.2671},
+  {id:502,name:"Cineplus City Center 5",city:"CURITIBA",uf:"PR",pct:100,lat:-25.43,lon:-49.27},
+  {id:503,name:"Cineplus Jardim das Americas 6",city:"CURITIBA",uf:"PR",pct:100,lat:-25.46,lon:-49.23},
+  {id:1512,name:"Cineplus Xaxim 4",city:"CURITIBA",uf:"PR",pct:80,lat:-25.429,lon:-49.2671},
+  {id:504,name:"Cinepolis Jockey Plaza Curitiba 8",city:"CURITIBA",uf:"PR",pct:100,lat:-25.45,lon:-49.29},
+  {id:505,name:"Cinepolis Patio Batel 8",city:"CURITIBA",uf:"PR",pct:100,lat:-25.441,lon:-49.285},
+  {id:506,name:"Cinesystem Cidade 5",city:"CURITIBA",uf:"PR",pct:100,lat:-25.428,lon:-49.268},
+  {id:507,name:"Cinesystem Total Curitiba 5",city:"CURITIBA",uf:"PR",pct:100,lat:-25.435,lon:-49.275},
+  {id:508,name:"Uci Estacao 10",city:"CURITIBA",uf:"PR",pct:100,lat:-25.432,lon:-49.265},
+  {id:509,name:"Uci Palladium 8 3d",city:"CURITIBA",uf:"PR",pct:100,lat:-25.47,lon:-49.31},
+  {id:515,name:"2129 Foz do Iguacu 6",city:"FOZ DO IGUACU",uf:"PR",pct:100,lat:-25.5469,lon:-54.5882},
+  {id:1517,name:"Cineplex Cataratas 4",city:"FOZ DO IGUACU",uf:"PR",pct:40,lat:-25.5469,lon:-54.5882},
+  {id:510,name:"2104 Londrina 7",city:"LONDRINA",uf:"PR",pct:100,lat:-23.3045,lon:-51.1696},
+  {id:1520,name:"Cine Londrina 5",city:"LONDRINA",uf:"PR",pct:20,lat:-23.3045,lon:-51.1696},
+  {id:1518,name:"Cineflix Londrina 5",city:"LONDRINA",uf:"PR",pct:80,lat:-23.3045,lon:-51.1696},
+  {id:511,name:"Cinesystem Londrina Norte Shopping 6",city:"LONDRINA",uf:"PR",pct:100,lat:-23.29,lon:-51.18},
+  {id:1519,name:"Espaco Villa Rica 1",city:"LONDRINA",uf:"PR",pct:40,lat:-23.3045,lon:-51.1696},
+  {id:512,name:"Multiplex Catuai 7",city:"LONDRINA",uf:"PR",pct:100,lat:-23.32,lon:-51.16},
+  {id:1521,name:"Avenida Center 4",city:"MARINGA",uf:"PR",pct:80,lat:-23.4205,lon:-51.9333},
+  {id:513,name:"Catuai Shopping Center Maringa 5",city:"MARINGA",uf:"PR",pct:100,lat:-23.4205,lon:-51.9333},
+  {id:1522,name:"Cineflix Maringa Park 5",city:"MARINGA",uf:"PR",pct:80,lat:-23.4205,lon:-51.9333},
+  {id:514,name:"Cineflix Shopping Cidade Maringa 4",city:"MARINGA",uf:"PR",pct:100,lat:-23.43,lon:-51.94},
+  {id:1524,name:"Cine Gracher Pato Branco 3",city:"PATO BRANCO",uf:"PR",pct:60,lat:-26.2297,lon:-52.6714},
+  {id:1523,name:"Multicine Pato Branco 4",city:"PATO BRANCO",uf:"PR",pct:80,lat:-26.2297,lon:-52.6714},
+  {id:1526,name:"Cinex Ponta Grossa (virou CARC)",city:"PONTA GROSSA",uf:"PR",pct:60,lat:-25.0945,lon:-50.1633},
+  {id:1525,name:"Palladium Shop Center 4",city:"PONTA GROSSA",uf:"PR",pct:80,lat:-25.0945,lon:-50.1633},
+  {id:1527,name:"Cinemaxx Unapark Shopping Unamar 2",city:"CABO FRIO",uf:"RJ",pct:80,lat:-22.8789,lon:-42.0186},
+  {id:1528,name:"Multiplex Parque Lagos 6",city:"CABO FRIO",uf:"RJ",pct:80,lat:-22.8789,lon:-42.0186},
+  {id:1531,name:"Cineflix Campos dos Goytacazes 5",city:"CAMPOS DOS GOYTACAZES",uf:"RJ",pct:40,lat:-21.7609,lon:-41.329},
+  {id:1529,name:"Multiplex Campos dos Goytacazes 5",city:"CAMPOS DOS GOYTACAZES",uf:"RJ",pct:80,lat:-21.7609,lon:-41.329},
+  {id:1530,name:"Uniplex Campos dos Goytacazes 3",city:"CAMPOS DOS GOYTACAZES",uf:"RJ",pct:60,lat:-21.7609,lon:-41.329},
+  {id:319,name:"691 Niteroi 8",city:"NITEROI",uf:"RJ",pct:100,lat:-22.8833,lon:-43.1036},
+  {id:320,name:"Centerplex Cinemas Niteroi 6",city:"NITEROI",uf:"RJ",pct:100,lat:-22.89,lon:-43.11},
+  {id:1533,name:"Cine Arte UFF 1",city:"NITEROI",uf:"RJ",pct:40,lat:-22.8833,lon:-43.1036},
+  {id:1532,name:"Kinoplex Bay Market 4",city:"NITEROI",uf:"RJ",pct:60,lat:-22.8833,lon:-43.1036},
+  {id:1534,name:"Reserva Cultural de Cinema Niteroi 6",city:"NITEROI",uf:"RJ",pct:40,lat:-22.8833,lon:-43.1036},
+  {id:1536,name:"Cine Show Cadima 3",city:"NOVA FRIBURGO",uf:"RJ",pct:20,lat:-22.282,lon:-42.5311},
+  {id:1535,name:"Cine Show Nova Friburgo 3",city:"NOVA FRIBURGO",uf:"RJ",pct:60,lat:-22.282,lon:-42.5311},
+  {id:1537,name:"Kinoplex Iguacu Top 6",city:"NOVA IGUACU",uf:"RJ",pct:80,lat:-22.7556,lon:-43.4514},
+  {id:1538,name:"Kinoplex Nova Iguacu 7",city:"NOVA IGUACU",uf:"RJ",pct:80,lat:-22.7556,lon:-43.4514},
+  {id:1539,name:"Cine Show Petropolis 6",city:"PETROPOLIS",uf:"RJ",pct:80,lat:-22.5042,lon:-43.1792},
+  {id:1542,name:"Cinemaxx Bauhaus Exclusive 2",city:"PETROPOLIS",uf:"RJ",pct:20,lat:-22.5042,lon:-43.1792},
+  {id:1540,name:"Cinemaxx Mercado Estacao 3",city:"PETROPOLIS",uf:"RJ",pct:60,lat:-22.5042,lon:-43.1792},
+  {id:1541,name:"Estacao Itaipava 1",city:"PETROPOLIS",uf:"RJ",pct:40,lat:-22.5042,lon:-43.1792},
+  {id:1544,name:"Cine Show Agulhas Negras 2",city:"RESENDE",uf:"RJ",pct:20,lat:-22.4682,lon:-44.4509},
+  {id:1543,name:"Cine Show Resende Shopping 2",city:"RESENDE",uf:"RJ",pct:40,lat:-22.4682,lon:-44.4509},
+  {id:321,name:"CineA Resende 4",city:"RESENDE",uf:"RJ",pct:100,lat:-22.4682,lon:-44.4509},
+  {id:1545,name:"Cine Show Rio das Ostras 5",city:"RIO DAS OSTRAS",uf:"RJ",pct:80,lat:-22.5266,lon:-41.9451},
+  {id:322,name:"Cineritz Holiday 3",city:"RIO DAS OSTRAS",uf:"RJ",pct:100,lat:-22.5266,lon:-41.9451},
+  {id:324,name:"2106 Village Mall 4",city:"RIO DE JANEIRO",uf:"RJ",pct:80,lat:-22.999,lon:-43.343},
+  {id:300,name:"2112 Metropolitano Barra 7",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.999,lon:-43.367},
+  {id:301,name:"692 Carioca Shopping 6",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.882,lon:-43.349},
+  {id:302,name:"719 Downtown Barra 12",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-23.001,lon:-43.365},
+  {id:303,name:"728 Botafogo 6",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.943,lon:-43.187},
+  {id:1557,name:"Cine Carioca Jose Wilker 2",city:"RIO DE JANEIRO",uf:"RJ",pct:20,lat:-22.9068,lon:-43.1729},
+  {id:1553,name:"Cine Carioca Nova Brasilia 1",city:"RIO DE JANEIRO",uf:"RJ",pct:40,lat:-22.9068,lon:-43.1729},
+  {id:1558,name:"Cine Carioca Penha 2",city:"RIO DE JANEIRO",uf:"RJ",pct:20,lat:-22.9068,lon:-43.1729},
+  {id:1559,name:"Cine Club Naval Piraque 1",city:"RIO DE JANEIRO",uf:"RJ",pct:20,lat:-22.9068,lon:-43.1729},
+  {id:325,name:"CineCarioca Meier 3",city:"RIO DE JANEIRO",uf:"RJ",pct:80,lat:-22.91,lon:-43.274},
+  {id:1546,name:"Cineflix Center Shopping Rio 4",city:"RIO DE JANEIRO",uf:"RJ",pct:80,lat:-22.9068,lon:-43.1729},
+  {id:1554,name:"Cineflix Taquara Plaza Shopping 5",city:"RIO DE JANEIRO",uf:"RJ",pct:40,lat:-22.9068,lon:-43.1729},
+  {id:1547,name:"Cinepolis Rio Design Barra 3",city:"RIO DE JANEIRO",uf:"RJ",pct:60,lat:-22.9068,lon:-43.1729},
+  {id:304,name:"Cinesystem Americas 9",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.985,lon:-43.362},
+  {id:305,name:"Cinesystem Bangu 6",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.88,lon:-43.466},
+  {id:1548,name:"Cinesystem Botafogo 6",city:"RIO DE JANEIRO",uf:"RJ",pct:60,lat:-22.9068,lon:-43.1729},
+  {id:306,name:"Cinesystem Ilha Plaza 4",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.802,lon:-43.2017},
+  {id:307,name:"Cinesystem Parque Shopping Sulacap 9",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.905,lon:-43.4},
+  {id:326,name:"Cinesystem Recreio 5",city:"RIO DE JANEIRO",uf:"RJ",pct:80,lat:-23.014,lon:-43.457},
+  {id:308,name:"Cinesystem Via Brasil 6",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.86,lon:-43.34},
+  {id:1560,name:"Espaco Itau de Cinema Botafogo 6",city:"RIO DE JANEIRO",uf:"RJ",pct:20,lat:-22.9068,lon:-43.1729},
+  {id:1555,name:"Estacao NET Gavea 5",city:"RIO DE JANEIRO",uf:"RJ",pct:40,lat:-22.9068,lon:-43.1729},
+  {id:1549,name:"Estacao NET Rio 5",city:"RIO DE JANEIRO",uf:"RJ",pct:60,lat:-22.9068,lon:-43.1729},
+  {id:1556,name:"Kinoplex Fashion Mall 4",city:"RIO DE JANEIRO",uf:"RJ",pct:40,lat:-22.9068,lon:-43.1729},
+  {id:1550,name:"Kinoplex Leblon 3",city:"RIO DE JANEIRO",uf:"RJ",pct:60,lat:-22.9068,lon:-43.1729},
+  {id:309,name:"Kinoplex Nova America 7",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.879,lon:-43.295},
+  {id:310,name:"Kinoplex RioSul 6",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.948,lon:-43.187},
+  {id:1551,name:"Kinoplex Sao Luiz 4",city:"RIO DE JANEIRO",uf:"RJ",pct:60,lat:-22.9068,lon:-43.1729},
+  {id:311,name:"Kinoplex Shopping Boulevard RJ 7",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.903,lon:-43.177},
+  {id:1552,name:"Kinoplex Shopping Leblon 4",city:"RIO DE JANEIRO",uf:"RJ",pct:60,lat:-22.9068,lon:-43.1729},
+  {id:312,name:"Kinoplex Tijuca 6",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.924,lon:-43.231},
+  {id:327,name:"Kinoplex Via Parque 6",city:"RIO DE JANEIRO",uf:"RJ",pct:80,lat:-22.976,lon:-43.346},
+  {id:328,name:"Kinoplex West Shopping 5",city:"RIO DE JANEIRO",uf:"RJ",pct:80,lat:-22.947,lon:-43.411},
+  {id:329,name:"Multiplex Guadalupe 5",city:"RIO DE JANEIRO",uf:"RJ",pct:80,lat:-22.888,lon:-43.401},
+  {id:313,name:"UCI Kinoplex Norte Shopping 10",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.868,lon:-43.316},
+  {id:314,name:"UCI New York City Center 18",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.907,lon:-43.18},
+  {id:315,name:"UCI Park Campo Grande 7",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.902,lon:-43.563},
+  {id:316,name:"UCI Park Jacarepagua 6",city:"RIO DE JANEIRO",uf:"RJ",pct:100,lat:-22.962,lon:-43.369},
+  {id:317,name:"2136 Sao Goncalo 6",city:"SAO GONCALO",uf:"RJ",pct:100,lat:-22.8269,lon:-43.0536},
+  {id:318,name:"Cinepolis Sao Goncalo Shopping 8",city:"SAO GONCALO",uf:"RJ",pct:100,lat:-22.835,lon:-43.045},
+  {id:323,name:"Cinemagic Bacaxa 2",city:"SAQUAREMA",uf:"RJ",pct:100,lat:-22.9201,lon:-42.5098},
+  {id:1561,name:"Maximovie Saquarema 3",city:"SAQUAREMA",uf:"RJ",pct:60,lat:-22.9201,lon:-42.5098},
+  {id:1563,name:"Cine Show Shopping Volta Redonda 4",city:"VOLTA REDONDA",uf:"RJ",pct:40,lat:-22.5234,lon:-44.1041},
+  {id:1564,name:"Gacemss 1",city:"VOLTA REDONDA",uf:"RJ",pct:40,lat:-22.5234,lon:-44.1041},
+  {id:1562,name:"Multiplex Volta Redonda 6",city:"VOLTA REDONDA",uf:"RJ",pct:80,lat:-22.5234,lon:-44.1041},
+  {id:1568,name:"Cine Arte Natal 2",city:"NATAL",uf:"RN",pct:40,lat:-5.7945,lon:-35.211},
+  {id:1567,name:"Cine Show Natal 5",city:"NATAL",uf:"RN",pct:80,lat:-5.7945,lon:-35.211},
+  {id:1565,name:"Cinepolis Natal 8",city:"NATAL",uf:"RN",pct:100,lat:-5.7945,lon:-35.211},
+  {id:1566,name:"UCI Kinoplex Natal 10",city:"NATAL",uf:"RN",pct:100,lat:-5.7945,lon:-35.211},
+  {id:1572,name:"Cine Show Ji-Parana 3",city:"JI-PARANA",uf:"RO",pct:60,lat:-10.8784,lon:-61.9492},
+  {id:1571,name:"Cineflix Ji-Parana 4",city:"JI-PARANA",uf:"RO",pct:80,lat:-10.8784,lon:-61.9492},
+  {id:1569,name:"Cine Laser - Porto Velho 5",city:"PORTO VELHO",uf:"RO",pct:100,lat:-8.7612,lon:-63.9039},
+  {id:1570,name:"Multiplex Porto Velho 4",city:"PORTO VELHO",uf:"RO",pct:80,lat:-8.7612,lon:-63.9039},
+  {id:1576,name:"Cine Arte Boa Vista 2",city:"BOA VISTA",uf:"RR",pct:40,lat:2.8235,lon:-60.6758},
+  {id:1577,name:"Cine Cultura Boa Vista 2",city:"BOA VISTA",uf:"RR",pct:20,lat:2.8235,lon:-60.6758},
+  {id:1574,name:"Cine Show Boa Vista 4",city:"BOA VISTA",uf:"RR",pct:80,lat:2.8235,lon:-60.6758},
+  {id:1575,name:"Cineflix Boa Vista 4",city:"BOA VISTA",uf:"RR",pct:80,lat:2.8235,lon:-60.6758},
+  {id:1573,name:"UCI Kinoplex Boa Vista 6",city:"BOA VISTA",uf:"RR",pct:100,lat:2.8235,lon:-60.6758},
+  {id:1578,name:"Movie Arte Bento 3",city:"BENTO GONCALVES",uf:"RS",pct:40,lat:-29.17,lon:-51.5189},
+  {id:1579,name:"Movie Arte Bento L'America 2",city:"BENTO GONCALVES",uf:"RS",pct:20,lat:-29.17,lon:-51.5189},
+  {id:607,name:"693 Canoas Cinemark 7",city:"CANOAS",uf:"RS",pct:100,lat:-29.9175,lon:-51.1844},
+  {id:608,name:"UCI Park Shopping Canoas 7",city:"CANOAS",uf:"RS",pct:100,lat:-29.92,lon:-51.19},
+  {id:1582,name:"Cine + Arte Paragassu 1",city:"CAPAO DA CANOA",uf:"RS",pct:20,lat:-29.7437,lon:-50.0017},
+  {id:1580,name:"Cine Arte Capao da Canoa - Linemar 1",city:"CAPAO DA CANOA",uf:"RS",pct:60,lat:-29.7437,lon:-50.0017},
+  {id:1581,name:"Cine Arte Paraguassu 1",city:"CAPAO DA CANOA",uf:"RS",pct:60,lat:-29.7437,lon:-50.0017},
+  {id:609,name:"Cinepolis San Pelegrino 6",city:"CAXIAS DO SUL",uf:"RS",pct:100,lat:-29.1678,lon:-51.1794},
+  {id:610,name:"GNC Iguatemi Caxias 6",city:"CAXIAS DO SUL",uf:"RS",pct:100,lat:-29.175,lon:-51.19},
+  {id:1583,name:"Cine Globo Ijui",city:"IJUI",uf:"RS",pct:20,lat:-28.3875,lon:-53.9154},
+  {id:1584,name:"Cult Cinemas Ijui 1",city:"IJUI",uf:"RS",pct:20,lat:-28.3875,lon:-53.9154},
+  {id:1585,name:"Bella Citta 2",city:"PASSO FUNDO",uf:"RS",pct:60,lat:-28.262,lon:-52.4083},
+  {id:613,name:"Cine Laser - Passo Fundo 5",city:"PASSO FUNDO",uf:"RS",pct:100,lat:-28.262,lon:-52.4083},
+  {id:1586,name:"Cine Art 4",city:"PELOTAS",uf:"RS",pct:80,lat:-31.7654,lon:-52.3376},
+  {id:1587,name:"Cineflix Shopping Pelotas 5",city:"PELOTAS",uf:"RS",pct:80,lat:-31.7654,lon:-52.3376},
+  {id:600,name:"2135 Wallig Porto Alegre 8",city:"PORTO ALEGRE",uf:"RS",pct:100,lat:-30.0277,lon:-51.2287},
+  {id:601,name:"695 Ipiranga 5",city:"PORTO ALEGRE",uf:"RS",pct:100,lat:-30.035,lon:-51.22},
+  {id:602,name:"704 Barra Sul 8",city:"PORTO ALEGRE",uf:"RS",pct:100,lat:-30.05,lon:-51.235},
+  {id:603,name:"Cineflix Total Porto Alegre 5",city:"PORTO ALEGRE",uf:"RS",pct:100,lat:-30.028,lon:-51.23},
+  {id:1589,name:"Cinepolis Bourbon Carlos Gomes 4",city:"PORTO ALEGRE",uf:"RS",pct:40,lat:-30.0277,lon:-51.2287},
+  {id:604,name:"Cinepolis JP Porto Alegre 4",city:"PORTO ALEGRE",uf:"RS",pct:100,lat:-30.032,lon:-51.225},
+  {id:1588,name:"Cinesystem Bourbon Country 8",city:"PORTO ALEGRE",uf:"RS",pct:60,lat:-30.0277,lon:-51.2287},
+  {id:1592,name:"Cult Cinemas Victoria 1",city:"PORTO ALEGRE",uf:"RS",pct:20,lat:-30.0277,lon:-51.2287},
+  {id:1590,name:"Espaco de Cinema Bourbon Country 8",city:"PORTO ALEGRE",uf:"RS",pct:40,lat:-30.0277,lon:-51.2287},
+  {id:605,name:"GNC Iguatemi 6",city:"PORTO ALEGRE",uf:"RS",pct:100,lat:-30.027,lon:-51.219},
+  {id:1591,name:"GNC Moinhos 4",city:"PORTO ALEGRE",uf:"RS",pct:40,lat:-30.0277,lon:-51.2287},
+  {id:606,name:"GNC Praia De Belas 6",city:"PORTO ALEGRE",uf:"RS",pct:100,lat:-30.04,lon:-51.215},
+  {id:612,name:"Cineflix Rio Grande 5",city:"RIO GRANDE",uf:"RS",pct:100,lat:-32.0353,lon:-52.0986},
+  {id:1593,name:"Cinesystem Rio Grande 4",city:"RIO GRANDE",uf:"RS",pct:80,lat:-32.0353,lon:-52.0986},
+  {id:1595,name:"Cine Max 2",city:"SANTA CRUZ DO SUL",uf:"RS",pct:40,lat:-29.7178,lon:-52.4253},
+  {id:1594,name:"Cine Santa Cruz 2",city:"SANTA CRUZ DO SUL",uf:"RS",pct:60,lat:-29.7178,lon:-52.4253},
+  {id:1596,name:"Arcoplex Royal Plaza 4",city:"SANTA MARIA",uf:"RS",pct:80,lat:-29.6842,lon:-53.8069},
+  {id:611,name:"Cinepolis Santa Maria 5",city:"SANTA MARIA",uf:"RS",pct:100,lat:-29.6842,lon:-53.8069},
+  {id:1203,name:"Arcoplex Park Blumenau 5",city:"BLUMENAU",uf:"SC",pct:100,lat:-26.919,lon:-49.0661},
+  {id:1204,name:"Cinepolis Blumenau Norte Shopping 7",city:"BLUMENAU",uf:"SC",pct:100,lat:-26.925,lon:-49.07},
+  {id:1205,name:"GNC Neumarkt 5",city:"BLUMENAU",uf:"SC",pct:100,lat:-26.91,lon:-49.06},
+  {id:1597,name:"Cine Gracher Brusque 3",city:"BRUSQUE",uf:"SC",pct:60,lat:-27.0978,lon:-48.9175},
+  {id:1598,name:"Cine Gracher Havan 3",city:"BRUSQUE",uf:"SC",pct:40,lat:-27.0978,lon:-48.9175},
+  {id:1207,name:"GNC Balneario Camboriu 8",city:"CAMBORIU",uf:"SC",pct:100,lat:-26.9927,lon:-48.654},
+  {id:1599,name:"Multicine Atlantico Shopping 2",city:"CAMBORIU",uf:"SC",pct:20,lat:-26.9927,lon:-48.654},
+  {id:1600,name:"Cine + Arte Criciuma 2",city:"CRICIUMA",uf:"SC",pct:80,lat:-28.6773,lon:-49.3693},
+  {id:1208,name:"GNC Nacoes Criciuma 6",city:"CRICIUMA",uf:"SC",pct:100,lat:-28.6773,lon:-49.3693},
+  {id:1601,name:"Uniplex Criciuma 2",city:"CRICIUMA",uf:"SC",pct:40,lat:-28.6773,lon:-49.3693},
+  {id:1200,name:"703 Florianopolis 7",city:"FLORIANOPOLIS",uf:"SC",pct:100,lat:-27.5954,lon:-48.548},
+  {id:1603,name:"Cine Multi 1",city:"FLORIANOPOLIS",uf:"SC",pct:40,lat:-27.5954,lon:-48.548},
+  {id:1602,name:"Cine Show Beiramar 5",city:"FLORIANOPOLIS",uf:"SC",pct:80,lat:-27.5954,lon:-48.548},
+  {id:1201,name:"Cinesystem Iguatemi 7",city:"FLORIANOPOLIS",uf:"SC",pct:100,lat:-27.61,lon:-48.53},
+  {id:1604,name:"Paradigma Cine Arte 1",city:"FLORIANOPOLIS",uf:"SC",pct:40,lat:-27.5954,lon:-48.548},
+  {id:1206,name:"GNC Garten 6",city:"JOINVILLE",uf:"SC",pct:100,lat:-26.3044,lon:-48.8452},
+  {id:1605,name:"GNC Mueller 3",city:"JOINVILLE",uf:"SC",pct:80,lat:-26.3044,lon:-48.8452},
+  {id:1606,name:"Uniplex Joinville (mudou de rede)",city:"JOINVILLE",uf:"SC",pct:20,lat:-26.3044,lon:-48.8452},
+  {id:1202,name:"Cinepolis Continente Park 8",city:"SAO JOSE",uf:"SC",pct:100,lat:-27.5939,lon:-48.6381},
+  {id:1607,name:"Multicine Sao Jose 4",city:"SAO JOSE",uf:"SC",pct:80,lat:-27.5939,lon:-48.6381},
+  {id:1300,name:"706 Aracaju Shopping Jardins 9",city:"ARACAJU",uf:"SE",pct:100,lat:-10.9472,lon:-37.0731},
+  {id:1301,name:"755 Shopping Riomar 7",city:"ARACAJU",uf:"SE",pct:100,lat:-10.955,lon:-37.065},
+  {id:1608,name:"Alquimia Cultural 1",city:"ARACAJU",uf:"SE",pct:40,lat:-10.9472,lon:-37.0731},
+  {id:1302,name:"Centerplex Aracaju 7",city:"ARACAJU",uf:"SE",pct:100,lat:-10.94,lon:-37.08},
+  {id:1609,name:"Cine Walmir Almeida 1",city:"ARACAJU",uf:"SE",pct:20,lat:-10.9472,lon:-37.0731},
+  {id:1303,name:"Cinesercla Shopping Premio 4",city:"ARACAJU",uf:"SE",pct:100,lat:-10.96,lon:-37.07},
+  {id:1611,name:"Cineflix Cinemas Aracatuba 5",city:"ARACATUBA",uf:"SP",pct:60,lat:-21.2088,lon:-50.4344},
+  {id:1610,name:"Multiplex Praca Nova Aracatuba 3",city:"ARACATUBA",uf:"SP",pct:80,lat:-21.2088,lon:-50.4344},
+  {id:1612,name:"Center Lupo 3",city:"ARARAQUARA",uf:"SP",pct:40,lat:-21.7945,lon:-48.1753},
+  {id:236,name:"Jaragua 5",city:"ARARAQUARA",uf:"SP",pct:100,lat:-21.7945,lon:-48.1753},
+  {id:200,name:"717 Tambore 9",city:"BARUERI",uf:"SP",pct:100,lat:-23.5043,lon:-46.876},
+  {id:201,name:"Cinepolis Iguatemi Alphaville 9",city:"BARUERI",uf:"SP",pct:100,lat:-23.49,lon:-46.848},
+  {id:202,name:"Cinepolis Parque Barueri 9",city:"BARUERI",uf:"SP",pct:100,lat:-23.525,lon:-46.88},
+  {id:1614,name:"Cine Fun 4",city:"BAURU",uf:"SP",pct:60,lat:-22.3246,lon:-49.0658},
+  {id:232,name:"Cinepolis Nacoes Bauru 6",city:"BAURU",uf:"SP",pct:100,lat:-22.3246,lon:-49.0658},
+  {id:1613,name:"Multiplex Bauru 5 3d",city:"BAURU",uf:"SP",pct:80,lat:-22.3246,lon:-49.0658},
+  {id:1615,name:"Cine Show Botucatu 4",city:"BOTUCATU",uf:"SP",pct:80,lat:-22.8855,lon:-48.4451},
+  {id:1616,name:"Cineflix Botucatu 3",city:"BOTUCATU",uf:"SP",pct:60,lat:-22.8855,lon:-48.4451},
+  {id:243,name:"2128 Braganca 4",city:"BRAGANCA PAULISTA",uf:"SP",pct:100,lat:-22.9527,lon:-46.5418},
+  {id:244,name:"CineA Braganca 3",city:"BRAGANCA PAULISTA",uf:"SP",pct:100,lat:-22.96,lon:-46.535},
+  {id:209,name:"725 Iguatemi Campinas 11",city:"CAMPINAS",uf:"SP",pct:100,lat:-22.9056,lon:-47.0608},
+  {id:1618,name:"Cine Arte Campinas 3",city:"CAMPINAS",uf:"SP",pct:40,lat:-22.9056,lon:-47.0608},
+  {id:1617,name:"Cineflix Campinas Shopping 5",city:"CAMPINAS",uf:"SP",pct:80,lat:-22.9056,lon:-47.0608},
+  {id:210,name:"Cinepolis Campinas Shopping 10",city:"CAMPINAS",uf:"SP",pct:100,lat:-22.89,lon:-47.09},
+  {id:211,name:"Cinepolis Galleria Shopping 5",city:"CAMPINAS",uf:"SP",pct:100,lat:-22.92,lon:-47.04},
+  {id:1619,name:"Cine Show Catanduva 4",city:"CATANDUVA",uf:"SP",pct:80,lat:-21.1378,lon:-48.9728},
+  {id:1620,name:"Cineflix Catanduva 4",city:"CATANDUVA",uf:"SP",pct:60,lat:-21.1378,lon:-48.9728},
+  {id:206,name:"663 Shopping Granja Vianna 5",city:"COTIA",uf:"SP",pct:100,lat:-23.6034,lon:-46.9194},
+  {id:245,name:"Cine Ferry Boats Plaza 3",city:"GUARUJA",uf:"SP",pct:100,lat:-23.9933,lon:-46.2566},
+  {id:207,name:"759 Guarulhos 15",city:"GUARULHOS",uf:"SP",pct:100,lat:-23.4628,lon:-46.5333},
+  {id:208,name:"Cinepolis Parque Shopping Maia 11",city:"GUARULHOS",uf:"SP",pct:100,lat:-23.45,lon:-46.51},
+  {id:1621,name:"Cine Show Indaiatuba 5",city:"INDAIATUBA",uf:"SP",pct:80,lat:-23.0899,lon:-47.2187},
+  {id:1622,name:"Cineflix Indaiatuba 4",city:"INDAIATUBA",uf:"SP",pct:60,lat:-23.0899,lon:-47.2187},
+  {id:1623,name:"Cine Show Itatiba 3",city:"ITATIBA",uf:"SP",pct:80,lat:-23.0053,lon:-46.8383},
+  {id:1624,name:"Cineflix Itatiba 3",city:"ITATIBA",uf:"SP",pct:60,lat:-23.0053,lon:-46.8383},
+  {id:1625,name:"Cine Show Jundiai 5",city:"JUNDIAI",uf:"SP",pct:80,lat:-23.1864,lon:-46.898},
+  {id:218,name:"Cinepolis Jundiai Shopping 10",city:"JUNDIAI",uf:"SP",pct:100,lat:-23.1864,lon:-46.898},
+  {id:219,name:"Maxi 7",city:"JUNDIAI",uf:"SP",pct:100,lat:-23.195,lon:-46.89},
+  {id:1626,name:"Cine Show Lencois 3",city:"LENCOIS PAULISTA",uf:"SP",pct:80,lat:-22.5986,lon:-48.7995},
+  {id:1627,name:"Cineflix Lencois 3",city:"LENCOIS PAULISTA",uf:"SP",pct:60,lat:-22.5986,lon:-48.7995},
+  {id:235,name:"Centerplex Limeira 5",city:"LIMEIRA",uf:"SP",pct:100,lat:-22.5649,lon:-47.4019},
+  {id:1628,name:"Cine Show Limeira 4",city:"LIMEIRA",uf:"SP",pct:80,lat:-22.5649,lon:-47.4019},
+  {id:233,name:"2120 Mogi 7",city:"MOGI DAS CRUZES",uf:"SP",pct:100,lat:-23.5225,lon:-46.188},
+  {id:234,name:"2139 Mogi Urupema 4",city:"MOGI DAS CRUZES",uf:"SP",pct:100,lat:-23.53,lon:-46.18},
+  {id:246,name:"2140 Mogi Guacu 4",city:"MOGI GUACU",uf:"SP",pct:100,lat:-22.3723,lon:-46.9427},
+  {id:247,name:"Cineflix Cinemas 5",city:"MOGI GUACU",uf:"SP",pct:100,lat:-22.38,lon:-46.935},
+  {id:203,name:"757 Cinemark Uniao Osasco 10",city:"OSASCO",uf:"SP",pct:100,lat:-23.5325,lon:-46.7919},
+  {id:204,name:"Cinesercla Osasco Plaza 4",city:"OSASCO",uf:"SP",pct:100,lat:-23.538,lon:-46.785},
+  {id:205,name:"Kinoplex Osasco 7",city:"OSASCO",uf:"SP",pct:100,lat:-23.53,lon:-46.798},
+  {id:238,name:"Circuito Cinemas PPR 4",city:"PRESIDENTE PRUDENTE",uf:"SP",pct:100,lat:-22.1256,lon:-51.3886},
+  {id:220,name:"726 Novo Shopping 9",city:"RIBEIRAO PRETO",uf:"SP",pct:100,lat:-21.1699,lon:-47.8099},
+  {id:221,name:"Cinepolis Iguatemi Ribeirao Preto 6",city:"RIBEIRAO PRETO",uf:"SP",pct:100,lat:-21.18,lon:-47.82},
+  {id:222,name:"Cinepolis Santa Ursula 8",city:"RIBEIRAO PRETO",uf:"SP",pct:100,lat:-21.16,lon:-47.8},
+  {id:1629,name:"Multiplex Ribeirao Preto 5",city:"RIBEIRAO PRETO",uf:"SP",pct:80,lat:-21.1699,lon:-47.8099},
+  {id:223,name:"Uci Ribeirao Shopping 11",city:"RIBEIRAO PRETO",uf:"SP",pct:100,lat:-21.175,lon:-47.815},
+  {id:1630,name:"Cine Show Santa Barbara 4",city:"SANTA BARBARA DO OESTE",uf:"SP",pct:80,lat:-22.7539,lon:-47.414},
+  {id:1631,name:"Cineflix Santa Barbara 3",city:"SANTA BARBARA DO OESTE",uf:"SP",pct:60,lat:-22.7539,lon:-47.414},
+  {id:212,name:"2115 Atrium 7",city:"SANTO ANDRE",uf:"SP",pct:100,lat:-23.6639,lon:-46.5338},
+  {id:213,name:"713 Grand Plaza 10",city:"SANTO ANDRE",uf:"SP",pct:100,lat:-23.67,lon:-46.52},
+  {id:237,name:"709 Praiamar 10",city:"SANTOS",uf:"SP",pct:100,lat:-23.9618,lon:-46.3322},
+  {id:214,name:"2109 Golden Square Sao Bernardo 5",city:"SAO BERNARDO DO CAMPO",uf:"SP",pct:100,lat:-23.6939,lon:-46.565},
+  {id:215,name:"724 Extra Anchieta 9",city:"SAO BERNARDO DO CAMPO",uf:"SP",pct:100,lat:-23.7,lon:-46.555},
+  {id:216,name:"Cinepolis Sao Bernardo 8",city:"SAO BERNARDO DO CAMPO",uf:"SP",pct:100,lat:-23.685,lon:-46.575},
+  {id:217,name:"UCI Metropole 9",city:"SAO BERNARDO DO CAMPO",uf:"SP",pct:100,lat:-23.705,lon:-46.545},
+  {id:242,name:"Center Iguatemi 3",city:"SAO CARLOS",uf:"SP",pct:100,lat:-22.0154,lon:-47.8914},
+  {id:239,name:"Cinepolis Iguatemi Rio Preto 7",city:"SAO JOSE DO RIO PRETO",uf:"SP",pct:100,lat:-20.8197,lon:-49.3794},
+  {id:240,name:"Cinepolis Plaza Avenida 7",city:"SAO JOSE DO RIO PRETO",uf:"SP",pct:100,lat:-20.83,lon:-49.37},
+  {id:241,name:"Rio Preto 5 vip2",city:"SAO JOSE DO RIO PRETO",uf:"SP",pct:100,lat:-20.81,lon:-49.39},
+  {id:224,name:"696 Center Vale 6",city:"SAO JOSE DOS CAMPOS",uf:"SP",pct:100,lat:-23.1794,lon:-45.8869},
+  {id:225,name:"712 Colinas 8",city:"SAO JOSE DOS CAMPOS",uf:"SP",pct:100,lat:-23.19,lon:-45.875},
+  {id:226,name:"Cinepolis Jardim Oriente 7",city:"SAO JOSE DOS CAMPOS",uf:"SP",pct:100,lat:-23.17,lon:-45.9},
+  {id:227,name:"Kinoplex Vale Sul 6",city:"SAO JOSE DOS CAMPOS",uf:"SP",pct:100,lat:-23.2,lon:-45.86},
+  {id:100,name:"2102 West Plaza 7",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5207,lon:-46.7283},
+  {id:101,name:"2103 Mooca Plaza Shopping 6",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5606,lon:-46.5993},
+  {id:102,name:"2110 Tiete Plaza Shopping 7",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5147,lon:-46.6269},
+  {id:132,name:"2114 Lar Center 3",city:"SAO PAULO",uf:"SP",pct:80,lat:-23.518,lon:-46.67},
+  {id:103,name:"2119 Cidade de Sao Paulo 6",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.554,lon:-46.5983},
+  {id:133,name:"2132 Iguatemi 6",city:"SAO PAULO",uf:"SP",pct:80,lat:-23.578,lon:-46.68},
+  {id:104,name:"662 Raposo Tavares 7",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5695,lon:-46.7608},
+  {id:134,name:"682 Cidade Jardim 7",city:"SAO PAULO",uf:"SP",pct:80,lat:-23.58,lon:-46.695},
+  {id:105,name:"684 Metro Santa Cruz 9",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5991,lon:-46.6347},
+  {id:106,name:"687 Shopping D 10",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5282,lon:-46.6294},
+  {id:107,name:"688 Market Place 8",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.6133,lon:-46.6986},
+  {id:108,name:"690 Boulevard Tatuape 5",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5454,lon:-46.5747},
+  {id:109,name:"699 Center Norte 5",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5018,lon:-46.6226},
+  {id:110,name:"705 Central Plaza 10",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5451,lon:-46.627},
+  {id:111,name:"710 Sp Market 11",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5273,lon:-46.6102},
+  {id:112,name:"711 Metro Tatuape 8",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5384,lon:-46.5655},
+  {id:113,name:"714 Interlagos Shop 10",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.6878,lon:-46.6936},
+  {id:114,name:"715 Eldorado 9",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5651,lon:-46.6982},
+  {id:115,name:"716 Aricanduva 13",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5368,lon:-46.5175},
+  {id:135,name:"721 Patio Higienopolis 6",city:"SAO PAULO",uf:"SP",pct:80,lat:-23.541,lon:-46.651},
+  {id:116,name:"723 Patio Paulista 7",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5711,lon:-46.6479},
+  {id:117,name:"727 Villa Lobos 7",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5494,lon:-46.7228},
+  {id:118,name:"758 Tucuruvi 6",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.4699,lon:-46.6255},
+  {id:1632,name:"Boa Vista 5",city:"SAO PAULO",uf:"SP",pct:80,lat:-23.5505,lon:-46.6333},
+  {id:119,name:"Cine Center Penha 6",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5299,lon:-46.5387},
+  {id:1634,name:"Cine LT3 1",city:"SAO PAULO",uf:"SP",pct:40,lat:-23.5505,lon:-46.6333},
+  {id:140,name:"Cine Lapa 3",city:"SAO PAULO",uf:"SP",pct:60,lat:-23.53,lon:-46.705},
+  {id:1635,name:"Cine Marquise Paulista 3",city:"SAO PAULO",uf:"SP",pct:40,lat:-23.5505,lon:-46.6333},
+  {id:1636,name:"Cine Satyros Bijou 1",city:"SAO PAULO",uf:"SP",pct:40,lat:-23.5505,lon:-46.6333},
+  {id:1646,name:"Cine Vista JK",city:"SAO PAULO",uf:"SP",pct:20,lat:-23.5505,lon:-46.6333},
+  {id:120,name:"CineA Continental 5",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5317,lon:-46.6865},
+  {id:1637,name:"CineSala 1",city:"SAO PAULO",uf:"SP",pct:40,lat:-23.5505,lon:-46.6333},
+  {id:1633,name:"Cineflix Cantareira 5",city:"SAO PAULO",uf:"SP",pct:80,lat:-23.5505,lon:-46.6333},
+  {id:1638,name:"Cinema Belas Artes 6",city:"SAO PAULO",uf:"SP",pct:40,lat:-23.5505,lon:-46.6333},
+  {id:121,name:"Cinepolis JK Iguatemi 8",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5756,lon:-46.6828},
+  {id:122,name:"Cinepolis Jardim Pamplona 5",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5647,lon:-46.6507},
+  {id:123,name:"Cinepolis Metro Itaquera 8",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5362,lon:-46.4606},
+  {id:124,name:"Cinepolis Shopping Largo 13 8",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.637,lon:-46.7478},
+  {id:1647,name:"Cinesesc 3",city:"SAO PAULO",uf:"SP",pct:20,lat:-23.5505,lon:-46.6333},
+  {id:136,name:"Cinesystem Frei Caneca 9",city:"SAO PAULO",uf:"SP",pct:80,lat:-23.557,lon:-46.654},
+  {id:125,name:"Cinesystem Morumbi 9",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.6235,lon:-46.7182},
+  {id:137,name:"Cinesystem Pompeia 11",city:"SAO PAULO",uf:"SP",pct:80,lat:-23.5234,lon:-46.6623},
+  {id:1639,name:"Club Athletico Paulistano",city:"SAO PAULO",uf:"SP",pct:40,lat:-23.5505,lon:-46.6333},
+  {id:1640,name:"Espaco Itau de Cinema Frei Caneca 9",city:"SAO PAULO",uf:"SP",pct:40,lat:-23.5505,lon:-46.6333},
+  {id:1648,name:"Espaco Itau de Cinema Pompeia 11",city:"SAO PAULO",uf:"SP",pct:20,lat:-23.5505,lon:-46.6333},
+  {id:1641,name:"Espaco Petrobras de Cinema Augusta 5",city:"SAO PAULO",uf:"SP",pct:40,lat:-23.5505,lon:-46.6333},
+  {id:126,name:"Itaim Paulista 3",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.4992,lon:-46.4143},
+  {id:141,name:"Kinoplex Itaim 6",city:"SAO PAULO",uf:"SP",pct:60,lat:-23.585,lon:-46.672},
+  {id:127,name:"Kinoplex Parque da Cidade 5",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.6115,lon:-46.6944},
+  {id:138,name:"Kinoplex Vila Olimpia 7",city:"SAO PAULO",uf:"SP",pct:80,lat:-23.596,lon:-46.685},
+  {id:139,name:"Multiplex Campo Limpo 6",city:"SAO PAULO",uf:"SP",pct:80,lat:-23.645,lon:-46.74},
+  {id:142,name:"Nucleo Cinemas Jardim Iguatemi 3",city:"SAO PAULO",uf:"SP",pct:60,lat:-23.565,lon:-46.51},
+  {id:1642,name:"Playarte Ibirapuera 6",city:"SAO PAULO",uf:"SP",pct:40,lat:-23.5505,lon:-46.6333},
+  {id:1643,name:"Playarte Maraba 5 3D",city:"SAO PAULO",uf:"SP",pct:40,lat:-23.5505,lon:-46.6333},
+  {id:1644,name:"Reserva Cultural de Cinema Sao Paulo 5",city:"SAO PAULO",uf:"SP",pct:40,lat:-23.5505,lon:-46.6333},
+  {id:1649,name:"Spcine Cidade Tiradentes 1",city:"SAO PAULO",uf:"SP",pct:20,lat:-23.5505,lon:-46.6333},
+  {id:1645,name:"Spcine Cine Olido 1",city:"SAO PAULO",uf:"SP",pct:40,lat:-23.5505,lon:-46.6333},
+  {id:1650,name:"Spcine Paulo Emilio Salles Gomes 1",city:"SAO PAULO",uf:"SP",pct:20,lat:-23.5505,lon:-46.6333},
+  {id:1651,name:"Spcine Roberto Santos 1",city:"SAO PAULO",uf:"SP",pct:20,lat:-23.5505,lon:-46.6333},
+  {id:128,name:"UCI Analia Franco 9",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.5456,lon:-46.5423},
+  {id:129,name:"UCI Plaza Sul 6",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.6388,lon:-46.6531},
+  {id:130,name:"UCI Santana 8",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.4992,lon:-46.6274},
+  {id:131,name:"Uci Jardim Sul 11 3d",city:"SAO PAULO",uf:"SP",pct:100,lat:-23.642,lon:-46.7138},
+  {id:1652,name:"Cine Show Sao Roque 3",city:"SAO ROQUE",uf:"SP",pct:80,lat:-23.5284,lon:-47.1367},
+  {id:1653,name:"Cineflix Sao Roque 3",city:"SAO ROQUE",uf:"SP",pct:60,lat:-23.5284,lon:-47.1367},
+  {id:1654,name:"Cine Show Sorocaba 5",city:"SOROCABA",uf:"SP",pct:80,lat:-23.5015,lon:-47.458},
+  {id:228,name:"Cinepolis Iguatemi Esplanada 10",city:"SOROCABA",uf:"SP",pct:100,lat:-23.5015,lon:-47.458},
+  {id:229,name:"Multiplex Sorocaba Ciane 6",city:"SOROCABA",uf:"SP",pct:100,lat:-23.51,lon:-47.44},
+  {id:1655,name:"Cine Show Sumare 4",city:"SUMARE",uf:"SP",pct:80,lat:-22.8219,lon:-47.2669},
+  {id:1656,name:"Cineflix Sumare 3",city:"SUMARE",uf:"SP",pct:60,lat:-22.8219,lon:-47.2669},
+  {id:230,name:"2105 Via Vale 6",city:"TAUBATE",uf:"SP",pct:100,lat:-23.0265,lon:-45.5558},
+  {id:231,name:"Taubate 5",city:"TAUBATE",uf:"SP",pct:100,lat:-23.035,lon:-45.545},
+  {id:1658,name:"Cinex Araguaina 4",city:"ARAGUAINA",uf:"TO",pct:40,lat:-7.1927,lon:-48.2043},
+  {id:1657,name:"Mobi Cine Araguaina 4",city:"ARAGUAINA",uf:"TO",pct:100,lat:-7.1927,lon:-48.2043},
+  {id:1659,name:"Cine Show Gurupi 4",city:"GURUPI",uf:"TO",pct:80,lat:-11.7281,lon:-49.0672},
+  {id:1660,name:"Cineflix Gurupi 3",city:"GURUPI",uf:"TO",pct:60,lat:-11.7281,lon:-49.0672},
+  {id:1661,name:"Cine Show Palmas 5",city:"PALMAS",uf:"TO",pct:100,lat:-10.2491,lon:-48.3243},
+  {id:1662,name:"Multiplex Palmas 4",city:"PALMAS",uf:"TO",pct:80,lat:-10.2491,lon:-48.3243}
+];
+
+
+// ─── STATE ─────────────────────────────────────
+let LOGGI_CFG  = JSON.parse(localStorage.getItem('etcf_lcfg') || '{}');
+let EMPRESA    = JSON.parse(localStorage.getItem('etcf_emp')  || '{"nome":"ETC Filmes","addr":"Av. Escola Politécnica, 1700, Jaguaré, São Paulo, SP, 05319-000","cep":"05319-000","contato":"ETC Filmes — Expedição"}');
+let SCHEDULES  = JSON.parse(localStorage.getItem('etcf_sch')  || '[]');
+let ENVIOS     = [];   // rows from imported XLS
+let selOrigin  = null;
+let curRoute   = [];
+let routeSt    = {};
+let routeTr    = {};
+let loggiOrds  = [];
+let loggiSt    = {};
+let currentView = 'envios';
+
+// ─── NAV ───────────────────────────────────────
+function goTo(v) {
+  currentView = v;
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b => { b.classList.remove('on'); b.classList.add('off'); });
+  document.getElementById('view-' + v).classList.add('on');
+  const nb = document.getElementById('nb-' + (v==='cfg'?'loggi-cfg':v));
+  if(nb) { nb.classList.add('on'); nb.classList.remove('off'); }
+  if(v === 'prog') renderImportSelect();
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('on'); }
+function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type||'info');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+// ─── XLS IMPORT ───────────────────────────────
+function importXLS(input) {
+  const file = (input.files && input.files[0]) || null;
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+      if(!rows.length) { toast('Planilha vazia.','err'); return; }
+
+      ENVIOS = rows
+        .filter(r => r['Cinema'] || r['Código'])
+        .map(r => ({
+          codigo:   String(r['Código']            || '').trim(),
+          cliente:  String(r['Cliente']           || '').trim(),
+          titulo:   String(r['Título']            || r['Titulo'] || '').trim(),
+          tituloPN: String(r['Título Português']  || r['Titulo Portugues'] || '').trim(),
+          exibidor: String(r['Exibidor']          || '').trim(),
+          cinema:   String(r['Cinema']            || '').trim(),
+          uf:       String(r['UF']                || '').trim(),
+          cidade:   String(r['Cidade']            || '').trim(),
+          material: String(r['Material']          || '').trim(),
+          transp:   String(r['Logistica: Transp'] || '').trim(),
+          saida:    String(r['Logistica: Saida']  || r['Primeira Saida'] || '').trim(),
+          endereco: String(r['Cinema Endereco']   || '').trim(),
+          servico:  String(r['Código Serviço']    || r['Codigo Servico'] || '').trim(),
+          status:   String(r['Status']            || '').trim(),
+          cnpj:     String(r['Cinema CNPJ']       || '').trim(),
+        }));
+
+      const dz = document.getElementById('dropzone');
+      dz.className = 'dropzone loaded';
+      dz.innerHTML = `<div class="dz-icon" style="opacity:1">✓</div><div class="dz-title">${ENVIOS.length} saídas importadas</div><div class="dz-sub">${file.name} · clique em "Importar XLS" para trocar</div>`;
+      dz.onclick = null;
+      document.getElementById('envios-sub').textContent = ENVIOS.length + ' primeiro envios · ' + [...new Set(ENVIOS.map(e=>e.titulo))].length + ' filmes';
+      document.getElementById('envios-search').style.display = 'block';
+      document.getElementById('btn-export-csv').style.display = 'inline-block';
+      renderEnvios();
+      toast(ENVIOS.length + ' envios importados!', 'ok');
+    } catch(err) {
+      toast('Erro: ' + err.message, 'err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  try { input.value = ''; } catch(e) {}
+}
+
+// Drag & drop — prevent browser from opening the file
+const dz = document.getElementById('dropzone');
+['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => {
+  e.preventDefault(); e.stopPropagation(); dz.classList.add('drag');
+}));
+['dragleave','dragend'].forEach(ev => dz.addEventListener(ev, e => {
+  e.preventDefault(); dz.classList.remove('drag');
+}));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); e.stopPropagation(); dz.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if(!f) return;
+  // Create a fake input to pass to importXLS
+  const inp = document.getElementById('xls-file');
+  // Use DataTransfer to set files on real input (works in modern browsers)
+  try { inp.files = e.dataTransfer.files; } catch(ex) {}
+  importXLS({ files: e.dataTransfer.files });
+});
+// Also block drag on the whole document so files don't open if dropped outside
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop',     e => e.preventDefault());
+
+// ─── RENDER ENVIOS TABLE ───────────────────────
+function renderEnvios() {
+  const q = (document.getElementById('envios-search').value || '').toLowerCase();
+  const list = ENVIOS.filter(r =>
+    !q || r.titulo.toLowerCase().includes(q) || r.tituloPN.toLowerCase().includes(q) ||
+    r.cinema.toLowerCase().includes(q) || r.material.includes(q) ||
+    r.exibidor.toLowerCase().includes(q) || r.cliente.toLowerCase().includes(q)
+  );
+
+  if(!list.length) {
+    document.getElementById('envios-table').innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3);font-size:13px">Nenhum resultado.</div>';
+    return;
+  }
+
+  const transpColor = t => {
+    if(!t) return 'gy';
+    if(t.toLowerCase().includes('loggi'))   return 'or';
+    if(t.toLowerCase().includes('stm'))     return 'ac';
+    if(t.toLowerCase().includes('bem'))     return 'am';
+    if(t.toLowerCase().includes('acordo'))  return 'gn';
+    return 'gy';
+  };
+
+  const statusColor = s => {
+    if(!s) return 'gy';
+    if(s.toLowerCase().includes('andamento')) return 'am';
+    if(s.toLowerCase().includes('entregue'))  return 'gn';
+    if(s.toLowerCase().includes('pendente'))  return 'rd';
+    return 'gy';
+  };
+
+  const fmtDate = d => {
+    if(!d) return '—';
+    const s = d.toString().split(' ')[0].split('T')[0];
+    if(s.length < 8) return d;
+    const p = s.split('-');
+    return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : d;
+  };
+
+  document.getElementById('envios-table').innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-head grid-envios">
+        <div>HD</div><div>Filme</div><div>Cinema</div><div>Endereço</div>
+        <div>Status</div><div>Saída</div><div></div>
+      </div>
+      ${list.map((r, i) => {
+        const idx = ENVIOS.indexOf(r);
+        return `<div class="tbl-row grid-envios" onclick="abrirProg(${idx})">
+          <div><span class="badge dk mono" style="font-size:11px">#${r.material||'—'}</span></div>
+          <div>
+            <div class="cell-main">${r.tituloPN || r.titulo || '—'}</div>
+            <div class="cell-sub">${r.cliente}</div>
+          </div>
+          <div>
+            <div class="cell-main">${r.cinema}</div>
+            <div class="cell-sub">${r.cidade||''}${r.uf?' · '+r.uf:''}</div>
+          </div>
+          <div style="font-size:11px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.endereco||''}">${r.endereco ? r.endereco.substring(0,28)+(r.endereco.length>28?'…':'') : '—'}<br><span style="color:var(--t3);font-size:10px">${r.transp||'—'} · ${r.exibidor||'—'}</span></div>
+          <div><span class="badge ${statusColor(r.status)}">${r.status||'—'}</span></div>
+          <div style="font-size:12px;color:var(--t2)">${fmtDate(r.saida)}</div>
+          <div>
+            <button class="btn sm" onclick="event.stopPropagation();abrirProg(${idx})" title="Programar remanejamento">→</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function exportEnviosCSV() {
+  if(!ENVIOS.length) return;
+  let csv = 'Código,Cliente,Título,Título PT,Cinema,UF,Cidade,Material,Exibidor,Transportadora,Data Saída,Status,Endereço,CNPJ,Cód.Serviço
+';
+  ENVIOS.forEach(r => {
+    const fmtDate = d => { if(!d) return ''; const s=d.toString().split(' ')[0]; return s; };
+    csv += `"${r.codigo}","${r.cliente}","${r.titulo}","${r.tituloPN}","${r.cinema}","${r.uf}","${r.cidade}","${r.material}","${r.exibidor}","${r.transp}","${fmtDate(r.saida)}","${r.status}","${r.endereco}","${r.cnpj}","${r.servico}"
+`;
+  });
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'primeiros_envios_' + new Date().toISOString().split('T')[0] + '.csv'; a.click();
+  toast('CSV exportado!','ok');
+}
+
+// ─── OPEN PROG FROM ENVIO ─────────────────────
+function abrirProg(idx) {
+  const r = ENVIOS[idx];
+  if(!r) return;
+  goTo('prog');
+
+  // Pre-fill form
+  document.getElementById('f-cliente').value  = r.cliente;
+  document.getElementById('f-titulo').value   = r.tituloPN ? r.titulo + ' — ' + r.tituloPN : r.titulo;
+  document.getElementById('f-material').value = r.material;
+  document.getElementById('f-servico').value  = r.servico;
+  document.getElementById('f-exibidor').value = r.exibidor;
+  if(r.transp) document.getElementById('f-transp-saida').value = r.transp;
+  if(r.saida) {
+    const d = r.saida.toString().split(' ')[0].split('T')[0];
+    if(d.length >= 8) document.getElementById('f-saida').value = d;
+  }
+
+  // Match cinema in DB
+  const found = (DB||[]).find(c =>
+    c.name === r.cinema ||
+    c.name.toLowerCase() === r.cinema.toLowerCase() ||
+    (r.cinema.length > 8 && c.name.toLowerCase().includes(r.cinema.toLowerCase().substring(0,10)))
+  );
+
+  if(found) {
+    selOrigin = found;
+  } else {
+    // Cinema not in DB — create temp entry with imported address
+    selOrigin = { id: -1, name: r.cinema, city: r.cidade, uf: r.uf, pct: 100,
+                  lat: null, lon: null, _addr: r.endereco, _cnpj: r.cnpj };
+  }
+
+  document.getElementById('f-origem').value   = selOrigin.name;
+  document.getElementById('origin-nome').textContent = selOrigin.name;
+  document.getElementById('origin-meta').textContent = (selOrigin.city||r.cidade) + (selOrigin.uf||r.uf ? ' · '+(selOrigin.uf||r.uf) : '') + (selOrigin.pct ? ' · '+selOrigin.pct+'%' : '');
+  document.getElementById('origin-ok').style.display = 'block';
+
+  // Clear previous results
+  document.getElementById('prog-right').innerHTML = `
+    <div class="info-box ok"><span>✓</span><div>
+      <strong>${r.cinema}</strong> selecionado como origem.<br>
+      <span style="opacity:.8">Ajuste os filtros e clique em ⚡ Gerar rota otimizada.</span>
+    </div></div>`;
+}
+
+// ─── IMPORT SELECT LIST (prog sidebar) ────────
+function renderImportSelect() {
+  const el = document.getElementById('import-sel-list');
+  if(!ENVIOS.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--t3)">Nenhuma planilha importada. Vá em "Primeiros Envios" e importe o XLS.</div>';
+    return;
+  }
+  el.innerHTML = ENVIOS.slice(0, 15).map((r, i) => `
+    <div onclick="abrirProg(${i})" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bdr);cursor:pointer;transition:opacity .12s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">
+      <span class="badge dk mono" style="font-size:10px;flex-shrink:0">#${r.material||'?'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.tituloPN||r.titulo||'—'}</div>
+        <div style="font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.cinema} · ${r.exibidor}</div>
+      </div>
+    </div>`).join('') + (ENVIOS.length > 15 ? `<div style="font-size:11px;color:var(--t3);text-align:center;padding:6px">+${ENVIOS.length-15} mais em Primeiros Envios</div>` : '');
+}
+
+// ─── SUGGEST ORIGIN ───────────────────────────
+function suggestOrigin(q) {
+  const box = document.getElementById('sug-origin');
+  if(q.length < 2) { box.style.display='none'; return; }
+  const hits = (DB||[]).filter(c =>
+    c.name.toLowerCase().includes(q.toLowerCase()) ||
+    c.city.toLowerCase().includes(q.toLowerCase())
+  ).slice(0, 8);
+  if(!hits.length) { box.style.display='none'; return; }
+  box.innerHTML = hits.map(c => `
+    <div class="sug-item" onclick="pickOrigin(${c.id})">
+      <div class="sug-name">${c.name}</div>
+      <div class="sug-meta">${c.city} · ${c.uf} · ${c.pct}%</div>
+    </div>`).join('');
+  box.style.display = 'block';
+}
+
+function pickOrigin(id) {
+  selOrigin = (DB||[]).find(c => c.id === id);
+  if(!selOrigin) return;
+  document.getElementById('f-origem').value = selOrigin.name;
+  document.getElementById('sug-origin').style.display = 'none';
+  document.getElementById('origin-nome').textContent = selOrigin.name;
+  document.getElementById('origin-meta').textContent = selOrigin.city + ' · ' + selOrigin.uf + ' · ' + selOrigin.pct + '%';
+  document.getElementById('origin-ok').style.display = 'block';
+}
+
+document.addEventListener('click', e => {
+  if(!e.target.closest('#f-origem') && !e.target.closest('#sug-origin'))
+    document.getElementById('sug-origin').style.display = 'none';
+});
+
+// ─── ROUTE GENERATION ─────────────────────────
+function haversine(la1,lo1,la2,lo2) {
+  const R=6371,dr=(la2-la1)*Math.PI/180,dc=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dr/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dc/2)**2;
+  return R*2*Math.asin(Math.sqrt(a));
+}
+
+function autoTransp(uf) {
+  if(['SP'].includes(uf)) return 'Loggi';
+  if(['RJ','MG','PR','RS','SC'].includes(uf)) return 'BEM TRANSPORTES';
+  return 'STM Serviços';
+}
+
+function gerarRota() {
+  if(!selOrigin) { toast('Selecione o cinema de origem primeiro.','err'); return; }
+  const pct = parseInt(document.getElementById('f-pct').value);
+
+  let candidates = (DB||[]).filter(c =>
+    c.id !== (selOrigin.id||-1) &&
+    c.uf   === (selOrigin.uf||'') &&
+    c.city === (selOrigin.city||'') &&
+    c.pct  >= pct &&
+    c.lat && c.lon
+  );
+
+  // Nearest neighbor sort
+  if(selOrigin.lat && selOrigin.lon) {
+    let rem = [...candidates], route = [], cur = {lat:selOrigin.lat, lon:selOrigin.lon};
+    while(rem.length) {
+      let bestD=Infinity, bestI=-1;
+      rem.forEach((c,i)=>{ const d=haversine(cur.lat,cur.lon,c.lat,c.lon); if(d<bestD){bestD=d;bestI=i;} });
+      route.push({...rem[bestI], legDist:bestD});
+      cur = rem[bestI]; rem.splice(bestI,1);
+    }
+    curRoute = route;
+  } else {
+    curRoute = candidates.sort((a,b)=>b.pct-a.pct).map(c=>({...c,legDist:0}));
+    toast('Origem sem coordenadas — ordenando por percentual.','wrn');
+  }
+
+  routeSt = {};
+  routeTr = {};
+  renderRoute();
+}
+
+// ─── RENDER ROUTE ─────────────────────────────
+function renderRoute() {
+  if(!selOrigin) return;
+  const titre   = document.getElementById('f-titulo').value || '—';
+  const mat     = document.getElementById('f-material').value || '—';
+  const tr      = document.getElementById('f-transp-rem').value || autoTransp(selOrigin.uf||'');
+  const trSaida = document.getElementById('f-transp-saida').value;
+  const totalDist = curRoute.reduce((s,c)=>s+(c.legDist||0),0);
+
+  let html = `
+    <div style="background:#1a1a18;border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+      <div style="width:32px;height:44px;background:rgba(255,255,255,.1);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🎬</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${titre}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px">HD #${mat} · ${selOrigin.city||''}/${selOrigin.uf||''} · ${curRoute.length} remanejamentos · ${Math.round(totalDist)}km</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn" onclick="openModal('modal-confirm')">✓ Salvar</button>
+        <button class="btn-orange" onclick="abrirLoggi()">📦 Loggi</button>
+      </div>
+    </div>`;
+
+  if(!curRoute.length) {
+    html += `<div class="info-box wrn"><span>⚠</span><div>Nenhum cinema encontrado em ${selOrigin.city}/${selOrigin.uf} com ${document.getElementById('f-pct').value}%+. Tente reduzir o filtro.</div></div>`;
+  }
+
+  html += '<div class="route-wrap">';
+
+  // Origin
+  html += `<div class="step origin-step">
+    <div class="step-num sn-orig">✦</div>
+    <div class="step-info">
+      <div class="step-name">${selOrigin.name} <span class="badge dk" style="font-size:10px;margin-left:4px">ORIGEM</span></div>
+      <div class="step-meta">1º destino do HD · ${trSaida||'—'}</div>
+    </div>
+    <select class="st-sel st-pd" onchange="updSt(-1,this)"><option value="pendente">pendente</option><option value="em rota">em rota</option><option value="ok">✓ OK</option><option value="erro">⚠ erro</option></select>
+  </div>`;
+
+  curRoute.forEach((c, i) => {
+    const st  = routeSt[i] || 'pendente';
+    const trr = routeTr[i] || tr;
+    const cls = c.pct===100?'sn-100':c.pct>=80?'sn-80':'sn-lo';
+    const isBest = i===0 && c.pct===100;
+
+    html += `
+      <div class="step-arrow">
+        <div class="step-arrow-line"></div>
+        <span class="step-arrow-txt">remanejar${(c.legDist||0)>0?' · '+(c.legDist).toFixed(1)+'km':''}</span>
+        <div class="step-arrow-line"></div>
+      </div>
+      <div class="step${isBest?' best-step':''}">
+        <div class="step-num ${cls}">${i+1}</div>
+        <div class="step-info">
+          <div class="step-name">${c.name}${i===0?' <span class="badge gn" style="font-size:10px;margin-left:4px">mais próximo</span>':''}</div>
+          <div class="step-meta">${c.city} · ${c.uf} · ${c.pct}%</div>
+        </div>
+        <select class="tr-sel" onchange="updTr(${i},this)" style="font-size:11px;max-width:120px;margin-right:6px">
+          <option${trr==='Loggi'?' selected':''}>Loggi</option>
+          <option${trr==='STM Serviços'?' selected':''}>STM Serviços</option>
+          <option${trr==='BEM TRANSPORTES'?' selected':''}>BEM TRANSPORTES</option>
+          <option${trr==='Acordo ETC Filmes'?' selected':''}>Acordo ETC Filmes</option>
+          <option${trr==='Logcine Transportes'?' selected':''}>Logcine Transportes</option>
+        </select>
+        <select class="st-sel ${st==='ok'?'st-ok':st==='em rota'?'st-rt':st==='erro'?'st-er':'st-pd'}" onchange="updSt(${i},this)">
+          <option value="pendente"${st==='pendente'?' selected':''}>pendente</option>
+          <option value="em rota"${st==='em rota'?' selected':''}>em rota</option>
+          <option value="ok"${st==='ok'?' selected':''}>✓ OK</option>
+          <option value="erro"${st==='erro'?' selected':''}>⚠ erro</option>
+        </select>
+      </div>`;
+  });
+
+  html += '</div>';
+  document.getElementById('prog-right').innerHTML = html;
+  // Fill confirm modal
+  buildConfirmModal();
+}
+
+function updSt(i, sel) {
+  const v=sel.value;
+  sel.className='st-sel '+(v==='ok'?'st-ok':v==='em rota'?'st-rt':v==='erro'?'st-er':'st-pd');
+  if(i>=0) routeSt[i]=v;
+}
+function updTr(i,sel) { routeTr[i]=sel.value; }
+
+// ─── CONFIRM + SAVE ───────────────────────────
+function buildConfirmModal() {
+  if(!selOrigin) return;
+  const t=document.getElementById('f-titulo').value||'—';
+  const m=document.getElementById('f-material').value||'—';
+  const c=document.getElementById('f-cliente').value||'—';
+  const s=document.getElementById('f-saida').value;
+  const tr=document.getElementById('f-transp-rem').value||autoTransp(selOrigin.uf||'');
+
+  document.getElementById('mc-sub').textContent = curRoute.length + ' remanejamentos · ' + (selOrigin.city||'') + '/' + (selOrigin.uf||'');
+
+  let html = `<div style="background:var(--bg3);border-radius:6px;padding:12px 14px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px">
+    <div><div style="color:var(--t3);font-size:10px">Filme</div><div style="font-weight:500">${t}</div></div>
+    <div><div style="color:var(--t3);font-size:10px">Cliente</div><div style="font-weight:500">${c}</div></div>
+    <div><div style="color:var(--t3);font-size:10px">Material (HD)</div><div style="font-weight:500;font-family:monospace">#${m}</div></div>
+    <div><div style="color:var(--t3);font-size:10px">Data saída</div><div style="font-weight:500">${s||'—'}</div></div>
+  </div>
+  <div style="border:1px solid var(--bdr);border-radius:6px;overflow:hidden;font-size:12px">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#eef1ff;border-bottom:1px solid var(--bdr)">
+      <span class="badge dk" style="font-size:10px">✦ ORIGEM</span>
+      <strong>${selOrigin.name}</strong>
+      <span style="margin-left:auto;color:var(--t3)">${selOrigin.city||''}/${selOrigin.uf||''}</span>
+    </div>
+    ${curRoute.map((cc,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--bdr)">
+      <span class="badge ${cc.pct===100?'gn':cc.pct>=80?'am':'gy'}" style="font-size:10px">${i+1}</span>
+      <strong style="flex:1">${cc.name}</strong>
+      <span style="color:var(--t3);font-size:11px">${routeTr[i]||tr}</span>
+    </div>`).join('')}
+  </div>`;
+  document.getElementById('mc-body').innerHTML = html;
+}
+
+function salvarProg() {
+  if(!selOrigin) return;
+  const tr = document.getElementById('f-transp-rem').value || autoTransp(selOrigin.uf||'');
+  const sched = {
+    id: Date.now(), savedAt: new Date().toISOString(),
+    cliente: document.getElementById('f-cliente').value,
+    titulo:  document.getElementById('f-titulo').value,
+    material:document.getElementById('f-material').value,
+    servico: document.getElementById('f-servico').value,
+    exibidor:document.getElementById('f-exibidor').value,
+    saida:   document.getElementById('f-saida').value,
+    prazo:   document.getElementById('f-prazo').value,
+    transpSaida: document.getElementById('f-transp-saida').value,
+    origin: {...selOrigin},
+    route: curRoute.map((c,i) => ({...c, transp:routeTr[i]||tr, status:routeSt[i]||'pendente'})),
+    totalDist: Math.round(curRoute.reduce((s,c)=>s+(c.legDist||0),0)),
+  };
+  SCHEDULES.unshift(sched);
+  localStorage.setItem('etcf_sch', JSON.stringify(SCHEDULES));
+  closeModal('modal-confirm');
+  toast('Programação salva!','ok');
+}
+
+function salvarELoggi() { salvarProg(); setTimeout(()=>abrirLoggi(), 150); }
+
+// ─── LOGGI DISPATCH ───────────────────────────
+function resolveAddr(cinemaName) {
+  if(LOGGI_CFG.etcAddressId && cinemaName === (EMPRESA.nome||'ETC Filmes'))
+    return {addressId: LOGGI_CFG.etcAddressId, label: EMPRESA.contato, resolved:'saved'};
+  // Look for a matching envio address
+  const envio = ENVIOS.find(r=>r.cinema===cinemaName);
+  if(envio && envio.endereco)
+    return {rawAddress: envio.endereco + ', ' + envio.cidade + ', ' + envio.uf, label:cinemaName+' — Operação', resolved:'envio'};
+  const c = (DB||[]).find(x=>x.name===cinemaName);
+  return {rawAddress:(c?cinemaName+', '+c.city+', '+c.uf:cinemaName)+', Brasil', label:cinemaName+' — Operação', resolved:'geocoded'};
+}
+
+function abrirLoggi() {
+  if(!LOGGI_CFG.token && !LOGGI_CFG.clientId) { toast('Configure as credenciais Loggi primeiro (⚙ Loggi).','err'); return; }
+  if(!selOrigin || !curRoute.length) { toast('Gere a rota primeiro.','err'); return; }
+  const mat    = document.getElementById('f-material').value||'—';
+  const titulo = document.getElementById('f-titulo').value||'Filme';
+  const tr     = document.getElementById('f-transp-rem').value||autoTransp(selOrigin.uf||'');
+  const trS    = document.getElementById('f-transp-saida').value;
+  const phone  = (LOGGI_CFG.phone||'11999999999').replace(/[^0-9]/g,'');
+
+  loggiOrds = []; loggiSt = {};
+
+  if(trS === 'Loggi') {
+    const fromAddr = LOGGI_CFG.etcAddressId
+      ? {addressId:LOGGI_CFG.etcAddressId, label:EMPRESA.contato||'ETC Filmes', resolved:'saved'}
+      : {rawAddress:EMPRESA.addr, label:EMPRESA.contato||'ETC Filmes', resolved:'manual'};
+    loggiOrds.push({idx:-1,seq:'✦',fromName:'ETC Filmes',from:fromAddr,toName:selOrigin.name,to:resolveAddr(selOrigin.name),
+      description:`HD #${mat} | ${titulo} | 1ª entrega`,
+      instructions:`FILME: ${titulo} | HD: ${mat} | ETC Filmes → ${selOrigin.name}`,
+      externalId:`ETCF-${mat}-000`, phone});
+  }
+
+  curRoute.forEach((c,i)=>{
+    const rowTr = routeTr[i]||tr;
+    if(rowTr !== 'Loggi') return;
+    const fromC = i===0?selOrigin:curRoute[i-1];
+    loggiOrds.push({idx:i,seq:i+1,fromName:fromC.name,from:resolveAddr(fromC.name),toName:c.name,to:resolveAddr(c.name),
+      description:`HD #${mat} | ${titulo} | Rem. ${i+1}`,
+      instructions:`FILME: ${titulo} | HD: ${mat} | ${fromC.name} → ${c.name}`,
+      externalId:`ETCF-${mat}-${String(i+1).padStart(3,'0')}`, phone});
+  });
+
+  if(!loggiOrds.length) { toast('Nenhum trecho com Loggi na rota.','wrn'); return; }
+
+  document.getElementById('ml-sub').textContent = loggiOrds.length + ' pedido' + (loggiOrds.length>1?'s':'') + ' · HD #' + mat;
+  document.getElementById('ml-pkg').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12px">
+      <div><div style="color:#a03500;font-size:10px">Filme</div><div style="font-weight:500">${titulo}</div></div>
+      <div><div style="color:#a03500;font-size:10px">Material</div><div style="font-weight:500;font-family:monospace">#${mat}</div></div>
+      <div><div style="color:#a03500;font-size:10px">Pedidos Loggi</div><div style="font-weight:500;color:var(--ac)">${loggiOrds.length}</div></div>
+    </div>`;
+
+  const addrBadge = r => r==='saved'
+    ? '<span style="font-size:9px;background:var(--gl);color:var(--gn);padding:1px 5px;border-radius:3px">salvo</span>'
+    : r==='envio'
+    ? '<span style="font-size:9px;background:var(--al);color:var(--ac);padding:1px 5px;border-radius:3px">importado</span>'
+    : '<span style="font-size:9px;background:var(--yl);color:var(--am);padding:1px 5px;border-radius:3px">geocode</span>';
+
+  document.getElementById('ml-orders').innerHTML = loggiOrds.map((o,i)=>`
+    <div class="lg-row" id="lg-row-${i}">
+      <div class="lg-num">${o.seq}</div>
+      <div class="lg-info">
+        <div class="lg-route">${o.fromName} ${addrBadge(o.from?.resolved||'geocoded')} → ${o.toName} ${addrBadge(o.to?.resolved||'geocoded')}</div>
+        <div class="lg-desc">${o.description}</div>
+      </div>
+      <span class="lg-st lg-pd" id="lgst-${i}">pendente</span>
+      <button class="btn sm" id="lgbtn-${i}" onclick="dispatchOne(${i})">Enviar</button>
+    </div>`).join('');
+
+  document.getElementById('ml-prog').style.width='0%';
+  document.getElementById('ml-count').textContent = '0 enviados';
+  document.getElementById('btn-all').disabled = false;
+  document.getElementById('btn-all').textContent = '📦 Disparar todos';
+  openModal('modal-loggi');
+}
+
+async function callLoggi(query, variables) {
+  const token = LOGGI_CFG.token;
+  const r = await fetch('https://www.loggi.com/graphql', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body: JSON.stringify({query, variables})
+  });
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+async function dispatchOne(i) {
+  const o = loggiOrds[i]; if(!o) return;
+  const btn=document.getElementById('lgbtn-'+i), st=document.getElementById('lgst-'+i);
+  btn.disabled=true; btn.textContent='...'; st.className='lg-st lg-sn'; st.textContent='⟳ enviando...';
+  try {
+    const fromA = o.from?.addressId?{addressId:o.from.addressId}:{rawAddress:o.from?.rawAddress||o.fromName};
+    const toA   = o.to?.addressId  ?{addressId:o.to.addressId}  :{rawAddress:o.to?.rawAddress||o.toName};
+    const mut = `mutation CreateOrder($input:CreateOrderMutationInput!){createOrder(input:$input){order{pk trackingKey}errors{field messages}}}`;
+    const vars = {input:{shopPk:parseInt(LOGGI_CFG.shopPk||'0'),packageType:'loggi-ponto',waypoints:[
+      {address:fromA,recipient:{name:o.from.label,phone:'+55'+o.phone},packageItems:[{description:o.description,quantity:1,weight:2.0,length:20,height:15,width:15}],instructions:o.instructions},
+      {address:toA,recipient:{name:o.to.label,phone:'+55'+o.phone}}
+    ]}};
+    const data = await callLoggi(mut, vars);
+    const res = data?.data?.createOrder;
+    if(res?.errors?.length) throw new Error(res.errors.map(e=>e.messages.join(' ')).join('; '));
+    const order = res?.order;
+    if(!order?.pk) throw new Error('Resposta inválida');
+    loggiSt[i]='ok';
+    st.className='lg-st lg-ok'; st.textContent='✓ OK';
+    btn.textContent='✓'; btn.style.background='var(--gn)'; btn.style.color='#fff';
+    if(order.trackingKey) {
+      const a=document.createElement('a'); a.className='lg-track';
+      a.href='https://www.loggi.com/rastreio/'+order.trackingKey; a.target='_blank';
+      a.textContent='🔗 Rastrear #'+order.trackingKey;
+      document.querySelector('#lg-row-'+i+' .lg-info').appendChild(a);
+    }
+    toast('Pedido enviado! #'+(order.trackingKey||order.pk),'ok');
+  } catch(err) {
+    loggiSt[i]='err';
+    st.className='lg-st lg-er'; st.textContent='⚠ erro';
+    btn.disabled=false; btn.textContent='↻';
+    toast('Erro: '+err.message,'err');
+  }
+  const done=Object.values(loggiSt).filter(v=>v==='ok').length;
+  document.getElementById('ml-count').textContent=done+' de '+loggiOrds.length+' enviados';
+  document.getElementById('ml-prog').style.width=Math.round(done/loggiOrds.length*100)+'%';
+}
+
+async function dispararTodos() {
+  const btn=document.getElementById('btn-all'); btn.disabled=true; btn.textContent='⟳ Enviando...';
+  for(let i=0;i<loggiOrds.length;i++){if(loggiSt[i]==='ok') continue; await dispatchOne(i); await new Promise(r=>setTimeout(r,600));}
+  btn.textContent='✓ Concluído';
+}
+
+// ─── LIMPAR ────────────────────────────────────
+function limpar() {
+  selOrigin=null; curRoute=[]; routeSt={}; routeTr={};
+  ['f-cliente','f-titulo','f-material','f-servico','f-exibidor','f-origem'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('origin-ok').style.display='none';
+  document.getElementById('prog-right').innerHTML=`<div class="welcome"><div class="welcome-icon">🎬</div><h3>Formulário limpo</h3><p>Selecione um envio importado ou busque o cinema de origem.</p></div>`;
+  toast('Formulário limpo.','info');
+}
+
+// ─── CONFIG LOGGI ──────────────────────────────
+function initCfgDots() {
+  if(LOGGI_CFG.token || LOGGI_CFG.clientId) {
+    document.getElementById('nav-dot').classList.add('ok');
+  }
+}
+
+async function autenticarOAuth() {
+  const cid=document.getElementById('cfg-cid').value.trim();
+  const cs=document.getElementById('cfg-cs').value.trim();
+  if(!cid||!cs){toast('Preencha Client ID e Client Secret.','err');return;}
+  showCfgMsg('Autenticando...','var(--t3)');
+  try {
+    const r=await fetch('https://api.loggi.com/v2/oauth2/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:cid,client_secret:cs})});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    const token = d.access_token;
+    if(!token) throw new Error('Token não retornado: '+JSON.stringify(d));
+    LOGGI_CFG.token=token; LOGGI_CFG.clientId=cid;
+    document.getElementById('cfg-token').value='••••••••••••••••';
+    localStorage.setItem('etcf_lcfg',JSON.stringify(LOGGI_CFG));
+    document.getElementById('nav-dot').classList.add('ok');
+    showCfgMsg('✓ Autenticado com sucesso!','var(--gn)');
+    toast('✓ Autenticado!','ok');
+  } catch(e){showCfgMsg('Erro: '+e.message,'var(--rd)');toast('Falha: '+e.message,'err');}
+}
+
+async function testarConexao() {
+  const tok=(document.getElementById('cfg-token').value.trim()||LOGGI_CFG.token);
+  if(!tok||tok==='••••••••••••••••'){toast('Configure o token primeiro.','err');return;}
+  showCfgMsg('Testando...','var(--t3)');
+  try {
+    const d=await callLoggi('query{__typename}',{});
+    if(d?.data){showCfgMsg('✓ Conectado!','var(--gn)');document.getElementById('nav-dot').classList.add('ok');toast('✓ Conectado!','ok');}
+    else throw new Error(JSON.stringify(d).substring(0,100));
+  } catch(e){showCfgMsg('Erro: '+e.message,'var(--rd)');toast('Falha: '+e.message,'err');}
+}
+
+function salvarCfg() {
+  const tok=document.getElementById('cfg-token').value.trim();
+  LOGGI_CFG={
+    ...LOGGI_CFG,
+    token:    tok==='••••••••••••••••'?LOGGI_CFG.token:tok,
+    shopPk:   document.getElementById('cfg-shop-pk').value.trim(),
+    phone:    document.getElementById('cfg-phone').value.trim().replace(/[^0-9]/g,''),
+    etcAddressId: document.getElementById('cfg-etc-addr').value.trim(),
+    clientId: document.getElementById('cfg-cid').value.trim(),
+  };
+  localStorage.setItem('etcf_lcfg',JSON.stringify(LOGGI_CFG));
+  if(LOGGI_CFG.token||LOGGI_CFG.clientId) document.getElementById('nav-dot').classList.add('ok');
+  showCfgMsg('✓ Configuração salva!','var(--gn)');
+  toast('Salvo!','ok');
+}
+
+function salvarEmpresa() {
+  EMPRESA={
+    nome:    document.getElementById('cfg-nome').value.trim(),
+    addr:    document.getElementById('cfg-addr').value.trim(),
+    cep:     document.getElementById('cfg-cep').value.trim(),
+    contato: document.getElementById('cfg-contato').value.trim(),
+  };
+  localStorage.setItem('etcf_emp',JSON.stringify(EMPRESA));
+  toast('Empresa salva!','ok');
+}
+
+function showCfgMsg(msg,color) {
+  const el=document.getElementById('cfg-msg');
+  el.textContent=msg; el.style.color=color; el.style.display='block';
+}
+
+// ─── INIT ──────────────────────────────────────
+document.getElementById('f-saida').value = new Date().toISOString().split('T')[0];
+initCfgDots();
+</script>
+</body>
+</html>
