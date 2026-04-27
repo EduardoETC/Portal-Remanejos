@@ -435,6 +435,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <button class="btn btn-dark" style="margin-top:6px" onclick="salvarEmpresa()">Salvar empresa</button>
     </div>
 
+    <!-- Loggi Simulation -->
+    <div class="fsec" style="margin-top:14px">
+      <h3>Modo Simulacao Loggi</h3>
+      <p style="font-size:12px;color:#888;margin-bottom:12px">Ative para testar o fluxo completo sem acionar a API real da Loggi. Ao marcar um cinema como "Liberado", o sistema mostrara um modal simulando o despacho com numero de rastreio ficticio.</p>
+      <button id="btn-loggi-sim" class="btn" onclick="toggleLoggiSim()" style="transition:all .2s">Simulacao: desativada</button>
+    </div>
+
     <!-- Firebase section -->
     <div class="fsec" style="margin-top:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -2064,13 +2071,13 @@ function abrirLoggi(schedIdx) {
   lgOrders = []; lgSt = {};
   if (trS === 'Loggi') {
     var fromAddr = LOGGI.etcId ? { addressId: LOGGI.etcId, label: EMPRESA.contato, resolved: 'saved' } : { rawAddress: EMPRESA.addr, label: EMPRESA.contato, resolved: 'manual' };
-    lgOrders.push({ i:-1, seq:'0', fromName:'ETC Filmes', from:fromAddr, toName:origin.name, to:resolveAddr(origin.name), desc:'HD #'+mat+' | '+titulo+' | 1a entrega', instr:'FILME: '+titulo+' | HD: '+mat, extId:'ETCF-'+mat+'-000', phone:phone });
+    lgOrders.push({ i:-1, seq:'0', fromName:'ETC Filmes', from:fromAddr, toName:origin.name, to:resolveAddr(origin.name), desc:'HD #'+mat+' | '+titulo, instr:'Retirar HD '+mat+' do filme '+titulo+' na ETC Filmes - a pedido da ETC Filmes. Entregar em '+origin.name+', para gerente do cinema, HD '+mat+' do filme '+titulo+'.', extId:'ETCF-'+mat+'-000', phone:phone });
   }
   fr.forEach(function(c, idx) {
     var origIdx = route.indexOf(c);
     if ((routeTr[origIdx]||trRem) !== 'Loggi') return;
     var from = idx === 0 ? origin : fr[idx-1];
-    lgOrders.push({ i:origIdx, seq:idx+1, fromName:from.name, from:resolveAddr(from.name), toName:c.name, to:resolveAddr(c.name), desc:'HD #'+mat+' | '+titulo+' | Rem. '+(idx+1), instr:'FILME: '+titulo+' | HD: '+mat+' | '+from.name+' -> '+c.name, extId:'ETCF-'+mat+'-'+String(idx+1).padStart(3,'0'), phone:phone });
+    lgOrders.push({ i:origIdx, seq:idx+1, fromName:from.name, from:resolveAddr(from.name), toName:c.name, to:resolveAddr(c.name), desc:'HD #'+mat+' | '+titulo+' | Rem.'+(idx+1), instr:'Retirar HD '+mat+' do filme '+titulo+' com o gerente do '+from.name+' - a pedido da ETC Filmes. Entregar no '+c.name+', para gerente do cinema, HD '+mat+' do filme '+titulo+'.', extId:'ETCF-'+mat+'-'+String(idx+1).padStart(3,'0'), phone:phone });
   });
   if (!lgOrders.length) { toast('Nenhum trecho com Loggi.', 'info'); return; }
   document.getElementById('ml-sub').textContent = lgOrders.length + ' pedido' + (lgOrders.length>1?'s':'') + ' - HD #' + mat;
@@ -2418,24 +2425,50 @@ function _renderDetailSteps(schedIdx, wrap) {
     row.addEventListener('dragstart', function(e) {
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', this.dataset.stepIdx);
-      this.style.opacity = '.4';
+      setTimeout(function(el){ el.style.opacity = '.35'; el.style.transform = 'scale(.98)'; }, 0, this);
+      wrap._dragging = this;
     });
-    row.addEventListener('dragend', function() { this.style.opacity = '1'; });
+    row.addEventListener('dragend', function() {
+      this.style.opacity   = '1';
+      this.style.transform = '';
+      // Remove any placeholders
+      var ph = wrap.querySelector('.drag-placeholder');
+      if (ph) ph.remove();
+      wrap._dragging = null;
+    });
     row.addEventListener('dragover', function(e) {
       e.preventDefault();
-      this.style.borderTop = '3px solid #1a4fff';
+      e.dataTransfer.dropEffect = 'move';
+      if (wrap._dragging === this) return;
+      // Show placeholder line above this row
+      var existing = wrap.querySelector('.drag-placeholder');
+      if (!existing) {
+        existing = document.createElement('div');
+        existing.className = 'drag-placeholder';
+        existing.style.cssText = 'height:3px;background:#1a4fff;border-radius:2px;margin:0 8px;transition:opacity .1s';
+      }
+      wrap.insertBefore(existing, this);
     });
-    row.addEventListener('dragleave', function() { this.style.borderTop = ''; });
+    row.addEventListener('dragleave', function(e) {
+      // Only remove if leaving to outside wrap
+      if (!wrap.contains(e.relatedTarget)) {
+        var ph = wrap.querySelector('.drag-placeholder');
+        if (ph) ph.remove();
+      }
+    });
     row.addEventListener('drop', function(e) {
       e.preventDefault();
-      this.style.borderTop = '';
+      var ph = wrap.querySelector('.drag-placeholder');
+      if (ph) ph.remove();
       var fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
       var toIdx   = parseInt(this.dataset.stepIdx);
       if (fromIdx === toIdx) return;
+      // Animate: quick flash on target
+      this.style.background = '#eef1ff';
+      setTimeout(function(el){ el.style.background = ''; }, 300, this);
       // Reorder route in SAVED
       var moved = s.route.splice(fromIdx, 1)[0];
       s.route.splice(toIdx, 0, moved);
-      // Reorder stepData
       if (s.stepData) {
         var newSd = {};
         s.route.forEach(function(_, j) { newSd[j] = s.stepData[j] || {}; });
@@ -2518,7 +2551,12 @@ function updStepStatus(schedIdx, stepIdx, val) {
     var now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     s.stepData[stepIdx].recHora = now.toISOString().slice(0,16);
   }
+  // When cinema marks as Liberado: prompt to dispatch Loggi for this step
+  if (val === 'Liberado') {
+    setTimeout(function() { promptLoggiForStep(schedIdx, stepIdx); }, 300);
+  }
   localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+  if (typeof fbPushSaved === 'function') fbPushSaved();
   abrirDetalhe(schedIdx);
   renderDash();
 }
@@ -4954,7 +4992,120 @@ document.addEventListener('click', function(e) {
   }
 });
 
+// --- LOGGI SIMULATION MODE + LIBERADO AUTO-DISPATCH ---------------------
+var LOGGI_SIM = localStorage.getItem('etc_loggi_sim') === '1';
+
+function toggleLoggiSim() {
+  LOGGI_SIM = !LOGGI_SIM;
+  localStorage.setItem('etc_loggi_sim', LOGGI_SIM ? '1' : '0');
+  var btn = document.getElementById('btn-loggi-sim');
+  if (btn) {
+    btn.textContent = LOGGI_SIM ? 'Simulacao: ATIVADA' : 'Simulacao: desativada';
+    btn.style.background = LOGGI_SIM ? '#1a8a4a' : '';
+    btn.style.color = LOGGI_SIM ? '#fff' : '';
+  }
+  toast(LOGGI_SIM ? 'Modo simulacao Loggi ATIVO' : 'Modo simulacao desativado', LOGGI_SIM ? 'ok' : 'info');
+}
+
+function promptLoggiForStep(schedIdx, stepIdx) {
+  var s = SAVED[schedIdx]; if (!s) return;
+  var r = s.route && s.route[stepIdx]; if (!r) return;
+  var from = stepIdx === 0 ? ((s.origin && s.origin.name) || 'Origem') : (s.route[stepIdx-1] && s.route[stepIdx-1].name || '--');
+  var mat   = s.material || '--';
+  var titulo = s.titulo || 'Filme';
+
+  if (LOGGI_SIM) {
+    // Simulation mode: show modal with fake tracking
+    showLoggiSimModal(schedIdx, stepIdx, from, r.name, mat, titulo);
+    return;
+  }
+
+  // Real Loggi: check credentials
+  if (!LOGGI.token && !LOGGI.clientId) {
+    if (confirm('Cinema liberou HD para coleta!
+
+Deseja acionar a Loggi agora para coletar em "' + from + '" e entregar em "' + r.name + '"?
+
+(Configure credenciais Loggi para ativar)')) {
+      goTo('loggi');
+    }
+    return;
+  }
+
+  if (confirm('Cinema ' + from + ' liberou o HD!
+
+Acionar Loggi agora para coletar e entregar em ' + r.name + '?')) {
+    // Pre-load this schedule and dispatch just this step
+    loadSaved(schedIdx);
+    setTimeout(function() {
+      abrirLoggi(schedIdx);
+    }, 400);
+  }
+}
+
+function showLoggiSimModal(schedIdx, stepIdx, from, para, mat, titulo) {
+  var instrText = 'Retirar HD ' + mat + ' do filme ' + titulo + ' com o gerente do ' + from + ' - a pedido da ETC Filmes. Entregar no ' + para + ', para gerente do cinema, HD ' + mat + ' do filme ' + titulo + '.';
+  var fakeTracking = 'SIM-' + Date.now().toString(36).toUpperCase();
+  var fakeETA = new Date(Date.now() + (2 + Math.random()*3)*3600000);
+  var etaStr  = fakeETA.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:3000;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
+    + '<span style="font-size:24px">&#128230;</span>'
+    + '<div><div style="font-size:16px;font-weight:700">Loggi — SIMULACAO</div>'
+    + '<div style="font-size:11px;background:#e5f5ec;color:#1a8a4a;padding:1px 8px;border-radius:8px;display:inline-block;margin-top:2px">Pedido simulado com sucesso</div></div>'
+    + '</div>'
+    + '<div style="background:#f5f4f0;border-radius:8px;padding:14px;margin-bottom:16px;font-size:12px">'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'
+    + '<div><div style="color:#888;font-size:10px">De</div><div style="font-weight:600">' + from + '</div></div>'
+    + '<div><div style="color:#888;font-size:10px">Para</div><div style="font-weight:600">' + para + '</div></div>'
+    + '<div><div style="color:#888;font-size:10px">HD</div><div style="font-weight:600;font-family:monospace">#' + mat + '</div></div>'
+    + '<div><div style="color:#888;font-size:10px">Previsao</div><div style="font-weight:600">' + etaStr + '</div></div>'
+    + '</div>'
+    + '<div style="border-top:1px solid #e0deda;padding-top:10px">'
+    + '<div style="color:#888;font-size:10px;margin-bottom:4px">Instrucoes ao portador</div>'
+    + '<div style="font-size:12px;color:#333;line-height:1.5">' + instrText + '</div>'
+    + '</div></div>'
+    + '<div style="background:#eef1ff;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:12px">'
+    + '<div style="color:#888;font-size:10px;margin-bottom:2px">Codigo de rastreio (simulado)</div>'
+    + '<div style="font-family:monospace;font-weight:700;color:#1a4fff;font-size:14px">' + fakeTracking + '</div>'
+    + '</div>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button onclick="confirmLoggiSim(' + schedIdx + ',' + stepIdx + ','' + fakeTracking + '',this.closest('.loggi-sim-modal'))" class="btn" style="flex:1">Confirmar despacho</button>'
+    + '<button onclick="this.closest('.loggi-sim-modal').remove()" style="padding:8px 16px;border:1px solid #d0cec9;border-radius:6px;background:none;cursor:pointer;font-family:inherit">Cancelar</button>'
+    + '</div>'
+    + '</div>';
+  modal.className = 'loggi-sim-modal';
+  document.body.appendChild(modal);
+}
+
+function confirmLoggiSim(schedIdx, stepIdx, tracking, modalEl) {
+  if (modalEl) modalEl.remove();
+  var s = SAVED[schedIdx]; if (!s) return;
+  if (!s.stepData) s.stepData = {};
+  if (!s.stepData[stepIdx]) s.stepData[stepIdx] = {};
+  s.stepData[stepIdx].tracking = tracking;
+  s.stepData[stepIdx].status   = 'Em Andamento';
+  if (s.route && s.route[stepIdx]) s.route[stepIdx].status = 'Em Andamento';
+  localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+  if (typeof fbPushSaved === 'function') fbPushSaved();
+  abrirDetalhe(schedIdx);
+  renderDash();
+  toast('Loggi simulada! Rastreio: ' + tracking, 'ok');
+}
+
 // Check login last (after all functions defined)
+// Init simulation button state
+(function() {
+  var btn = document.getElementById('btn-loggi-sim');
+  if (btn && LOGGI_SIM) {
+    btn.textContent = 'Simulacao: ATIVADA';
+    btn.style.background = '#1a8a4a';
+    btn.style.color = '#fff';
+  }
+})();
 checkLogin();
 </script>
 </body>
