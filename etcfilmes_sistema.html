@@ -426,6 +426,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <input id="cfg-phone" class="inp" placeholder="11968730097" value="11968730097">
       </div>
     </div>
+    <div class="field-row" style="margin-top:10px;padding-top:10px;border-top:1px solid #f0efeb">
+      <div class="field">
+        <label style="color:#c0392b;font-weight:700">Codigo de liberacao producao
+          <span style="font-size:10px;color:#aaa;font-weight:400"> — sem este codigo nenhum pedido real e enviado</span>
+        </label>
+        <input id="cfg-unlock" class="inp" type="password" placeholder="Deixe vazio para manter bloqueado" style="border-color:#fdecea">
+      </div>
+    </div>
+    <div style="background:#fdecea;border-radius:6px;padding:8px 12px;font-size:11px;color:#c0392b;margin-bottom:10px">
+      &#9888; Com simulacao desativada E codigo correto, pedidos reais serao enviados para a Loggi.
+    </div>
     <button class="btn" onclick="salvarCfgLoggi()" style="margin-top:6px">Salvar e Testar conexao</button>
     <span id="cfg-loggi-msg" style="font-size:12px;margin-left:10px"></span>
   </div>
@@ -2219,6 +2230,16 @@ async function dispatchOne(idx) {
   }
 
   // REAL LOGGI CORP API v2
+  // Safety: require production unlock code
+  var unlockCode = localStorage.getItem('etc_loggi_unlock') || '';
+  if (!unlockCode || unlockCode !== (LOGGI.unlockCode || '')) {
+    lgSt[idx] = 'err';
+    st.className = 'lg-st lg-er'; st.textContent = 'bloqueado';
+    btn.disabled = false; btn.textContent = 'Bloqueado';
+    toast('Loggi bloqueada. Configure o codigo de liberacao em Configuracao.', 'err');
+    return;
+  }
+
   try {
     var apiKey  = LOGGI.apiKey || LOGGI.token;
     var compId  = LOGGI.shopPk || '33552';
@@ -5155,7 +5176,14 @@ function toggleLoggiSim() {
   }
   var banner = document.getElementById('sim-banner');
   if (banner) banner.style.display = LOGGI_SIM ? 'block' : 'none';
-  toast(LOGGI_SIM ? 'MODO SIMULACAO ATIVO - nenhum dado real sera enviado' : 'Simulacao desativada - modo real', LOGGI_SIM ? 'ok' : 'info');
+  var unlockOk = localStorage.getItem('etc_loggi_unlock');
+  if (!LOGGI_SIM && unlockOk) {
+    toast('ATENCAO: Simulacao desativada E codigo de liberacao ativo. Pedidos REAIS serao enviados!', 'err');
+  } else if (!LOGGI_SIM) {
+    toast('Simulacao desativada. Loggi bloqueada (sem codigo de liberacao).', 'info');
+  } else {
+    toast('MODO SIMULACAO ATIVO - nenhum dado real sera enviado', 'ok');
+  }
 }
 
 function promptLoggiForStep(schedIdx, stepIdx) {
@@ -5458,25 +5486,41 @@ function abrirEmailStep(schedIdx, stepIdx) {
 
 
 function salvarCfgLoggi() {
-  var apiKey = (document.getElementById('cfg-apikey') && document.getElementById('cfg-apikey').value.trim()) || '';
-  var compId = (document.getElementById('cfg-compid') && document.getElementById('cfg-compid').value.trim()) || '33552';
-  var phone  = (document.getElementById('cfg-phone')  && document.getElementById('cfg-phone').value.trim().replace(/[^0-9]/g,'')) || '11968730097';
+  var apiKey  = (document.getElementById('cfg-apikey') && document.getElementById('cfg-apikey').value.trim()) || '';
+  var compId  = (document.getElementById('cfg-compid') && document.getElementById('cfg-compid').value.trim()) || '33552';
+  var phone   = (document.getElementById('cfg-phone')  && document.getElementById('cfg-phone').value.trim().replace(/[^0-9]/g,'')) || '11968730097';
+  var unlock  = (document.getElementById('cfg-unlock') && document.getElementById('cfg-unlock').value.trim()) || '';
   if (!apiKey) { setCfgLoggiMsg('Informe a API Key.', '#c0392b'); return; }
-  LOGGI = Object.assign({}, LOGGI, { apiKey: apiKey, shopPk: compId, phone: phone, token: apiKey });
+  LOGGI = Object.assign({}, LOGGI, { apiKey: apiKey, shopPk: compId, phone: phone, token: apiKey, unlockCode: unlock });
   localStorage.setItem('etc_loggi', JSON.stringify(LOGGI));
-  setCfgLoggiMsg('Salvando...', '#888');
-  // Test connection
+  // Save unlock code separately
+  if (unlock) {
+    localStorage.setItem('etc_loggi_unlock', unlock);
+  } else {
+    localStorage.removeItem('etc_loggi_unlock');
+  }
+  setCfgLoggiMsg('Testando conexao...', '#888');
+  // Test connection then show final status
   fetch('https://api.loggi.com/v2/company/' + compId + '/', {
     headers: { 'Authorization': 'ApiKey ' + apiKey }
   }).then(function(r) {
     if (r.ok || r.status === 404) {
-      setCfgLoggiMsg('Conectado! Company ID ' + compId + ' validado.', '#1a8a4a');
+      if (unlock) {
+        setCfgLoggiMsg('Conectado. ATENCAO: codigo de liberacao ativo — pedidos reais serao enviados!', '#c0392b');
+      } else {
+        setCfgLoggiMsg('Conectado. Loggi bloqueada — sem codigo de liberacao.', '#1a8a4a');
+      }
       toast('Loggi configurada!', 'ok');
     } else {
       setCfgLoggiMsg('Erro ' + r.status + ' - verifique a API Key.', '#c0392b');
     }
-  }).catch(function(e) {
-    setCfgLoggiMsg('Erro de conexao: ' + e.message, '#c0392b');
+  }).catch(function() {
+    // CORS may block — save anyway
+    if (unlock) {
+      setCfgLoggiMsg('Salvo. ATENCAO: codigo de liberacao ativo.', '#c0392b');
+    } else {
+      setCfgLoggiMsg('Salvo. Loggi bloqueada (sem codigo).', '#1a8a4a');
+    }
   });
 }
 
