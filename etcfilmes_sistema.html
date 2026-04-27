@@ -408,6 +408,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 <!-- VIEW: LOGGI CONFIG -->
 <div class="view" id="view-loggi">
   <div class="ph"><div><h1>Integracao Loggi</h1><p>Credenciais da API corporativa</p></div></div>
+  <div class="fsec" style="margin-bottom:0">
+    <h3>Loggi Corp API</h3>
+    <div class="field-row">
+      <div class="field">
+        <label>API Key <span style="font-size:10px;color:#aaa">(Configuracoes da API no portal Loggi)</span></label>
+        <input id="cfg-apikey" class="inp" placeholder="bd3ca8be..." style="font-family:monospace;font-size:12px">
+      </div>
+      <div class="field">
+        <label>Company ID</label>
+        <input id="cfg-compid" class="inp" placeholder="33552" value="33552" style="font-family:monospace">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Telefone remetente</label>
+        <input id="cfg-phone" class="inp" placeholder="11968730097" value="11968730097">
+      </div>
+    </div>
+    <button class="btn" onclick="salvarCfgLoggi()" style="margin-top:6px">Salvar e Testar conexao</button>
+    <span id="cfg-loggi-msg" style="font-size:12px;margin-left:10px"></span>
+  </div>
   <div style="padding:20px 22px;max-width:520px">
     <div class="notice notice-info"><span>i</span><div>Acesse <strong>developers.loggi.com</strong> para obter o <code>client_id</code> e <code>client_secret</code>.</div></div>
     <div style="background:#fff;border-radius:8px;border:1px solid #e0deda;padding:18px;margin-bottom:14px">
@@ -2173,9 +2194,9 @@ async function dispatchOne(idx) {
   btn.disabled = true; btn.textContent = '...';
   st.className = 'lg-st lg-sn'; st.textContent = 'enviando...';
 
-  // SIMULATION MODE: fake a successful Loggi response
+  // SIMULATION MODE
   if (LOGGI_SIM) {
-    await new Promise(function(r){ setTimeout(r, 800 + Math.random()*600); }); // fake delay
+    await new Promise(function(r){ setTimeout(r, 800 + Math.random()*600); });
     var fakeKey = 'SIM-' + Date.now().toString(36).toUpperCase();
     lgSt[idx] = 'ok';
     st.className = 'lg-st lg-ok'; st.textContent = 'OK (SIM)';
@@ -2185,57 +2206,92 @@ async function dispatchOne(idx) {
       localStorage.setItem('etc_saved', JSON.stringify(SAVED));
     }
     var trackEl = document.createElement('a');
-    trackEl.className = 'lg-track';
-    trackEl.href = '#';
+    trackEl.className = 'lg-track'; trackEl.href = '#';
     trackEl.textContent = '[SIM] Rastreio #' + fakeKey;
     trackEl.style.color = '#1a8a4a';
     var infoEl = document.querySelector('#lgrow-' + idx + ' .lg-info');
     if (infoEl) infoEl.appendChild(trackEl);
-    toast('[SIM] Pedido Loggi simulado com sucesso!', 'ok');
+    toast('[SIM] Pedido Loggi simulado!', 'ok');
     var done = Object.values(lgSt).filter(function(v){ return v === 'ok'; }).length;
     document.getElementById('ml-count').textContent = done + ' de ' + lgOrders.length + ' enviados';
     document.getElementById('ml-prog').style.width = Math.round(done/lgOrders.length*100) + '%';
     return;
   }
 
+  // REAL LOGGI CORP API v2
   try {
-    var fromA = o.from&&o.from.addressId ? {addressId:o.from.addressId} : {rawAddress:o.from&&o.from.rawAddress||o.fromName};
-    var toA   = o.to&&o.to.addressId     ? {addressId:o.to.addressId}   : {rawAddress:o.to&&o.to.rawAddress||o.toName};
-    var mut = 'mutation CreateOrder($input:CreateOrderMutationInput!){createOrder(input:$input){order{pk trackingKey}errors{field messages}}}';
-    var vars = { input: { shopPk: parseInt(LOGGI.shopPk||'0'), packageType: 'loggi-ponto', waypoints: [
-      { address:fromA, recipient:{name:o.from.label,phone:'+55'+o.phone}, packageItems:[{description:o.desc,quantity:1,weight:2.0,length:20,height:15,width:15}], instructions:o.instr },
-      { address:toA, recipient:{name:o.to.label,phone:'+55'+o.phone} }
-    ]}};
-    var res  = await fetch('https://www.loggi.com/graphql', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+LOGGI.token}, body:JSON.stringify({query:mut,variables:vars}) });
+    var apiKey  = LOGGI.apiKey || LOGGI.token;
+    var compId  = LOGGI.shopPk || '33552';
+    var phone   = (LOGGI.phone || '11968730097').replace(/[^0-9]/g, '');
+
+    // Build pickup and delivery addresses
+    var fromAddr = o.from && o.from.rawAddress ? o.from.rawAddress : o.fromName + ', Brasil';
+    var toAddr   = o.to   && o.to.rawAddress   ? o.to.rawAddress   : o.toName   + ', Brasil';
+
+    var payload = {
+      pickupAddress:   fromAddr,
+      deliveryAddress: toAddr,
+      pickupName:      o.fromName,
+      deliveryName:    o.toName,
+      pickupPhone:     phone,
+      deliveryPhone:   phone,
+      packageDescription: o.desc,
+      instructions:    o.instr,
+      externalId:      o.extId,
+    };
+
+    var res = await fetch('https://api.loggi.com/v2/company/' + compId + '/orders/', {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': 'ApiKey ' + apiKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
     var data = await res.json();
-    var cr   = data&&data.data&&data.data.createOrder;
-    if (cr&&cr.errors&&cr.errors.length) throw new Error(cr.errors.map(function(e){return e.messages.join(' ');}).join('; '));
-    var order = cr && cr.order;
-    if (!order||!order.pk) throw new Error('Resposta invalida');
+
+    if (!res.ok) {
+      throw new Error(data.detail || data.message || JSON.stringify(data).slice(0, 100));
+    }
+
+    // Success
+    var orderId  = data.id || data.pk || data.orderId || '?';
+    var tracking = data.trackingKey || data.tracking_key || data.id || orderId;
+
     lgSt[idx] = 'ok';
     st.className = 'lg-st lg-ok'; st.textContent = 'OK';
     btn.textContent = 'OK'; btn.style.background = '#1a8a4a'; btn.style.color = '#fff';
-    // Update prog status to 'em andamento' when first Loggi order sent
+
     if (_activeSchedIdx !== null && SAVED[_activeSchedIdx]) {
       SAVED[_activeSchedIdx].progStatus = 'em andamento';
       localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+      if (typeof fbPushSaved === 'function') fbPushSaved();
     }
-    if (order.trackingKey) {
-      var a = document.createElement('a'); a.className = 'lg-track';
-      a.href = 'https://www.loggi.com/rastreio/' + order.trackingKey; a.target = '_blank';
-      a.textContent = 'Rastrear #' + order.trackingKey;
-      document.querySelector('#lgrow-'+idx+' .lg-info').appendChild(a);
+
+    if (tracking && tracking !== '?') {
+      var a = document.createElement('a');
+      a.className = 'lg-track';
+      a.href = 'https://www.loggi.com/rastreio/' + tracking;
+      a.target = '_blank';
+      a.textContent = 'Rastrear #' + tracking;
+      var infoEl2 = document.querySelector('#lgrow-' + idx + ' .lg-info');
+      if (infoEl2) infoEl2.appendChild(a);
     }
-    toast('Pedido enviado!', 'ok');
+    toast('Pedido Loggi criado!', 'ok');
+
   } catch(err) {
-    lgSt[idx] = 'err'; st.className = 'lg-st lg-er'; st.textContent = 'erro';
+    lgSt[idx] = 'err';
+    st.className = 'lg-st lg-er'; st.textContent = 'erro';
     btn.disabled = false; btn.textContent = 'Tentar';
     toast('Erro Loggi: ' + err.message, 'err');
   }
-  var done = Object.values(lgSt).filter(function(v){return v==='ok';}).length;
-  document.getElementById('ml-count').textContent = done + ' de ' + lgOrders.length + ' enviados';
-  document.getElementById('ml-prog').style.width = Math.round(done/lgOrders.length*100) + '%';
+
+  var done2 = Object.values(lgSt).filter(function(v){ return v === 'ok'; }).length;
+  document.getElementById('ml-count').textContent = done2 + ' de ' + lgOrders.length + ' enviados';
+  document.getElementById('ml-prog').style.width = Math.round(done2/lgOrders.length*100) + '%';
 }
+
 
 async function dispararTodos() {
   var btn = document.getElementById('btn-all'); btn.disabled = true; btn.textContent = 'Enviando...';
@@ -2277,12 +2333,14 @@ async function testarConexao() {
 
 function salvarCfg() {
   var tok = document.getElementById('cfg-token').value.trim();
+  var apiKeyField = document.getElementById('cfg-apikey');
   LOGGI = Object.assign({}, LOGGI, {
+    apiKey: apiKeyField ? apiKeyField.value.trim() : (tok !== '****************' ? tok : LOGGI.apiKey),
     token:  tok === '****************' ? LOGGI.token : tok,
-    shopPk: document.getElementById('cfg-shopk').value.trim(),
-    phone:  document.getElementById('cfg-phone').value.trim().replace(/[^0-9]/g,''),
-    etcId:  document.getElementById('cfg-etc-id').value.trim(),
-    clientId: document.getElementById('cfg-cid').value.trim(),
+    shopPk: document.getElementById('cfg-shopk').value.trim() || '33552',
+    phone:  document.getElementById('cfg-phone').value.trim().replace(/[^0-9]/g,'') || '11968730097',
+    etcId:  document.getElementById('cfg-etc-id') ? document.getElementById('cfg-etc-id').value.trim() : '',
+    clientId: document.getElementById('cfg-cid') ? document.getElementById('cfg-cid').value.trim() : '',
   });
   localStorage.setItem('etc_loggi', JSON.stringify(LOGGI));
   setCfgMsg('Salvo!', '#1a8a4a'); toast('Configuracao salva!', 'ok');
@@ -5396,6 +5454,35 @@ function abrirEmailStep(schedIdx, stepIdx) {
 
   _emailSchedIdx = schedIdx;
   openModal('modal-email');
+}
+
+
+function salvarCfgLoggi() {
+  var apiKey = (document.getElementById('cfg-apikey') && document.getElementById('cfg-apikey').value.trim()) || '';
+  var compId = (document.getElementById('cfg-compid') && document.getElementById('cfg-compid').value.trim()) || '33552';
+  var phone  = (document.getElementById('cfg-phone')  && document.getElementById('cfg-phone').value.trim().replace(/[^0-9]/g,'')) || '11968730097';
+  if (!apiKey) { setCfgLoggiMsg('Informe a API Key.', '#c0392b'); return; }
+  LOGGI = Object.assign({}, LOGGI, { apiKey: apiKey, shopPk: compId, phone: phone, token: apiKey });
+  localStorage.setItem('etc_loggi', JSON.stringify(LOGGI));
+  setCfgLoggiMsg('Salvando...', '#888');
+  // Test connection
+  fetch('https://api.loggi.com/v2/company/' + compId + '/', {
+    headers: { 'Authorization': 'ApiKey ' + apiKey }
+  }).then(function(r) {
+    if (r.ok || r.status === 404) {
+      setCfgLoggiMsg('Conectado! Company ID ' + compId + ' validado.', '#1a8a4a');
+      toast('Loggi configurada!', 'ok');
+    } else {
+      setCfgLoggiMsg('Erro ' + r.status + ' - verifique a API Key.', '#c0392b');
+    }
+  }).catch(function(e) {
+    setCfgLoggiMsg('Erro de conexao: ' + e.message, '#c0392b');
+  });
+}
+
+function setCfgLoggiMsg(msg, color) {
+  var el = document.getElementById('cfg-loggi-msg');
+  if (el) { el.textContent = msg; el.style.color = color || '#888'; }
 }
 
 checkLogin();
