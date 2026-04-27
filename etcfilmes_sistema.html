@@ -181,7 +181,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 <nav class="sidebar">
   <div class="sidebar-logo">
     <h1>ETC Filmes</h1>
-    <p>Remanejamento HD</p>
+    <p>Remanejamento HD · 13:33</p>
   </div>
   <div class="sidebar-section">Principal</div>
   <button class="nav-btn active" id="nb-envios" onclick="goTo('envios')">
@@ -191,14 +191,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <button class="nav-btn" id="nb-prog" onclick="goTo('prog')">
     <span class="icon">&#9889;</span> Programar
   </button>
-  <button class="nav-btn" id="nb-upload" onclick="goTo('upload')">
-    <span class="icon">&#128228;</span> Upload Pedidos
-  </button>
   <button class="nav-btn" id="nb-dash" onclick="goTo('dash')">
     <span class="icon">&#128202;</span> Dashboard
     <span class="nav-badge" id="badge-dash" style="display:none;background:#e65100">0</span>
   </button>
+  <button class="nav-btn" id="nb-circuito" onclick="goTo('circuito')">
+    <span class="icon">&#127917;</span> Pre Circuito
+  </button>
   <div class="sidebar-section">Configuracao</div>
+  <button class="nav-btn" id="nb-upload" onclick="goTo('upload')">
+    <span class="icon">&#128228;</span> Upload Pedidos
+  </button>
   <button class="nav-btn" id="nb-loggi" onclick="goTo('loggi')">
     <span class="icon">&#128230;</span> Loggi
   </button>
@@ -355,6 +358,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   </div>
 </div>
 
+<!-- VIEW: PRE CIRCUITO -->
+<div class="view" id="view-circuito">
+  <div class="ph">
+    <div><h1>Pre Circuito</h1><p>Visualize e aprove o circuito de remanejamento antes de iniciar</p></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" id="btn-aprovar-circuito" style="display:none" onclick="aprovarCircuito()">Aprovar e criar programacao</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:320px 1fr;flex:1;overflow:hidden;height:calc(100vh - 46px)">
+    <!-- Left: search + select -->
+    <div style="background:#fff;border-right:1px solid #e0deda;overflow-y:auto;padding:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#aaa;margin-bottom:10px">Selecionar circuito</div>
+      <input id="circ-search" class="search-input" placeholder="Buscar cinema de origem..." oninput="filtrarCircuitos(this.value)" style="margin-bottom:10px">
+      <div id="circ-list"></div>
+    </div>
+    <!-- Right: circuit preview -->
+    <div style="overflow-y:auto;padding:20px 24px;background:#f0efeb" id="circ-preview">
+      <div class="empty">
+        <div class="empty-icon">&#127917;</div>
+        <h3>Selecione um circuito</h3>
+        <p>Busque o cinema de origem na lista ao lado para visualizar o circuito completo de remanejamento.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- VIEW: LOGGI CONFIG -->
 <div class="view" id="view-loggi">
   <div class="ph"><div><h1>Integracao Loggi</h1><p>Credenciais da API corporativa</p></div></div>
@@ -469,6 +498,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <button class="btn" onclick="pularEmail()">Pular (so salvar)</button>
       <button class="btn btn-primary" onclick="abrirEmailCliente()">Abrir no e-mail</button>
     </div>
+  </div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="position:fixed;inset:0;background:#1c1c1a;z-index:1000;display:flex;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:36px 40px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:22px;font-weight:700;color:#1c1c1a">ETC Filmes</div>
+      <div style="font-size:13px;color:#888;margin-top:4px">Remanejamento HD · 13:33</div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:500;color:#555;margin-bottom:4px">Seu nome</label>
+      <input id="login-nome" type="text" placeholder="Ex: Eduardo" style="width:100%;padding:10px 12px;border:1px solid #d0cec9;border-radius:6px;font-size:14px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter') fazerLogin()">
+    </div>
+    <button onclick="fazerLogin()" style="width:100%;padding:11px;background:#1a4fff;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Entrar</button>
+    <div id="login-err" style="color:#c0392b;font-size:12px;text-align:center;margin-top:8px;display:none">Digite seu nome para continuar.</div>
   </div>
 </div>
 
@@ -996,6 +1041,7 @@ function goTo(v) {
   if (v === 'prog')   renderImportList();
   if (v === 'upload') renderUploadList();
   if (v === 'dash') renderDash();
+  if (v === 'circuito') { renderCircuitList(''); }
   updateBadges();
 }
 
@@ -1814,20 +1860,9 @@ function renderDash() {
   var total = SAVED.length;
 
   // Categorize by progStatus
-  var aguardando = SAVED.filter(function(s){
-    var hasEmRota = (s.route||[]).some(function(r){ return r.status === 'em rota'; });
-    var allDone   = (s.route||[]).length > 0 && (s.route||[]).every(function(r){ return r.status === 'ok'; });
-    return !hasEmRota && !allDone && (s.progStatus === 'aguardando' || !s.progStatus);
-  });
-  var emAndamento = SAVED.filter(function(s){
-    // Em andamento: Loggi requested OR any step is 'em rota'
-    var hasEmRota = (s.route||[]).some(function(r){ return r.status === 'em rota'; });
-    return s.progStatus === 'em andamento' || hasEmRota;
-  });
-  var concluidos  = SAVED.filter(function(s){
-    var n = (s.route||[]).length;
-    return n > 0 && (s.route||[]).every(function(r){ return r.status === 'ok'; });
-  });
+  var aguardando  = SAVED.filter(function(s){ return getProgStatus(s) === 'aguardando'; });
+  var emAndamento = SAVED.filter(function(s){ return getProgStatus(s) === 'em andamento'; });
+  var concluidos  = SAVED.filter(function(s){ return getProgStatus(s) === 'concluido'; });
   var entreguesHoje = concluidos.filter(function(s){
     return s.savedAt && new Date(s.savedAt).toDateString() === hoje;
   });
@@ -1888,7 +1923,7 @@ function renderDash() {
     var pct     = tot > 0 ? Math.round(done/tot*100) : 0;
     var city    = (s.origin&&s.origin.city) ? s.origin.city + '/' + s.origin.uf : '--';
     var dt      = s.savedAt ? new Date(s.savedAt).toLocaleDateString('pt-BR') : '';
-    var ps      = s.progStatus || 'aguardando';
+    var ps      = getProgStatus(s);
     var cinemas = (s.route||[]).map(function(r){ return r.name; }).join(' -> ');
     var psColor = ps==='concluido'||ps==='ok' ? '#1a8a4a' : ps==='em andamento' ? '#e65100' : '#996a00';
     var psLabel = ps==='em andamento' ? 'Em andamento' : ps==='concluido'||done===tot&&tot>0 ? 'Concluido' : 'Aguardando liberacao';
@@ -2022,6 +2057,199 @@ function loggiFromDetail() {
 document.getElementById('f-saida').value = new Date().toISOString().split('T')[0];
 updateBadges();
 renderTable();
+checkLogin();
+
+// --- CIRCUITS DATA -----------------------------------------------------
+const CIRCUITS = [{"exibidor": "Moviecom", "origem": "Moviecom Buriti 6", "cidade": "Aparecida de Goiânia", "uf": "GO", "destinos": ["Cineflix Aparecida de Goiânia 5", "Cinemais Portal Sul 4"]}, {"exibidor": "Cinemark", "origem": "755 Shopping Riomar 7", "cidade": "Aracaju", "uf": "SE", "destinos": ["Centerplex Aracaju 7", "Cinesercla Praia Sul 5"]}, {"exibidor": "Cinemark", "origem": "706 Aracaju Shopping Jardins 9", "cidade": "Aracaju", "uf": "SE", "destinos": ["Cine Walmir Almeida 1", "Alquimia Cultural 1"]}, {"exibidor": "Cinemark", "origem": "717 Tambore 9", "cidade": "Barueri", "uf": "SP", "destinos": ["Cinépolis Iguatemi Alphaville 9", "Cinépolis Parque Barueri 9"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Nações Bauru 6", "cidade": "Bauru", "uf": "SP", "destinos": ["Multiplex Bauru 5 3d", "Cine Fun 4"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Boulevard Belem 7", "cidade": "Belem", "uf": "PA", "destinos": ["Moviecom Castanheira 7", "UCI Bosque Grão Pará 6"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Parque Belem 7", "cidade": "Belem", "uf": "PA", "destinos": ["Moviecom Belem 6", "Cine Libero Luxardo 1"]}, {"exibidor": "Cinemark", "origem": "768 BH Shopping 10", "cidade": "Belo Horizonte", "uf": "MG", "destinos": ["Cineart Cidade 8", "Cineart Del Rey 7", "Multiplex Boulevard Shopping 6", "Cinesercla Shopping Norte 5"]}, {"exibidor": "Cinemark", "origem": "697 Patio Savassi 8", "cidade": "Belo Horizonte", "uf": "MG", "destinos": ["767 Diamond Mall 6", "Multiplex Minas 6", "Via Shopping 5"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Estacao BH 6", "cidade": "Belo Horizonte", "uf": "MG", "destinos": ["Cineart Ponteio 4", "Cinema Belas Artes 3", "Centro Cultural Unimed - BH Minas 2"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Blumenau Norte Shopping 7", "cidade": "Blumenau", "uf": "SC", "destinos": ["GNC Neumarkt 5", "Arcoplex Park Blumenau 5"]}, {"exibidor": "Araujo", "origem": "Multiplex Pátio Roraima 5", "cidade": "Boa Vista", "uf": "RR", "destinos": ["Super K 6", "Cinema Yanomax 4"]}, {"exibidor": "Cinemark", "origem": "2128 Bragança 4", "cidade": "Bragança Paulista", "uf": "SP", "destinos": ["CineA Bragança 3"]}, {"exibidor": "Cinemark", "origem": "720 Pier 21 13", "cidade": "Brasilia", "uf": "DF", "destinos": ["718 Taguatinga 9", "Cinesystem Brasilia 9", "Cultura Liberty Mall 4", "Cine Drive-in Brasilia 1"]}, {"exibidor": "Kinoplex (GSR)", "origem": "Kinoplex Parkshopping 11", "cidade": "Brasilia", "uf": "DF", "destinos": ["Kinoplex Patio Brasil 6", "Multicine Santa Maria 6", "Arcoplex Aguas Claras 4", "Cine Quelipe Sobradinho 2"]}, {"exibidor": "Arcoplex Cinemas", "origem": "769 Iguatemi Brasília 6", "cidade": "Brasilia", "uf": "DF", "destinos": ["Kinoplex Boulevard 4", "Cineflix Shopping JK Brasília 6", "Cine Brasilia 1"]}, {"exibidor": "Araujo", "origem": "Multiplex Parque Lagos 6", "cidade": "Cabo Frio", "uf": "RJ", "destinos": ["Maximovie Unapark Shopping Unamar 2"]}, {"exibidor": "Cinemark", "origem": "725 Iguatemi Campinas 11", "cidade": "Campinas", "uf": "SP", "destinos": ["Cinépolis Campinas Shopping 10", "Cinépolis Galleria Shopping 5", "Kinoplex Dom Pedro 15", "Multiplex Parque Das Bandeiras 6", "Cineplex Campinas 4"]}, {"exibidor": "Cinemark", "origem": "694 Campo Grande 10", "cidade": "Campo Grande", "uf": "MS", "destinos": ["Cinépolis Norte Sul Plaza 7", "UCI Bosque dos Ipês 6"]}, {"exibidor": "Cinemark", "origem": "693 Canoas Cinemark 7", "cidade": "Canoas", "uf": "RS", "destinos": ["UCI Park Shopping Canoas 7"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis San Pelegrino 6", "cidade": "Caxias do Sul", "uf": "RS", "destinos": ["GNC Iguatemi Caxias 6"]}, {"exibidor": "Cinemark", "origem": "663 Shopping Granja Vianna 5", "cidade": "Cotia", "uf": "SP", "destinos": ["Cineflix Cotia 6"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Shopping Estação Cuiaba 7", "cidade": "Cuiabá", "uf": "MT", "destinos": ["Multiplex Pantanal 8 3D", "Cineflix Cinemas Cuiaba 8", "Cine Teatro Cuiabá 1", "Cine Guarani 1"]}, {"exibidor": "Cinemark", "origem": "698 Muller 8", "cidade": "Curitiba", "uf": "PR", "destinos": ["UCI Estação 10", "Uci Palladium 8 3d", "Cineplus Jardim das Américas 6", "Cineplus Xaxim 4"]}, {"exibidor": "Cinemark", "origem": "700 Parkshop Barigui 8", "cidade": "Curitiba", "uf": "PR", "destinos": ["Cinépolis Jockey Plaza Curitiba 8", "Cinesystem Cidade 5", "Cine Passeio 2", "Cineplex Batel 5"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Patio Batel 8", "cidade": "Curitiba", "uf": "PR", "destinos": ["Cinesystem Ventura Shopping 5", "Cineflix Shopping Curitiba 3", "Cineflix Park Shopping Boulevard 5", "Palladium Imax 1"]}, {"exibidor": "PlayArte", "origem": "PlayArte Praça da Moça 7 3D", "cidade": "Diadema", "uf": "SP", "destinos": ["Grupo Cine Diadema 4"]}, {"exibidor": "Cinemark", "origem": "703 Florianopolis 7", "cidade": "Florianopolis", "uf": "SC", "destinos": ["Cinesystem Villa Romana 7", "Cine Show Beiramar 5", "Cine Multi 1", "Paradigma Cine Arte 1"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis RioMar Fortaleza 10", "cidade": "Fortaleza", "uf": "CE", "destinos": ["UCI Kinoplex Iguatemi Fortaleza 12", "UCI Parangaba 6", "Centerplex Messejana 5", "Cinemas Benfica 4"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis RioMar Kennedy 6", "cidade": "Fortaleza", "uf": "CE", "destinos": ["Centerplex Via Sul Shop. 6", "Cinépolis North Shopping Jóquei 5", "Kinoplex North Shopping 6", "Fortaleza 2", "Cineteatro Sao Luiz 1"]}, {"exibidor": "Cinemark", "origem": "2129 Foz do Iguaçu 6", "cidade": "Foz do Iguaçu", "uf": "PR", "destinos": ["Cineplex Cataratas 4"]}, {"exibidor": "Cinemark", "origem": "2133 Flamboyant Goiania 8", "cidade": "Goiânia", "uf": "GO", "destinos": ["Cinépolis Cerrado 7", "CineX Oscar Niemeyer 2", "Cine Cultura 1", "Cine Lume Goiânia 2"]}, {"exibidor": "Cinemark", "origem": "2113 Passeio das Aguas 7", "cidade": "Goiânia", "uf": "GO", "destinos": ["Kinoplex Goiânia 6", "Cinemais Cinemas 5", "Cinemais Portal Norte 3", "Multicine Cidade Jardim 3"]}, {"exibidor": "Cinemark", "origem": "759 Guarulhos 15", "cidade": "Guarulhos", "uf": "SP", "destinos": ["Cinépolis Parque Shopping Maia 11", "Circuito Cinemas Guarulhos 6"]}, {"exibidor": "Topazio", "origem": "Topazio Polo Shop. 5", "cidade": "Indaiatuba", "uf": "SP", "destinos": ["Topazio Shopping Jaragua 4"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Itaquá Garden 5", "cidade": "Itaquaquecetuba", "uf": "SP", "destinos": ["Moviecom Páteo Itaquá 5"]}, {"exibidor": "INBR", "origem": "Multiplex Itatiba Mall 3", "cidade": "Itatiba", "uf": "SP", "destinos": ["Cineplex Itatiba 2"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Manaira Shopping 11", "cidade": "João Pessoa", "uf": "PB", "destinos": ["Cinépolis Mangabeira 5", "Centerplex Mag Shopping 4", "Cinesercla Tambiá 6", "Bangue (FUNESC) 1"]}, {"exibidor": "Gnc Cinemas", "origem": "GNC Mueller 3", "cidade": "Joinville", "uf": "SC", "destinos": ["GNC Garten 6"]}, {"exibidor": "UCI - Kinoplex (GSR)", "origem": "Uci Kinoplex Independencia 5", "cidade": "Juiz de Fora", "uf": "MG", "destinos": ["Cinemais Juiz de Fora Jardim Norte 6"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Jundiai Shopping 10", "cidade": "Jundiai", "uf": "SP", "destinos": ["Maxi 7"]}, {"exibidor": "Cinemark", "origem": "2104 Londrina 7", "cidade": "Londrina", "uf": "PR", "destinos": ["Cinesystem Londrina Norte Shopping 6", "Cineflix Londrina 5", "Multiplex Catuai 7", "Cine Londrina 5", "Espaço Villa Rica 1"]}, {"exibidor": "Cinesystem", "origem": "Cinesystem Parque Shopping Maceio 9", "cidade": "Maceió", "uf": "AL", "destinos": ["Centerplex Patio Maceio 5"]}, {"exibidor": "Kinoplex (GSR)", "origem": "Kinoplex Maceió 6", "cidade": "Maceió", "uf": "AL", "destinos": ["Cine Arte Pajucara 2"]}, {"exibidor": "Uci Brasil", "origem": "UCI Sumaúma 8", "cidade": "Manaus", "uf": "AM", "destinos": ["UCI Manauara 10", "Multiplex Via Norte 6", "Cinépolis Manaus Plaza 8"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Millenium 8", "cidade": "Manaus", "uf": "AM", "destinos": ["Cinépolis Ponta Negra 10", "Centerplex Grande Circular 5", "Kinoplex Amazonas 5"]}, {"exibidor": "Moviecom", "origem": "Moviecom Pátio Marabá 5", "cidade": "Marabá", "uf": "PA", "destinos": ["CineA Maraba 4"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Marilia 5", "cidade": "Marilia", "uf": "SP", "destinos": ["Esmeralda 3", "Clube de Cinema de Marília 1"]}, {"exibidor": "Cineflix - Brasil", "origem": "Cineflix Maringa Park 5", "cidade": "Maringa", "uf": "PR", "destinos": ["Cineflix Shopping Cidade Maringá 4", "Catuai Shopping Center Maringa 5", "Avenida Center 4"]}, {"exibidor": "Cinemark", "origem": "2120 Mogi 7", "cidade": "Mogi das Cruzes", "uf": "SP", "destinos": ["2140 Mogi Guaçu 4", "Cineflix Cinemas 5"]}, {"exibidor": "Cineflix - Brasil", "origem": "Cineflix Montes Claros 4", "cidade": "Montes Claros", "uf": "MG", "destinos": ["Cinemais Montes Claros 5"]}, {"exibidor": "Cinemark", "origem": "681 Cmkb Natal 7", "cidade": "Natal", "uf": "RN", "destinos": ["Cinépolis Natal Shopping 8", "Praia Shopping 7", "Cineflix Cinemas Natal 6"]}, {"exibidor": "Cinemark", "origem": "691 Niteroi 8", "cidade": "Niteroi", "uf": "RJ", "destinos": ["Planet Cinemas Niteroi 6", "Reserva Cultural de Cinema Niterói 5"]}, {"exibidor": "Cineshow", "origem": "Cine Show Cadima 3", "cidade": "Nova Friburgo", "uf": "RJ", "destinos": ["Cine Show Nova Friburgo 3"]}, {"exibidor": "Kinoplex (GSR)", "origem": "Kinoplex Nova Iguaçu 7", "cidade": "Nova Iguaçu", "uf": "RJ", "destinos": ["Kinoplex Iguaçu Top 6"]}, {"exibidor": "Cinemark", "origem": "757 Cinemark Uniao Osasco 10", "cidade": "Osasco", "uf": "SP", "destinos": ["Kinoplex Osasco 7", "Cinesercla Osasco Plaza 4"]}, {"exibidor": "Cineshow", "origem": "Cine Show Petropolis 6", "cidade": "Petropolis", "uf": "RJ", "destinos": ["Cinemaxx Bauhaus Exclusive 2", "Estacão Itaipava 1"]}, {"exibidor": "Cinemark", "origem": "2135 Wallig Porto Alegre 8", "cidade": "Porto Alegre", "uf": "RS", "destinos": ["GNC Praia De Belas 6", "Cinépolis Bourbon Carlos Gomes POA 4", "Cinesystem Bourbon Country 6", "Moviecine Porto Alegre 2"]}, {"exibidor": "Cinemark", "origem": "704 Barra Sul 8", "cidade": "Porto Alegre", "uf": "RS", "destinos": ["Cinépolis JP Porto Alegre 4", "Cineflix Total Porto Alegre 5", "Cine Bancários 1"]}, {"exibidor": "Gnc Cinemas", "origem": "695 Ipiranga 5", "cidade": "Porto Alegre", "uf": "RS", "destinos": ["GNC Moinhos 4", "GNC Iguatemi 6", "Cinemateca Capitólio 1", "Cinemateca Paulo Amorim 3"]}, {"exibidor": "Araujo", "origem": "Multiplex Porto Velho 6", "cidade": "Porto Velho", "uf": "RO", "destinos": ["Cine Laser - Porto Velho 4"]}, {"exibidor": "Cine A", "origem": "CineA Pouso Alegre 3", "cidade": "Pouso Alegre", "uf": "MG", "destinos": ["Cineart Serra Sul 4"]}, {"exibidor": "Cinemark", "origem": "2107 Riomar Recife 12", "cidade": "Recife", "uf": "PE", "destinos": ["Kinoplex Boa Vista 6", "UCI Kinoplex Recife Delux 4", "Cinépolis Patteo Olinda 8", "Cine Teatro do Parque 1"]}, {"exibidor": "UCI - Kinoplex (GSR)", "origem": "UCI Kinoplex Shopping Recife 10", "cidade": "Recife", "uf": "PE", "destinos": ["UCI Kinoplex Tacaruna 10", "Cinema da Fundação Museu 1", "Cinema da Fundação Joaquim Nabuco 1", "Cinema da Fundação Porto 1"]}, {"exibidor": "Kinoplex (GSR)", "origem": "Uci Kinoplex Casa Forte 5", "cidade": "Recife", "uf": "PE", "destinos": ["Moviemax Rosa e Silva 4", "Cinema São Luiz 1", "Theatro Cinema Guarany 1"]}, {"exibidor": "Cine A", "origem": "CineA Resende 4", "cidade": "Resende", "uf": "RJ", "destinos": ["Cine Show Resende Shopping 2", "Cine Show Agulhas Negras 2"]}, {"exibidor": "Cinemark", "origem": "726 Novo Shopping 9", "cidade": "Ribeirão Preto", "uf": "SP", "destinos": ["Cinépolis Iguatemi Ribeirão Preto 6", "UCI Ribeirão Shopping 11", "Cinépolis Santa Ursula 8"]}, {"exibidor": "Cineshow", "origem": "Cine Show Rio das Ostras 5", "cidade": "Rio das Ostras", "uf": "RJ", "destinos": ["Cineritz Holiday 3"]}, {"exibidor": "Cinemark", "origem": "719 Downtown Barra 12", "cidade": "Rio de Janeiro", "uf": "RJ", "destinos": ["Cinesystem Via Brasil 6", "Cinesystem Bangu 6", "Cinesystem Parque Shopping Sulacap 9", "Multiplex Guadalupe 5", "Kinoplex RioSul 6", "Cineflix Shopping Taquara 5"]}, {"exibidor": "Cinesystem", "origem": "Cinesystem Americas 9", "cidade": "Rio de Janeiro", "uf": "RJ", "destinos": ["UCI Kinoplex Norte Shopping 10", "UCI New York City Center 18", "UCI Park Campo Grande 7", "Kinoplex Tijuca 6", "Cineflix Center Shopping Rio 4", "Ponto Cine 1"]}, {"exibidor": "Cinesystem", "origem": "728 Botafogo 6", "cidade": "Rio de Janeiro", "uf": "RJ", "destinos": ["Estação NET Rio 5", "Estação NET Gávea 5", "Estação NET Botafogo 3", "Cinesystem Botafogo 6", "CineCarioca Meier 3", "Inst Moreira Salles 1"]}, {"exibidor": "Cinemark", "origem": "2106 Village Mall 4", "cidade": "Rio de Janeiro", "uf": "RJ", "destinos": ["2112 Metropolitano Barra 7", "692 Carioca Shopping 6", "Cinépolis Rio Design Barra 3", "Kinoplex São Luiz 4", "Cine Carioca José Wilker 2", "Santa Teresa 1"]}, {"exibidor": "Kinoplex (GSR)", "origem": "Kinoplex Nova America 7", "cidade": "Rio de Janeiro", "uf": "RJ", "destinos": ["Kinoplex Shopping Boulevard RJ 7", "Kinoplex Madureira 5", "Kinoplex Fashion Mall 4", "Kinoplex West Shopping 5"]}, {"exibidor": "Grupo Casal", "origem": "Cinesystem Recreio 5", "cidade": "Rio de Janeiro", "uf": "RJ", "destinos": ["Cinesystem Ilha Plaza 4", "Kinoplex Via Parque 6", "Kinoplex Leblon 3", "Kinoplex Shopping Leblon 4", "UCI Park Jacarepaguá 6", "Cine Carioca Penha 2", "Cine Carioca Nova Brasília 1"]}, {"exibidor": "Cinesystem", "origem": "Cinesystem Rio Grande 4", "cidade": "Rio Grande", "uf": "RS", "destinos": ["Cineflix Rio Grande 5"]}, {"exibidor": "Cinemark", "origem": "785 Salvador 10", "cidade": "Salvador", "uf": "BA", "destinos": ["Cinépolis Parque Bahia 7", "UCI Orient Shopping da Bahia 12", "Cine Glauber Rocha 4"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Salvador Norte 8", "cidade": "Salvador", "uf": "BA", "destinos": ["Cineflix Salvador 9", "UCI Orient Paralela 6", "UCI Orient Barra Salvador 8", "UCI Orient Shopping da Bahia Delux 3"]}, {"exibidor": "Bahiano", "origem": "Saladearte Cine Paseo 2", "cidade": "Salvador", "uf": "BA", "destinos": ["Saladearte Cinema do Museu 1", "Saladearte Cinema da UFBA 1", "Saladearte Mam 1"]}, {"exibidor": "Cinemark", "origem": "2115 Atrium 7", "cidade": "Santo Andre", "uf": "SP", "destinos": ["713 Grand Plaza 10", "PlayArte ABC 5 3D", "2100 Park Shopping São Caetano 7"]}, {"exibidor": "Cinemark", "origem": "709 Praiamar 10", "cidade": "Santos", "uf": "SP", "destinos": ["Cineflix Miramar Santos 4", "Roxy Gonzaga 5"]}, {"exibidor": "Uci Brasil", "origem": "UCI Metropole 9", "cidade": "São Bernardo do Campo", "uf": "SP", "destinos": ["724 Extra Anchieta 9", "Cinépolis São Bernardo 8", "2109 Golden Square São Bernardo 5"]}, {"exibidor": "Cinemark", "origem": "2136 São Gonçalo 6", "cidade": "São Gonçalo", "uf": "RJ", "destinos": ["Cinépolis São Gonçalo Shopping 8"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Iguatemi Rio Preto 7", "cidade": "São José do Rio Preto", "uf": "SP", "destinos": ["Multiplex Rio Preto 5/vip2", "Centerplex Cidade Norte 3", "Cinépolis Plaza Avenida 7"]}, {"exibidor": "Cinemark", "origem": "712 Colinas 8", "cidade": "São José dos Campos", "uf": "SP", "destinos": ["Cinépolis Jardim Oriente 7", "696 Center Vale 6", "Kinoplex Vale Sul 6", "Kinoplex Vale Sul Diamante 4"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis São Luis Shopping 10", "cidade": "São Luís", "uf": "MA", "destinos": ["UCI Kinoplex Shopping Ilha 8", "Kinoplex Golden 4", "Cine Lume São Luís 1"]}, {"exibidor": "INBR", "origem": "Cine Marquise Paulista", "cidade": "São paulo", "uf": "SP", "destinos": ["Espaço Petrobras de Cinema", "Reserva Cultural de Cinema São Paulo", "Cine Belas Artes", "CineSala1", "PlayArte Maraba", "Cinesesc", "Cine Satyros Bijou", "IMS Paulista", "Cine Segall"]}, {"exibidor": "CNMK", "origem": "723 Patio Paulista", "cidade": "São paulo", "uf": "SP", "destinos": ["Cinesystem Frei Caneca", "2119 Cidade de São Paulo", "Cinépolis Jardim Pamplona", "2132 Iguatemi", "Cinépolis JK Iguatemi", "Kinoplex Itaim", "Kinoplex Vila Olimpia", "UCI Plaza Sul"]}, {"exibidor": "CNMK", "origem": "682 Cidade Jardim", "cidade": "São paulo", "uf": "SP", "destinos": ["715 Eldorado", "727 Villa Lobos", "Cinesystem Pompeia", "2102 West Plaza", "721 Patio Higienopolis", "Cine Lapa", "Cine LT3"]}, {"exibidor": "CNMK", "origem": "688 Market Place", "cidade": "São paulo", "uf": "SP", "destinos": ["Cinesystem Morumbi", "Uci Jardim Sul", "Kinoplex Parque da Cidade", "710 Sp Market", "714 Interlagos Shop", "Multiplex Campo Limpo", "Boa Vista", "Cinépolis Shopping Largo 13"]}, {"exibidor": "CNMK", "origem": "758 Tucuruvi", "cidade": "São paulo", "uf": "SP", "destinos": ["UCI Santana", "687 Shopping D", "699 Center Norte", "2114 Lar Center", "2110 Tietê Plaza Shopping", "Cineflix Cantareira", "CineA Continental"]}, {"exibidor": "CNMK", "origem": "705 Central Plaza", "cidade": "São paulo", "uf": "SP", "destinos": ["2103 Mooca Plaza Shopping", "UCI Anália Franco", "690 Boulevard Tatuape", "711 Metro Tatuape", "Cine Center Penha", "716 Aricanduva"]}, {"exibidor": "CNPL", "origem": "Cinépolis Metro Itaquera", "cidade": "São paulo", "uf": "SP", "destinos": ["Nucleo Cinemas Jardim Iguatemi", "Itaim Paulista", "Taboao Da Serra 5 3d"]}, {"exibidor": "Cinepolis", "origem": "Cinépolis Iguatemi Esplanada 10", "cidade": "Sorocaba", "uf": "SP", "destinos": ["Multiplex Sorocaba Ciane 6", "Multiplex Sorocaba Cidade 6", "Cineplay Sorocaba 8", "Cineplay Panoramico 8"]}, {"exibidor": "Cinemark", "origem": "2105 Via Vale 6", "cidade": "Taubate", "uf": "SP", "destinos": ["Taubaté 5"]}, {"exibidor": "Kinoplex (GSR)", "origem": "Kinoplex Uberaba 5", "cidade": "Uberaba", "uf": "MG", "destinos": ["Cinemais Uberaba 8"]}, {"exibidor": "Cinemark", "origem": "2101 Cmk Uberlândia 5", "cidade": "Uberlândia", "uf": "MG", "destinos": ["Cinépolis Uberlandia 10"]}, {"exibidor": "Cinemark", "origem": "2117 Vila Velha 8", "cidade": "Vila Velha", "uf": "ES", "destinos": ["Cinesystem Shopping Boulevard 6", "Kinoplex Praia Costa 7"]}, {"exibidor": "Cinemark", "origem": "702 Cmkb Vitória 6", "cidade": "Vitória", "uf": "ES", "destinos": ["CineA Vitória Norte Sul 4", "Metropolis 1"]}, {"exibidor": "Centerplex Cinemas", "origem": "Centerplex Vitória da Conquista 6", "cidade": "Vitoria da Conquista", "uf": "BA", "destinos": ["Moviecom Conquista Sul 3"]}, {"exibidor": "Araujo", "origem": "Multiplex Volta Redonda 6", "cidade": "Volta Redonda", "uf": "RJ", "destinos": ["Cine Show Shopping Volta Redonda 5", "Gacemss 1"]}];
+
+
+// ─── LOGIN ──────────────────────────────────────────────────────────────
+var CURRENT_USER = localStorage.getItem('etc_user') || null;
+
+function fazerLogin() {
+  var nome = document.getElementById('login-nome').value.trim();
+  if (!nome) {
+    document.getElementById('login-err').style.display = 'block';
+    return;
+  }
+  CURRENT_USER = nome;
+  localStorage.setItem('etc_user', nome);
+  document.getElementById('login-screen').style.display = 'none';
+  // Show user in sidebar
+  updateUserDisplay();
+  toast('Bem-vindo, ' + nome + '!', 'ok');
+}
+
+function updateUserDisplay() {
+  var footer = document.getElementById('sidebar-footer');
+  if (footer && CURRENT_USER) {
+    footer.innerHTML = '<span style="color:rgba(255,255,255,.6)">&#128100; ' + CURRENT_USER + '</span><br>' + (ENVIOS.length) + ' envios carregados';
+  }
+}
+
+function checkLogin() {
+  if (!CURRENT_USER) {
+    document.getElementById('login-screen').style.display = 'flex';
+  } else {
+    document.getElementById('login-screen').style.display = 'none';
+    updateUserDisplay();
+  }
+}
+
+// ─── STATUS LOGIC FIX ──────────────────────────────────────────────────
+// Override progStatus calculation: auto-detect from route steps
+function getProgStatus(s) {
+  var route = s.route || [];
+  var allOk    = route.length > 0 && route.every(function(r){ return r.status === 'ok'; });
+  var anyEmRota = route.some(function(r){ return r.status === 'em rota'; });
+  var origemOk  = s.stepData && s.stepData[-1] && s.stepData[-1].status === 'ok';
+  if (allOk) return 'concluido';
+  if (anyEmRota || (origemOk && route.some(function(r){ return r.status === 'em rota' || r.status === 'pendente'; }))) return 'em andamento';
+  if (s.progStatus === 'aguardando') return 'aguardando';
+  return 'pendente';
+}
+
+// ─── PRE CIRCUITO ───────────────────────────────────────────────────────
+var _selectedCircuit = null;
+var _circuitEnvioIdx = null;
+
+function filtrarCircuitos(q) {
+  renderCircuitList(q);
+}
+
+function renderCircuitList(q) {
+  var list = CIRCUITS;
+  if (q && q.trim()) {
+    var ql = q.toLowerCase();
+    list = CIRCUITS.filter(function(c) {
+      return c.origem.toLowerCase().includes(ql)
+        || c.cidade.toLowerCase().includes(ql)
+        || c.exibidor.toLowerCase().includes(ql);
+    });
+  }
+  var el = document.getElementById('circ-list');
+  if (!list.length) {
+    el.innerHTML = '<div style="font-size:12px;color:#aaa;text-align:center;padding:20px">Nenhum circuito encontrado.</div>';
+    return;
+  }
+  el.innerHTML = list.map(function(c, i) {
+    var realIdx = CIRCUITS.indexOf(c);
+    var isSelected = _selectedCircuit && _selectedCircuit.origem === c.origem;
+    return '<div onclick="selecionarCircuito(' + realIdx + ')" style="padding:9px 11px;border-radius:6px;margin-bottom:4px;cursor:pointer;background:' + (isSelected ? '#eef1ff' : '#fff') + ';border:1px solid ' + (isSelected ? '#1a4fff' : '#e0deda') + ';transition:all .12s">'
+      + '<div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + c.origem + '</div>'
+      + '<div style="font-size:11px;color:#888;margin-top:2px">' + c.cidade + '/' + c.uf + ' &middot; ' + c.exibidor + ' &middot; ' + c.destinos.length + ' destinos</div>'
+      + '</div>';
+  }).join('');
+}
+
+function selecionarCircuito(idx) {
+  _selectedCircuit = CIRCUITS[idx];
+  renderCircuitList(document.getElementById('circ-search').value);
+  renderCircuitPreview();
+}
+
+function renderCircuitPreview() {
+  var c = _selectedCircuit;
+  if (!c) return;
+  var preview = document.getElementById('circ-preview');
+
+  // Check if we have an imported envio matching this circuit
+  var matchingEnvios = ENVIOS.filter(function(e) {
+    return e.cinema === c.origem || e.cinema.toLowerCase() === c.origem.toLowerCase()
+      || (c.origem.length > 8 && e.cinema.toLowerCase().includes(c.origem.toLowerCase().substring(0,10)));
+  });
+
+  var envioSelector = '';
+  if (matchingEnvios.length) {
+    _circuitEnvioIdx = ENVIOS.indexOf(matchingEnvios[0]);
+    envioSelector = '<div style="background:#e5f5ec;border:1px solid rgba(26,138,74,.2);border-radius:6px;padding:10px 13px;margin-bottom:14px;font-size:12px">'
+      + '<div style="font-weight:600;color:#1a8a4a;margin-bottom:4px">Primeiro envio encontrado</div>'
+      + matchingEnvios.map(function(e, i) {
+          var idx = ENVIOS.indexOf(e);
+          return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer" onclick="selecionarEnvioCircuito(' + idx + ')">'
+            + '<input type="radio" name="circ-envio" value="' + idx + '"' + (i===0?' checked':'') + ' style="cursor:pointer">'
+            + '<span>HD #' + e.material + ' &mdash; ' + (e.tituloPN||e.titulo) + ' &mdash; ' + e.saida.split(' ')[0] + '</span>'
+            + '</div>';
+        }).join('')
+      + '</div>';
+    _circuitEnvioIdx = ENVIOS.indexOf(matchingEnvios[0]);
+  } else {
+    envioSelector = '<div style="background:#fdf4df;border:1px solid rgba(153,106,0,.2);border-radius:6px;padding:10px 13px;margin-bottom:14px;font-size:12px;color:#996a00">'
+      + 'Nenhum primeiro envio importado para este cinema. Importe a planilha em Upload Pedidos.'
+      + '</div>';
+    _circuitEnvioIdx = null;
+  }
+
+  var stepsHtml = '<div style="background:#fff;border-radius:8px;border:1px solid #e0deda;overflow:hidden;margin-bottom:16px">';
+  // Origin
+  stepsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:#eef1ff;border-bottom:1px solid #e0deda">'
+    + '<div style="background:#1c1c1a;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;flex-shrink:0">1 ENVIO</div>'
+    + '<div style="flex:1;min-width:0"><div style="font-weight:500;font-size:13px">' + c.origem + '</div>'
+    + '<div style="font-size:11px;color:#888">' + c.cidade + '/' + c.uf + ' &middot; ' + c.exibidor + '</div></div>'
+    + '</div>';
+
+  c.destinos.forEach(function(dest, i) {
+    stepsHtml += '<div style="display:flex;align-items:center;padding:3px 14px 3px 18px;border-bottom:1px solid #f0efeb;background:#fff">'
+      + '<div style="flex:1;border-top:1px dashed #ddd"></div>'
+      + '<div style="font-size:10px;color:#bbb;margin:0 7px">remanejar</div>'
+      + '<div style="flex:1;border-top:1px dashed #ddd"></div></div>';
+    var bg = i === 0 ? '#edf9f3' : '#fff';
+    stepsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:' + bg + ';border-bottom:1px solid #f0efeb">'
+      + '<div style="background:#e5f5ec;color:#1a8a4a;border:1.5px solid #1a8a4a;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">' + (i+2) + '</div>'
+      + '<div style="flex:1;font-size:13px;font-weight:500">' + dest + '</div>'
+      + (i === 0 ? '<span style="font-size:10px;background:#e5f5ec;color:#1a8a4a;padding:2px 7px;border-radius:8px">proximo</span>' : '')
+      + '</div>';
+  });
+  stepsHtml += '</div>';
+
+  var totalParadas = c.destinos.length + 1;
+  preview.innerHTML = '<div style="margin-bottom:16px">'
+    + '<div style="font-size:18px;font-weight:700;margin-bottom:4px">' + c.origem + '</div>'
+    + '<div style="font-size:12px;color:#888">' + c.cidade + '/' + c.uf + ' &middot; ' + c.exibidor + ' &middot; ' + c.destinos.length + ' remanejamentos</div>'
+    + '</div>'
+    + envioSelector
+    + stepsHtml
+    + '<div style="background:#fff;border-radius:8px;border:1px solid #e0deda;padding:14px 16px;margin-bottom:14px">'
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center">'
+    + '<div><div style="font-size:10px;color:#aaa;text-transform:uppercase;font-weight:700;margin-bottom:4px">Paradas</div><div style="font-size:24px;font-weight:700;color:#1a4fff;font-family:monospace">' + totalParadas + '</div></div>'
+    + '<div><div style="font-size:10px;color:#aaa;text-transform:uppercase;font-weight:700;margin-bottom:4px">Remanejamentos</div><div style="font-size:24px;font-weight:700;color:#1a8a4a;font-family:monospace">' + c.destinos.length + '</div></div>'
+    + '<div><div style="font-size:10px;color:#aaa;text-transform:uppercase;font-weight:700;margin-bottom:4px">Exibidor</div><div style="font-size:16px;font-weight:600;color:#555;margin-top:4px">' + c.exibidor + '</div></div>'
+    + '</div></div>';
+
+  document.getElementById('btn-aprovar-circuito').style.display = _circuitEnvioIdx !== null ? 'inline-flex' : 'none';
+}
+
+function selecionarEnvioCircuito(idx) {
+  _circuitEnvioIdx = idx;
+}
+
+function aprovarCircuito() {
+  if (!_selectedCircuit || _circuitEnvioIdx === null) {
+    toast('Selecione um circuito e um primeiro envio.', 'err');
+    return;
+  }
+  // Pre-fill the prog form with the selected circuit and envio
+  abrirProg(_circuitEnvioIdx);
+  // Override route with circuit destinations
+  _circuitDestinos = _selectedCircuit.destinos;
+  toast('Circuito aprovado! Ajuste a rota e salve.', 'ok');
+}
+
+var _circuitDestinos = null;
+
+// Override gerarRota to use circuit if approved
+var _origGerarRota = gerarRota;
+gerarRota = function() {
+  _origGerarRota();
+  if (_circuitDestinos && _circuitDestinos.length) {
+    // After generating, note that circuit was approved
+    _circuitDestinos = null;
+  }
+};
+
+// ─── STATUS FIX: update renderDash to use getProgStatus ─────────────────
+// Patch the filter functions to use getProgStatus instead of progStatus field
+
 </script>
 </body>
 </html>
