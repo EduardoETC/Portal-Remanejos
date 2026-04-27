@@ -5028,9 +5028,7 @@ function promptLoggiForStep(schedIdx, stepIdx) {
     return;
   }
 
-  if (confirm('Cinema ' + from + ' liberou o HD!
-
-Acionar Loggi agora para coletar e entregar em ' + r.name + '?')) {
+  if (confirm('Cinema ' + from + ' liberou o HD! Acionar Loggi agora para coletar e entregar em ' + r.name + '?')) {
     // Pre-load this schedule and dispatch just this step
     loadSaved(schedIdx);
     setTimeout(function() {
