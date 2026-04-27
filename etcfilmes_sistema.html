@@ -478,7 +478,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <span>&#128196;</span> Exportar Excel
     </button>
   </div>
-  <div style="padding:0 22px 22px">
+  <div style="padding:0 22px 22px;max-width:100%">
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
       <input id="hist-search" class="search-input" placeholder="Buscar por filme, HD, cinema, codigo..." oninput="renderHist()" style="flex:1;min-width:200px;max-width:360px;margin-bottom:0">
       <select id="hist-status" onchange="renderHist()" style="padding:8px 12px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;background:#fff;font-family:inherit">
@@ -492,7 +492,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <button onclick="limparFiltrosHist()" style="padding:8px 12px;border:1px solid #d0cec9;border-radius:6px;font-size:12px;background:none;cursor:pointer;font-family:inherit;color:#888">Limpar filtros</button>
     </div>
     <div id="hist-kpis" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap"></div>
-    <div id="hist-table" style="background:#fff;border-radius:8px;border:1px solid #e0deda;overflow:hidden"></div>
+    <div id="hist-table" style="background:#fff;border-radius:8px;border:1px solid #e0deda;overflow:hidden;width:100%"></div>
   </div>
 </div>
 
@@ -1389,21 +1389,52 @@ function abrirProg(idx) {
     if (d.length >= 8) document.getElementById('f-saida').value = d;
   }
   var match = null;
+  var rNameLow = r.cinema.toLowerCase();
+  // 1. Exact match
   for (var i = 0; i < DB.length; i++) {
-    if (DB[i].name === r.cinema || DB[i].name.toLowerCase() === r.cinema.toLowerCase()) { match = DB[i]; break; }
+    if (DB[i].name.toLowerCase() === rNameLow) { match = DB[i]; break; }
   }
-  if (!match && r.cinema.length > 8) {
-    var prefix = r.cinema.toLowerCase().substring(0, 12);
+  // 2. Partial match — cinema name contains key words
+  if (!match) {
+    var words = rNameLow.replace(/[0-9]/g,'').trim().split(/\s+/).filter(function(w){ return w.length > 4; });
+    var bestScore = 0;
+    DB.forEach(function(c) {
+      var cLow = c.name.toLowerCase();
+      var score = words.filter(function(w){ return cLow.includes(w); }).length;
+      // Bonus: same city/UF
+      if (c.city.toUpperCase() === (r.cidade||'').toUpperCase() && c.uf.toUpperCase() === (r.uf||'').toUpperCase()) score += 3;
+      if (score > bestScore) { bestScore = score; match = c; }
+    });
+    if (bestScore < 2) match = null; // require at least 2 word matches
+  }
+  // 3. Fallback: use city center coords from any cinema in same city
+  var cityFallback = null;
+  if (!match) {
+    var citu = (r.cidade||'').toUpperCase();
+    var ufu  = (r.uf||'').toUpperCase();
     for (var i = 0; i < DB.length; i++) {
-      if (DB[i].name.toLowerCase().includes(prefix)) { match = DB[i]; break; }
+      if (DB[i].city.toUpperCase() === citu && DB[i].uf.toUpperCase() === ufu && DB[i].lat && DB[i].lon) {
+        cityFallback = DB[i];
+        break;
+      }
     }
   }
   if (match) {
     setOrigin(match);
   } else {
-    origin = { id: -1, name: r.cinema, city: r.cidade, uf: r.uf, pct: 100, lat: null, lon: null, _addr: r.endereco };
-    showOriginBadge(r.cinema, (r.cidade||'') + (r.uf?' - '+r.uf:'') + ' (importado)');
+    // Try getCinemaCoords first (uses DB fuzzy + CITY_COORDS)
+    var coordsGuess = (typeof getCinemaCoords === 'function') 
+      ? getCinemaCoords(r.cinema, r.cidade, r.uf) 
+      : (cityFallback ? {lat:cityFallback.lat,lon:cityFallback.lon} : null);
+    origin = { id: -1, name: r.cinema, city: r.cidade, uf: r.uf, pct: 100,
+               lat: coordsGuess ? coordsGuess.lat : null,
+               lon: coordsGuess ? coordsGuess.lon : null,
+               _addr: r.endereco };
+    var coordLabel = coordsGuess ? ' (coords aproximadas)' : ' (sem coords)';
+    showOriginBadge(r.cinema, (r.cidade||'') + (r.uf?' - '+r.uf:'') + coordLabel);
     document.getElementById('f-origem').value = r.cinema;
+    // Also try Nominatim for precise geocoding
+    if (r.endereco && r.cidade) geocodeOrigin(r.endereco + ', ' + r.cidade + ', ' + (r.uf||'') + ', Brasil');
   }
   if (origin) origin._envioIdx = idx;
   renderImportList();
@@ -1502,56 +1533,112 @@ function autoTr(uf) {
 
 function gerarRota() {
   if (!origin) { toast('Selecione o cinema de origem.', 'err'); return; }
-  var pct = parseInt(document.getElementById('f-pct').value);
-  // Use full CINEMA_DB (1411 cinemas) filtered by same city+UF
-  // Also include DB cinemas as fallback (they have lat/lon)
-  var cityUF  = (origin.city||'').toUpperCase();
-  var uf      = (origin.uf||'').toUpperCase();
-
-  // Get all cinemas from CINEMA_DB matching city+UF (for names)
-  var dbNames = {};
-  (CINEMA_DB||[]).forEach(function(c){ dbNames[c.n] = c; });
-
+  var pct    = parseInt(document.getElementById('f-pct').value) || 0;
+  var cityUF = (origin.city||'').toUpperCase();
+  var uf     = (origin.uf||'').toUpperCase();
   var RADIUS_KM = 15;
 
-  // Use DB (has lat/lon) - same city/UF OR within 15km radius
-  var cands = DB.filter(function(c) {
-    if (c.id === (origin.id || -1)) return false;
-    if (!c.lat || !c.lon) return false;
-    var sameCity = c.uf.toUpperCase() === uf && c.city.toUpperCase() === cityUF;
-    if (sameCity) return true;
-    // Check radius if origin has lat/lon
-    if (origin.lat && origin.lon) {
-      return haversine(origin.lat, origin.lon, c.lat, c.lon) <= RADIUS_KM;
+  // Get origin coords (may have been geocoded already)
+  var oLat = origin.lat, oLon = origin.lon;
+  if (!oLat || !oLon) {
+    // Try city coords
+    var cc = CITY_COORDS[uf + '|' + cityUF];
+    if (cc) { oLat = cc.lat; oLon = cc.lon; }
+  }
+
+  // Build candidate list from CINEMA_DB (all 1411)
+  var cands = [];
+  var originNameLow = (origin.name||'').toLowerCase();
+
+  (CINEMA_DB||[]).forEach(function(c) {
+    if (c.n.toLowerCase() === originNameLow) return; // skip origin itself
+    var cCity = (c.ci||'').toUpperCase();
+    var cUF   = (c.uf||'').toUpperCase();
+
+    // Get coords for this candidate
+    var coords = getCinemaCoords(c.n, c.ci, c.uf);
+    var cLat   = coords ? coords.lat : null;
+    var cLon   = coords ? coords.lon : null;
+
+    var sameCity = (cUF === uf && cCity === cityUF);
+    var inRadius = false;
+
+    if (oLat && oLon && cLat && cLon) {
+      inRadius = haversine(oLat, oLon, cLat, cLon) <= RADIUS_KM;
     }
-    return false;
+
+    if (!sameCity && !inRadius) return;
+
+    // pct filter (optional - only if > 0)
+    // pct is only available for DB cinemas; skip filter for CINEMA_DB-only cinemas
+    var dbEntry = DB.find(function(d){ return d.name.toLowerCase() === c.n.toLowerCase(); });
+    var cinPct  = dbEntry ? dbEntry.pct : 100; // assume 100% if not in DB
+
+    if (pct > 0 && cinPct < pct) return;
+
+    var dist = (oLat && oLon && cLat && cLon) ? haversine(oLat, oLon, cLat, cLon) : null;
+
+    cands.push({
+      id:      dbEntry ? dbEntry.id : -Math.random(),
+      name:    c.n,
+      city:    c.ci,
+      uf:      c.uf,
+      pct:     cinPct,
+      lat:     cLat,
+      lon:     cLon,
+      legDist: dist || 0,
+      email:   c.em,
+      exibidor:c.ex,
+    });
   });
 
-  // Also add cinemas from CINEMA_DB that aren't in DB (no lat/lon)
-  // Same city/UF only (no radius for these since we don't have their coords)
-  var dbCityNames = cands.map(function(c){ return c.name; });
-  (CINEMA_DB||[]).forEach(function(c){
-    if ((c.uf.toUpperCase() === uf && c.ci.toUpperCase() === cityUF)
-      && !dbCityNames.includes(c.n)
-      && c.n !== (origin.name||'')) {
-      cands.push({ id: -Math.random(), name: c.n, city: c.ci, uf: c.uf, pct: 0, lat: null, lon: null });
-    }
+  // Remove duplicates by name
+  var seen = {};
+  cands = cands.filter(function(c){
+    if (seen[c.name]) return false;
+    seen[c.name] = true;
+    return true;
   });
-  if (origin.lat && origin.lon) {
-    var rem = cands.slice(), result = [], cur = { lat: origin.lat, lon: origin.lon };
+
+  if (!cands.length) {
+    toast('Nenhum cinema encontrado em ' + cityUF + '/' + uf + '. Verifique a origem.', 'err');
+    route = []; routeSt = {}; routeTr = {}; routeIncl = {};
+    renderRoute();
+    return;
+  }
+
+  // Sort by nearest-neighbor from origin
+  if (oLat && oLon) {
+    var rem = cands.slice(), result = [];
+    var cur = { lat: oLat, lon: oLon };
     while (rem.length) {
       var bestD = Infinity, bestI = -1;
-      rem.forEach(function(c, i) { var d = haversine(cur.lat, cur.lon, c.lat, c.lon); if (d < bestD) { bestD = d; bestI = i; } });
-      result.push(Object.assign({}, rem[bestI], { legDist: bestD }));
-      cur = rem[bestI]; rem.splice(bestI, 1);
+      rem.forEach(function(c, i) {
+        if (!c.lat || !c.lon) return;
+        var d = haversine(cur.lat, cur.lon, c.lat, c.lon);
+        if (d < bestD) { bestD = d; bestI = i; }
+      });
+      if (bestI < 0) {
+        // remaining have no coords - append them
+        rem.forEach(function(c){ result.push(Object.assign({}, c, {legDist:0})); });
+        break;
+      }
+      var picked = rem.splice(bestI, 1)[0];
+      picked.legDist = bestD;
+      result.push(picked);
+      cur = picked;
     }
     route = result;
   } else {
-    route = cands.sort(function(a,b){ return b.pct - a.pct; }).map(function(c){ return Object.assign({}, c, { legDist: 0 }); });
+    // No origin coords - sort by city match then pct
+    route = cands.sort(function(a,b){ return b.pct - a.pct; }).map(function(c){ return Object.assign({}, c, {legDist:0}); });
+    toast('Coordenadas da origem nao encontradas. Rota sem otimizacao de distancia.', 'info');
   }
+
   routeSt = {}; routeTr = {}; routeIncl = {};
   renderRoute();
 }
+
 
 function renderRoute() {
   if (!origin) return;
@@ -2232,48 +2319,132 @@ function abrirDetalhe(idx) {
   _detailIdx = idx;
   document.getElementById('mpd-title').textContent = s.titulo || '--';
   document.getElementById('mpd-sub').textContent = (s.progCode ? 'Cod. ' + s.progCode + ' | ' : '') + (s.origin&&s.origin.city||'') + '/' + (s.origin&&s.origin.uf||'') + ' - HD #' + (s.material||'--');
+
   var body = '<div style="background:#f5f4f0;border-radius:6px;padding:12px 14px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px">'
     + '<div><div style="color:#888;font-size:10px">Cliente</div><div style="font-weight:500">' + (s.cliente||'--') + '</div></div>'
     + '<div><div style="color:#888;font-size:10px">Material</div><div style="font-weight:500;font-family:monospace">#' + (s.material||'--') + '</div></div>'
     + '<div><div style="color:#888;font-size:10px">Data saida</div><div style="font-weight:500">' + fmtDate(s.saida) + '</div></div>'
     + '<div><div style="color:#888;font-size:10px">Exibidor</div><div style="font-weight:500">' + (s.exibidor||'--') + '</div></div>'
     + '</div>';
-  body += '<div style="border:1px solid #e0deda;border-radius:8px;overflow:hidden">';
-  // Origin
+
+  // Origin row
   var sc0 = (s.stepCodes && s.stepCodes[0]) || s.progCode || '';
+  body += '<div style="border:1px solid #e0deda;border-radius:8px;overflow:hidden">';
   body += '<div style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:#eef1ff;border-bottom:1px solid #e0deda">'
     + '<span style="background:#1c1c1a;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">ORIGEM</span>'
     + (sc0 ? '<span style="font-family:monospace;font-size:11px;font-weight:700;color:#1a4fff;background:#e8edff;padding:2px 7px;border-radius:4px">#' + sc0 + '</span>' : '')
     + '<div style="flex:1"><div style="font-weight:500;font-size:13px">' + (s.origin&&s.origin.name||'--') + '</div>'
     + '<div style="font-size:11px;color:#888">' + (s.transpSaida||'--') + '</div></div>'
     + buildStatusSel(idx, -1) + '</div>';
-  (s.route||[]).forEach(function(r, i) {
-    var sd = s.stepData && s.stepData[i] || {};
-    var pct100 = r.pct===100;
-    var sc_i   = (s.stepCodes && s.stepCodes[i+1]) || '';
-    var stepSt = (s.stepData && s.stepData[i] && s.stepData[i].status) || r.status || 'pendente';
-    var isDone = stepSt === 'ok';
-    var stepOpacity = isDone ? 'opacity:.55;' : '';
-    var stepDecor   = isDone ? 'text-decoration:line-through;color:#aaa;' : '';
-    body += '<div style="padding:10px 13px;border-bottom:1px solid #f0efeb;' + (isDone ? 'background:#f9fdf9;' : '') + '">'
-      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-      + '<span style="background:' + (isDone?'#e5f5ec':pct100?'#e5f5ec':r.pct>=80?'#fdf4df':'#f0efeb') + ';color:' + (isDone?'#1a8a4a':pct100?'#1a8a4a':r.pct>=80?'#996a00':'#888') + ';padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600' + (isDone?';text-decoration:line-through':'') + '">' + (i+1) + '</span>'
-      + (sc_i ? '<span style="font-family:monospace;font-size:11px;font-weight:700;color:#1a4fff;background:#e8edff;padding:2px 7px;border-radius:4px">#' + sc_i + '</span>' : '')
-      + '<div style="flex:1"><div style="font-weight:500;font-size:13px;' + stepDecor + '">' + r.name + (isDone ? ' <span style="font-size:10px;background:#e5f5ec;color:#1a8a4a;padding:1px 6px;border-radius:8px;font-weight:600;text-decoration:none">&#10003; concluido</span>' : '') + '</div>'
-      + '<div style="font-size:11px;color:#888;' + stepDecor + '">' + r.city + ' - ' + r.transp + ' - ' + r.pct + '%</div></div>'
-      + buildStatusSel(idx, i) + '</div>'
-      + '<div style="display:grid;grid-template-columns:160px 1fr;gap:8px">'
-      + '<div><div style="font-size:10px;color:#aaa;margin-bottom:3px">Horario recebimento</div>'
-      + '<input type="datetime-local" value="' + (sd.recHora||'') + '" data-si="' + idx + '" data-ri="' + i + '" data-field="recHora" onchange="updDelEvt(this)" style="width:100%;padding:4px 7px;border:1px solid #d0cec9;border-radius:4px;font-size:11px;font-family:inherit;outline:none"></div>'
-      + '<div><div style="font-size:10px;color:#aaa;margin-bottom:3px">Recebido por</div>'
-      + '<input type="text" value="' + (sd.recNome||'') + '" placeholder="Nome" data-si="' + idx + '" data-ri="' + i + '" data-field="recNome" onchange="updDelEvt(this)" style="width:100%;padding:4px 7px;border:1px solid #d0cec9;border-radius:4px;font-size:11px;font-family:inherit;outline:none"></div>'
-      + (sd.tracking ? '<div style="margin-top:5px"><a href="https://www.loggi.com/rastreio/' + sd.tracking + '" target="_blank" style="font-size:11px;color:#1a4fff">Rastrear Loggi #' + sd.tracking + '</a></div>' : '')
-      + '</div>';
-  });
+  body += '<div id="detail-steps-wrap"></div>';
   body += '</div>';
+
   document.getElementById('mpd-body').innerHTML = body;
+
+  // Build steps with drag support via DOM
+  var wrap = document.getElementById('detail-steps-wrap');
+  _renderDetailSteps(idx, wrap);
   openModal('modal-prog-detail');
 }
+
+function _renderDetailSteps(schedIdx, wrap) {
+  var s = SAVED[schedIdx]; if (!s || !wrap) return;
+  wrap.innerHTML = '';
+
+  (s.route||[]).forEach(function(r, i) {
+    var sd     = (s.stepData && s.stepData[i]) || {};
+    var pct100 = r.pct === 100;
+    var sc_i   = (s.stepCodes && s.stepCodes[i+1]) || '';
+    var stepSt = sd.status || r.status || 'pendente';
+    var isDone = stepSt === 'ok';
+    var stepDecor = isDone ? 'text-decoration:line-through;color:#aaa;' : '';
+
+    var row = document.createElement('div');
+    row.style.cssText = 'padding:10px 13px;border-bottom:1px solid #f0efeb;' + (isDone ? 'background:#f9fdf9;' : '');
+    row.setAttribute('draggable', 'true');
+    row.dataset.stepIdx = i;
+
+    row.addEventListener('dragstart', function(e) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', this.dataset.stepIdx);
+      this.style.opacity = '.4';
+    });
+    row.addEventListener('dragend', function() { this.style.opacity = '1'; });
+    row.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      this.style.borderTop = '3px solid #1a4fff';
+    });
+    row.addEventListener('dragleave', function() { this.style.borderTop = ''; });
+    row.addEventListener('drop', function(e) {
+      e.preventDefault();
+      this.style.borderTop = '';
+      var fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+      var toIdx   = parseInt(this.dataset.stepIdx);
+      if (fromIdx === toIdx) return;
+      // Reorder route in SAVED
+      var moved = s.route.splice(fromIdx, 1)[0];
+      s.route.splice(toIdx, 0, moved);
+      // Reorder stepData
+      if (s.stepData) {
+        var newSd = {};
+        s.route.forEach(function(_, j) { newSd[j] = s.stepData[j] || {}; });
+        s.stepData = newSd;
+      }
+      localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+      if (typeof fbPushSaved === 'function') fbPushSaved();
+      _renderDetailSteps(schedIdx, wrap);
+    });
+
+    // Drag handle
+    var handle = document.createElement('span');
+    handle.innerHTML = '&#8597;';
+    handle.title = 'Arrastar para reordenar';
+    handle.style.cssText = 'cursor:grab;color:#ccc;font-size:16px;margin-right:6px;user-select:none;flex-shrink:0';
+
+    // Top row: handle + num + code + name + status
+    var topRow = document.createElement('div');
+    topRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px';
+    topRow.appendChild(handle);
+
+    var numSpan = document.createElement('span');
+    numSpan.textContent = i + 1;
+    numSpan.style.cssText = 'background:' + (isDone?'#e5f5ec':pct100?'#e5f5ec':r.pct>=80?'#fdf4df':'#f0efeb') + ';color:' + (isDone?'#1a8a4a':pct100?'#1a8a4a':r.pct>=80?'#996a00':'#888') + ';padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600' + (isDone?';text-decoration:line-through':'');
+    topRow.appendChild(numSpan);
+
+    if (sc_i) {
+      var codeSpan = document.createElement('span');
+      codeSpan.textContent = '#' + sc_i;
+      codeSpan.style.cssText = 'font-family:monospace;font-size:11px;font-weight:700;color:#1a4fff;background:#e8edff;padding:2px 7px;border-radius:4px';
+      topRow.appendChild(codeSpan);
+    }
+
+    var info = document.createElement('div');
+    info.style.cssText = 'flex:1';
+    info.innerHTML = '<div style="font-weight:500;font-size:13px;' + stepDecor + '">' + r.name
+      + (isDone ? ' <span style="font-size:10px;background:#e5f5ec;color:#1a8a4a;padding:1px 6px;border-radius:8px;font-weight:600;text-decoration:none">&#10003; concluido</span>' : '')
+      + '</div><div style="font-size:11px;color:#888;' + stepDecor + '">' + (r.city||'') + ' - ' + (r.transp||'--') + ' - ' + (r.pct||0) + '%</div>';
+    topRow.appendChild(info);
+
+    var selWrap = document.createElement('div');
+    selWrap.innerHTML = buildStatusSel(schedIdx, i);
+    topRow.appendChild(selWrap);
+
+    row.appendChild(topRow);
+
+    // Bottom row: recebimento fields
+    var botRow = document.createElement('div');
+    botRow.style.cssText = 'display:grid;grid-template-columns:160px 1fr;gap:8px';
+    botRow.innerHTML = '<div><div style="font-size:10px;color:#aaa;margin-bottom:3px">Horario recebimento</div>'
+      + '<input type="datetime-local" value="' + (sd.recHora||'') + '" data-si="' + schedIdx + '" data-ri="' + i + '" data-field="recHora" onchange="updDelEvt(this)" style="width:100%;padding:4px 7px;border:1px solid #d0cec9;border-radius:4px;font-size:11px;font-family:inherit;outline:none"></div>'
+      + '<div><div style="font-size:10px;color:#aaa;margin-bottom:3px">Recebido por</div>'
+      + '<input type="text" value="' + (sd.recNome||'') + '" placeholder="Nome" data-si="' + schedIdx + '" data-ri="' + i + '" data-field="recNome" onchange="updDelEvt(this)" style="width:100%;padding:4px 7px;border:1px solid #d0cec9;border-radius:4px;font-size:11px;font-family:inherit;outline:none"></div>'
+      + (sd.tracking ? '<div style="margin-top:5px"><a href="https://www.loggi.com/rastreio/' + sd.tracking + '" target="_blank" style="font-size:11px;color:#1a4fff">Rastrear Loggi #' + sd.tracking + '</a></div>' : '');
+    row.appendChild(botRow);
+
+    wrap.appendChild(row);
+  });
+}
+
 
 function buildStatusSel(schedIdx, stepIdx) {
   var s  = SAVED[schedIdx]; if (!s) return '';
@@ -2324,11 +2495,165 @@ function loggiFromDetail() {
 }
 
 // -- INIT
+
+// Fast name->coords lookup built from DB
+var _dbCoordsMap = {};
+DB.forEach(function(c){ _dbCoordsMap[c.name.toLowerCase()] = {lat:c.lat, lon:c.lon}; });
+
+// Get coords for a cinema name: try DB exact, then DB fuzzy, then CITY_COORDS
+function getCinemaCoords(name, city, uf) {
+  var nl = (name||'').toLowerCase();
+  // 1. Exact match in DB
+  if (_dbCoordsMap[nl]) return _dbCoordsMap[nl];
+  // 2. Fuzzy: words in common
+  var words = nl.replace(/[0-9]/g,'').trim().split(/\s+/).filter(function(w){ return w.length>4; });
+  var best = null, bestScore = 0;
+  DB.forEach(function(c) {
+    if (!c.lat || !c.lon) return;
+    var cl = c.name.toLowerCase();
+    var score = words.filter(function(w){ return cl.includes(w); }).length;
+    if (c.city.toUpperCase()===(city||'').toUpperCase()) score += 2;
+    if (score > bestScore) { bestScore = score; best = {lat:c.lat,lon:c.lon}; }
+  });
+  if (best && bestScore >= 2) return best;
+  // 3. City-level coords
+  var key = (uf||'').toUpperCase() + '|' + (city||'').toUpperCase();
+  if (CITY_COORDS[key]) return CITY_COORDS[key];
+  return null;
+}
+
 document.getElementById('f-saida').value = new Date().toISOString().split('T')[0];
 updateBadges();
 renderTable();
 
 // --- CIRCUITS DATA -----------------------------------------------------
+const CITY_COORDS = {
+  "AL|MACEIO":{"lat":-9.6658,"lon":-35.735},
+  "AM|MANAUS":{"lat":-3.1019,"lon":-60.025},
+  "AP|MACAPA":{"lat":0.0356,"lon":-51.0705},
+  "BA|FEIRA DE SANTANA":{"lat":-12.2664,"lon":-38.9663},
+  "BA|JEQUIE":{"lat":-13.8536,"lon":-40.0825},
+  "BA|PORTO SEGURO":{"lat":-16.4455,"lon":-39.0645},
+  "BA|SALVADOR":{"lat":-12.9714,"lon":-38.5014},
+  "BA|VITORIA DA CONQUISTA":{"lat":-14.8619,"lon":-40.8444},
+  "CE|EUSEBIO":{"lat":-3.8896,"lon":-38.4553},
+  "CE|FORTALEZA":{"lat":-3.853,"lon":-38.492},
+  "CE|SOBRAL":{"lat":-3.6886,"lon":-40.35},
+  "DF|BRASILIA":{"lat":-15.838,"lon":-48.048},
+  "ES|CACHOEIRO DE ITAPEMIRIM":{"lat":-20.849,"lon":-41.1131},
+  "ES|CARIACICA":{"lat":-20.2636,"lon":-40.4197},
+  "ES|SERRA":{"lat":-20.1286,"lon":-40.3075},
+  "ES|VITORIA":{"lat":-20.3155,"lon":-40.3128},
+  "GO|ANAPOLIS":{"lat":-16.3281,"lon":-48.953},
+  "GO|APARECIDA DE GOIANIA":{"lat":-16.823,"lon":-49.2498},
+  "GO|GOIANIA":{"lat":-16.6869,"lon":-49.2648},
+  "GO|LUZIANIA":{"lat":-16.2525,"lon":-47.9508},
+  "GO|RIO VERDE":{"lat":-17.7981,"lon":-50.9269},
+  "GO|VALPARAISO":{"lat":-16.0722,"lon":-47.9919},
+  "MA|IMPERATRIZ":{"lat":-5.526,"lon":-47.4916},
+  "MA|SAO LUIS":{"lat":-2.5307,"lon":-44.3068},
+  "MG|BARBACENA":{"lat":-21.2264,"lon":-43.7736},
+  "MG|BELO HORIZONTE":{"lat":-19.937,"lon":-43.937},
+  "MG|BETIM":{"lat":-19.9678,"lon":-44.1989},
+  "MG|CONTAGEM":{"lat":-19.9314,"lon":-44.0536},
+  "MG|ITABIRA":{"lat":-19.6189,"lon":-43.2272},
+  "MG|JUIZ DE FORA":{"lat":-21.7642,"lon":-43.3503},
+  "MG|MONTES CLAROS":{"lat":-16.7286,"lon":-43.8614},
+  "MG|POCOS DE CALDAS":{"lat":-21.7882,"lon":-46.5619},
+  "MG|POUSO ALEGRE":{"lat":-22.2297,"lon":-45.9365},
+  "MG|SAO JOAO DEL REI":{"lat":-21.1339,"lon":-44.2605},
+  "MG|UBERABA":{"lat":-19.7478,"lon":-47.9317},
+  "MG|UBERLANDIA":{"lat":-18.9186,"lon":-48.2772},
+  "MS|CAMPO GRANDE":{"lat":-20.4697,"lon":-54.6201},
+  "MT|CUIABA":{"lat":-15.6014,"lon":-56.0979},
+  "MT|SINOP":{"lat":-11.8642,"lon":-55.5014},
+  "PA|BELEM":{"lat":-1.4558,"lon":-48.4902},
+  "PA|MARABA":{"lat":-5.3686,"lon":-49.1178},
+  "PB|CAMPINA GRANDE":{"lat":-7.2306,"lon":-35.8811},
+  "PB|JOAO PESSOA":{"lat":-7.1195,"lon":-34.845},
+  "PE|RECIFE":{"lat":-8.0522,"lon":-34.9286},
+  "PI|PARNAIBA":{"lat":-2.9052,"lon":-41.7761},
+  "PI|TERESINA":{"lat":-5.092,"lon":-42.8038},
+  "PR|CASCAVEL":{"lat":-24.9555,"lon":-53.4552},
+  "PR|CURITIBA":{"lat":-25.429,"lon":-49.2671},
+  "PR|FOZ DO IGUACU":{"lat":-25.5469,"lon":-54.5882},
+  "PR|LONDRINA":{"lat":-23.3045,"lon":-51.1696},
+  "PR|MARINGA":{"lat":-23.4205,"lon":-51.9333},
+  "PR|PATO BRANCO":{"lat":-26.2297,"lon":-52.6714},
+  "PR|PONTA GROSSA":{"lat":-25.0945,"lon":-50.1633},
+  "RJ|CABO FRIO":{"lat":-22.8789,"lon":-42.0186},
+  "RJ|CAMPOS DOS GOYTACAZES":{"lat":-21.7609,"lon":-41.329},
+  "RJ|NITEROI":{"lat":-22.8833,"lon":-43.1036},
+  "RJ|NOVA FRIBURGO":{"lat":-22.282,"lon":-42.5311},
+  "RJ|NOVA IGUACU":{"lat":-22.7556,"lon":-43.4514},
+  "RJ|PETROPOLIS":{"lat":-22.5042,"lon":-43.1792},
+  "RJ|RESENDE":{"lat":-22.4682,"lon":-44.4509},
+  "RJ|RIO DAS OSTRAS":{"lat":-22.5266,"lon":-41.9451},
+  "RJ|RIO DE JANEIRO":{"lat":-22.999,"lon":-43.343},
+  "RJ|SAO GONCALO":{"lat":-22.8269,"lon":-43.0536},
+  "RJ|SAQUAREMA":{"lat":-22.9201,"lon":-42.5098},
+  "RJ|VOLTA REDONDA":{"lat":-22.5234,"lon":-44.1041},
+  "RN|NATAL":{"lat":-5.7945,"lon":-35.211},
+  "RO|JI-PARANA":{"lat":-10.8784,"lon":-61.9492},
+  "RO|PORTO VELHO":{"lat":-8.7612,"lon":-63.9039},
+  "RR|BOA VISTA":{"lat":2.8235,"lon":-60.6758},
+  "RS|BENTO GONCALVES":{"lat":-29.17,"lon":-51.5189},
+  "RS|CANOAS":{"lat":-29.9175,"lon":-51.1844},
+  "RS|CAPAO DA CANOA":{"lat":-29.7437,"lon":-50.0017},
+  "RS|CAXIAS DO SUL":{"lat":-29.1678,"lon":-51.1794},
+  "RS|IJUI":{"lat":-28.3875,"lon":-53.9154},
+  "RS|PASSO FUNDO":{"lat":-28.262,"lon":-52.4083},
+  "RS|PELOTAS":{"lat":-31.7654,"lon":-52.3376},
+  "RS|PORTO ALEGRE":{"lat":-30.0277,"lon":-51.2287},
+  "RS|RIO GRANDE":{"lat":-32.0353,"lon":-52.0986},
+  "RS|SANTA CRUZ DO SUL":{"lat":-29.7178,"lon":-52.4253},
+  "RS|SANTA MARIA":{"lat":-29.6842,"lon":-53.8069},
+  "SC|BLUMENAU":{"lat":-26.919,"lon":-49.0661},
+  "SC|BRUSQUE":{"lat":-27.0978,"lon":-48.9175},
+  "SC|CAMBORIU":{"lat":-26.9927,"lon":-48.654},
+  "SC|CRICIUMA":{"lat":-28.6773,"lon":-49.3693},
+  "SC|FLORIANOPOLIS":{"lat":-27.5954,"lon":-48.548},
+  "SC|JOINVILLE":{"lat":-26.3044,"lon":-48.8452},
+  "SC|SAO JOSE":{"lat":-27.5939,"lon":-48.6381},
+  "SE|ARACAJU":{"lat":-10.9472,"lon":-37.0731},
+  "SP|ARACATUBA":{"lat":-21.2088,"lon":-50.4344},
+  "SP|ARARAQUARA":{"lat":-21.7945,"lon":-48.1753},
+  "SP|BARUERI":{"lat":-23.5043,"lon":-46.876},
+  "SP|BAURU":{"lat":-22.3246,"lon":-49.0658},
+  "SP|BOTUCATU":{"lat":-22.8855,"lon":-48.4451},
+  "SP|BRAGANCA PAULISTA":{"lat":-22.9527,"lon":-46.5418},
+  "SP|CAMPINAS":{"lat":-22.9056,"lon":-47.0608},
+  "SP|CATANDUVA":{"lat":-21.1378,"lon":-48.9728},
+  "SP|COTIA":{"lat":-23.6034,"lon":-46.9194},
+  "SP|GUARUJA":{"lat":-23.9933,"lon":-46.2566},
+  "SP|GUARULHOS":{"lat":-23.4628,"lon":-46.5333},
+  "SP|INDAIATUBA":{"lat":-23.0899,"lon":-47.2187},
+  "SP|ITATIBA":{"lat":-23.0053,"lon":-46.8383},
+  "SP|JUNDIAI":{"lat":-23.1864,"lon":-46.898},
+  "SP|LENCOIS PAULISTA":{"lat":-22.5986,"lon":-48.7995},
+  "SP|LIMEIRA":{"lat":-22.5649,"lon":-47.4019},
+  "SP|MOGI DAS CRUZES":{"lat":-23.5225,"lon":-46.188},
+  "SP|MOGI GUACU":{"lat":-22.3723,"lon":-46.9427},
+  "SP|OSASCO":{"lat":-23.5325,"lon":-46.7919},
+  "SP|PRESIDENTE PRUDENTE":{"lat":-22.1256,"lon":-51.3886},
+  "SP|RIBEIRAO PRETO":{"lat":-21.1699,"lon":-47.8099},
+  "SP|SANTA BARBARA DO OESTE":{"lat":-22.7539,"lon":-47.414},
+  "SP|SANTO ANDRE":{"lat":-23.6639,"lon":-46.5338},
+  "SP|SANTOS":{"lat":-23.9618,"lon":-46.3322},
+  "SP|SAO BERNARDO DO CAMPO":{"lat":-23.6939,"lon":-46.565},
+  "SP|SAO CARLOS":{"lat":-22.0154,"lon":-47.8914},
+  "SP|SAO JOSE DO RIO PRETO":{"lat":-20.8197,"lon":-49.3794},
+  "SP|SAO JOSE DOS CAMPOS":{"lat":-23.1794,"lon":-45.8869},
+  "SP|SAO PAULO":{"lat":-23.5207,"lon":-46.7283},
+  "SP|SAO ROQUE":{"lat":-23.5284,"lon":-47.1367},
+  "SP|SOROCABA":{"lat":-23.5015,"lon":-47.458},
+  "SP|SUMARE":{"lat":-22.8219,"lon":-47.2669},
+  "SP|TAUBATE":{"lat":-23.0265,"lon":-45.5558},
+  "TO|ARAGUAINA":{"lat":-7.1927,"lon":-48.2043},
+  "TO|GURUPI":{"lat":-11.7281,"lon":-49.0672},
+  "TO|PALMAS":{"lat":-10.2491,"lon":-48.3243}
+};
+
 const CINEMA_DB = [
 {n:"Bella Citta 2",ex:"ARCO",ci:"PASSO FUNDO",uf:"RS",end:"Avenida Coronel Chicuta, 355",em:["arcoirisbellacitta@arcoplex.com.br", "arcoplex3d@gmail.com"]},
 {n:"Arcoplex Aguas Claras 4",ex:"ARCO",ci:"BRASILIA",uf:"DF",end:"Avenida das Araucárias, 1835",em:["arcoplex3d@gmail.com", "arcoplexaguasclaras@gmail.com", "arcoplexaguasclaras@arcoplex.com.br"]},
@@ -4258,7 +4583,7 @@ function renderHist() {
 
   var colStyle = 'padding:10px 12px;font-size:12px;border-bottom:1px solid #f0efeb;vertical-align:middle;';
   var hStyle   = 'padding:9px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aaa;background:#f5f4f0;border-bottom:1px solid #e0deda;';
-  var html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;white-space:nowrap">'
+  var html = '<div style="overflow-x:auto;width:100%"><table style="width:100%;border-collapse:collapse;white-space:nowrap">'
     + '<thead><tr>'
     + '<th style="' + hStyle + '">Codigo</th>'
     + '<th style="' + hStyle + '">Filme</th>'
@@ -4351,6 +4676,28 @@ function exportarHistorico() {
   a.click();
   URL.revokeObjectURL(url);
   toast('Exportado! Abra o arquivo no Excel.', 'ok');
+}
+
+// Geocoding: get lat/lon for origin when not in DB
+async function geocodeOrigin(address) {
+  // Use nominatim (OpenStreetMap) - free, no API key needed
+  try {
+    var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address);
+    var resp = await fetch(url, { headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'ETCFilmesPortal/1.0' } });
+    var data = await resp.json();
+    if (data && data.length > 0) {
+      var lat = parseFloat(data[0].lat);
+      var lon = parseFloat(data[0].lon);
+      if (origin && !isNaN(lat) && !isNaN(lon)) {
+        origin.lat = lat;
+        origin.lon = lon;
+        showOriginBadge(origin.name, (origin.city||'') + (origin.uf?' - '+origin.uf:'') + ' (localizado)');
+        toast('Coordenadas encontradas para ' + origin.name, 'ok');
+      }
+    }
+  } catch(e) {
+    console.warn('Geocode error:', e.message);
+  }
 }
 
 // Check login last (after all functions defined)
