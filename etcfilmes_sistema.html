@@ -203,6 +203,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <button class="nav-btn" id="nb-circuito" onclick="goTo('circuito')">
     <span class="icon">&#127917;</span> Pre Circuito
   </button>
+  <button class="nav-btn" id="nb-hist" onclick="goTo('hist')">
+    <span class="icon">&#128197;</span> Historico
+  </button>
   <div class="sidebar-section">Configuracao</div>
   <button class="nav-btn" id="nb-upload" onclick="goTo('upload')">
     <span class="icon">&#128228;</span> Upload Pedidos
@@ -438,6 +441,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 </div><!-- /main -->
 
 <!-- MODALS -->
+<div class="view" id="view-hist">
+  <div class="ph">
+    <div><h1>Historico</h1><p id="hist-sub">Todas as movimentacoes registradas</p></div>
+    <button class="btn btn-dark" onclick="exportarHistorico()" style="display:flex;align-items:center;gap:6px">
+      <span>&#128196;</span> Exportar Excel
+    </button>
+  </div>
+  <div style="padding:0 22px 22px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+      <input id="hist-search" class="search-input" placeholder="Buscar por filme, HD, cinema, codigo..." oninput="renderHist()" style="flex:1;min-width:200px;max-width:360px;margin-bottom:0">
+      <select id="hist-status" onchange="renderHist()" style="padding:8px 12px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;background:#fff;font-family:inherit">
+        <option value="all">Todos os status</option>
+        <option value="aguardando">Aguardando liberacao</option>
+        <option value="em andamento">Em andamento</option>
+        <option value="concluido">Concluido</option>
+      </select>
+      <input id="hist-date-from" type="date" onchange="renderHist()" style="padding:8px 10px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;font-family:inherit" title="De">
+      <input id="hist-date-to" type="date" onchange="renderHist()" style="padding:8px 10px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;font-family:inherit" title="Ate">
+      <button onclick="limparFiltrosHist()" style="padding:8px 12px;border:1px solid #d0cec9;border-radius:6px;font-size:12px;background:none;cursor:pointer;font-family:inherit;color:#888">Limpar filtros</button>
+    </div>
+    <div id="hist-kpis" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap"></div>
+    <div id="hist-table" style="background:#fff;border-radius:8px;border:1px solid #e0deda;overflow:hidden"></div>
+  </div>
+</div>
+
 <div class="overlay" id="modal-confirm">
   <div class="modal">
     <div class="modal-head">
@@ -1063,6 +1091,8 @@ function goTo(v) {
   document.querySelectorAll('.view').forEach(function(el){ el.classList.remove('active'); });
   document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
   document.getElementById('view-' + v).classList.add('active');
+  if (v === 'hist') renderHist();
+  if (v === 'dash') renderDash();
   document.getElementById('nb-' + v).classList.add('active');
   if (v === 'envios') renderTable();
   if (v === 'prog')   renderImportList();
@@ -1626,9 +1656,14 @@ function filteredRoute() {
 function buildSchedObj() {
   var trRem = document.getElementById('f-transp-rem').value || autoTr(origin.uf || '');
   var fr = filteredRoute();
+  // Generate one unique code per trecho (origin + each destination)
+  var stepCodes = [];
+  for (var _sc = 0; _sc < fr.length + 1; _sc++) { stepCodes.push(getNextProgCode()); }
+
   return {
     id: Date.now(), savedAt: new Date().toISOString(),
-    progCode: getNextProgCode(),
+    progCode: stepCodes[0],   // code for the origin/saida step
+    stepCodes: stepCodes,     // [origin, dest1, dest2, ...]
     titulo:      document.getElementById('f-titulo').value,
     cliente:     document.getElementById('f-cliente').value,
     material:    document.getElementById('f-material').value,
@@ -2119,19 +2154,27 @@ function abrirDetalhe(idx) {
     + '</div>';
   body += '<div style="border:1px solid #e0deda;border-radius:8px;overflow:hidden">';
   // Origin
+  var sc0 = (s.stepCodes && s.stepCodes[0]) || s.progCode || '';
   body += '<div style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:#eef1ff;border-bottom:1px solid #e0deda">'
     + '<span style="background:#1c1c1a;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">ORIGEM</span>'
+    + (sc0 ? '<span style="font-family:monospace;font-size:11px;font-weight:700;color:#1a4fff;background:#e8edff;padding:2px 7px;border-radius:4px">#' + sc0 + '</span>' : '')
     + '<div style="flex:1"><div style="font-weight:500;font-size:13px">' + (s.origin&&s.origin.name||'--') + '</div>'
     + '<div style="font-size:11px;color:#888">' + (s.transpSaida||'--') + '</div></div>'
     + buildStatusSel(idx, -1) + '</div>';
   (s.route||[]).forEach(function(r, i) {
     var sd = s.stepData && s.stepData[i] || {};
     var pct100 = r.pct===100;
-    body += '<div style="padding:10px 13px;border-bottom:1px solid #f0efeb">'
+    var sc_i   = (s.stepCodes && s.stepCodes[i+1]) || '';
+    var stepSt = (s.stepData && s.stepData[i] && s.stepData[i].status) || r.status || 'pendente';
+    var isDone = stepSt === 'ok';
+    var stepOpacity = isDone ? 'opacity:.55;' : '';
+    var stepDecor   = isDone ? 'text-decoration:line-through;color:#aaa;' : '';
+    body += '<div style="padding:10px 13px;border-bottom:1px solid #f0efeb;' + (isDone ? 'background:#f9fdf9;' : '') + '">'
       + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-      + '<span style="background:' + (pct100?'#e5f5ec':r.pct>=80?'#fdf4df':'#f0efeb') + ';color:' + (pct100?'#1a8a4a':r.pct>=80?'#996a00':'#888') + ';padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600">' + (i+1) + '</span>'
-      + '<div style="flex:1"><div style="font-weight:500;font-size:13px">' + r.name + '</div>'
-      + '<div style="font-size:11px;color:#888">' + r.city + ' - ' + r.transp + ' - ' + r.pct + '%</div></div>'
+      + '<span style="background:' + (isDone?'#e5f5ec':pct100?'#e5f5ec':r.pct>=80?'#fdf4df':'#f0efeb') + ';color:' + (isDone?'#1a8a4a':pct100?'#1a8a4a':r.pct>=80?'#996a00':'#888') + ';padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600' + (isDone?';text-decoration:line-through':'') + '">' + (i+1) + '</span>'
+      + (sc_i ? '<span style="font-family:monospace;font-size:11px;font-weight:700;color:#1a4fff;background:#e8edff;padding:2px 7px;border-radius:4px">#' + sc_i + '</span>' : '')
+      + '<div style="flex:1"><div style="font-weight:500;font-size:13px;' + stepDecor + '">' + r.name + (isDone ? ' <span style="font-size:10px;background:#e5f5ec;color:#1a8a4a;padding:1px 6px;border-radius:8px;font-weight:600;text-decoration:none">&#10003; concluido</span>' : '') + '</div>'
+      + '<div style="font-size:11px;color:#888;' + stepDecor + '">' + r.city + ' - ' + r.transp + ' - ' + r.pct + '%</div></div>'
       + buildStatusSel(idx, i) + '</div>'
       + '<div style="display:grid;grid-template-columns:160px 1fr;gap:8px">'
       + '<div><div style="font-size:10px;color:#aaa;margin-bottom:3px">Horario recebimento</div>'
@@ -3972,6 +4015,212 @@ if (FB_CONFIG && FB_CONFIG.apiKey) {
     document.head.appendChild(_s2);
   };
   document.head.appendChild(_s1);
+}
+
+// --- HISTORICO -----------------------------------------------------------
+function renderHist() {
+  var q      = (document.getElementById('hist-search')  && document.getElementById('hist-search').value  || '').toLowerCase();
+  var stFilt = (document.getElementById('hist-status')  && document.getElementById('hist-status').value  || 'all');
+  var dFrom  = (document.getElementById('hist-date-from') && document.getElementById('hist-date-from').value || '');
+  var dTo    = (document.getElementById('hist-date-to')   && document.getElementById('hist-date-to').value   || '');
+
+  // Flatten all schedules into rows (one row per step/trecho)
+  var rows = [];
+  SAVED.forEach(function(s) {
+    var ps = getProgStatus(s);
+    // Apply status filter at schedule level
+    if (stFilt !== 'all' && ps !== stFilt) return;
+
+    var saida = s.saida || '';
+    if (dFrom && saida && saida < dFrom) return;
+    if (dTo   && saida && saida > dTo)   return;
+
+    // Build row for origin (saida)
+    var originCode = (s.stepCodes && s.stepCodes[0]) || s.progCode || '--';
+    var originStatus = (s.stepData && s.stepData[-1] && s.stepData[-1].status) || 'pendente';
+    rows.push({
+      sId:      s.id,
+      schedIdx: SAVED.indexOf(s),
+      titulo:   s.titulo || '--',
+      material: s.material || '--',
+      cliente:  s.cliente || '--',
+      exibidor: s.exibidor || '--',
+      saida:    s.saida || '',
+      prazo:    s.prazo || '',
+      code:     originCode,
+      tipo:     'Saida',
+      de:       'ETC Filmes',
+      para:     (s.origin && s.origin.name) || '--',
+      cidade:   (s.origin && s.origin.city) || '',
+      uf:       (s.origin && s.origin.uf)   || '',
+      transp:   s.transpSaida || '--',
+      status:   originStatus,
+      progStatus: ps,
+      responsavel: s.responsavel || '',
+    });
+
+    // Rows for each remaneio step
+    (s.route || []).forEach(function(r, i) {
+      var stepCode = (s.stepCodes && s.stepCodes[i+1]) || '--';
+      var sd   = (s.stepData && s.stepData[i]) || {};
+      var st   = sd.status || r.status || 'pendente';
+      var from = i === 0 ? ((s.origin && s.origin.name) || '--') : (s.route[i-1] && s.route[i-1].name || '--');
+      rows.push({
+        sId:      s.id,
+        schedIdx: SAVED.indexOf(s),
+        titulo:   s.titulo || '--',
+        material: s.material || '--',
+        cliente:  s.cliente || '--',
+        exibidor: s.exibidor || '--',
+        saida:    s.saida || '',
+        prazo:    s.prazo || '',
+        code:     stepCode,
+        tipo:     'Remanejamento ' + (i+1),
+        de:       from,
+        para:     r.name,
+        cidade:   r.city || '',
+        uf:       r.uf || '',
+        transp:   r.transp || '--',
+        status:   st,
+        recHora:  sd.recHora || '',
+        recNome:  sd.recNome || '',
+        progStatus: ps,
+        responsavel: s.responsavel || '',
+      });
+    });
+  });
+
+  // Apply text search across all row fields
+  if (q) {
+    rows = rows.filter(function(r) {
+      return [r.titulo, r.material, r.code, r.de, r.para, r.cliente, r.responsavel]
+        .some(function(v){ return (v||'').toLowerCase().includes(q); });
+    });
+  }
+
+  // KPIs
+  var total    = rows.length;
+  var concl    = rows.filter(function(r){ return r.status === 'ok'; }).length;
+  var emRota   = rows.filter(function(r){ return r.status === 'em rota'; }).length;
+  var pend     = rows.filter(function(r){ return r.status === 'pendente'; }).length;
+  var kpiEl    = document.getElementById('hist-kpis');
+  var kpis     = [
+    {l:'Total trechos',   v:total,  c:'#1a4fff'},
+    {l:'Concluidos',      v:concl,  c:'#1a8a4a'},
+    {l:'Em rota',         v:emRota, c:'#e65100'},
+    {l:'Pendentes',       v:pend,   c:'#996a00'},
+  ];
+  kpiEl.innerHTML = kpis.map(function(k){
+    return '<div style="background:#fff;border:1px solid #e0deda;border-radius:8px;padding:12px 16px;min-width:120px">'
+      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#aaa;margin-bottom:6px">' + k.l + '</div>'
+      + '<div style="font-size:28px;font-weight:700;color:' + k.c + ';font-family:monospace">' + k.v + '</div>'
+      + '</div>';
+  }).join('');
+
+  document.getElementById('hist-sub').textContent = total + ' trechos de ' + SAVED.length + ' programacoes';
+
+  // Table
+  var el = document.getElementById('hist-table');
+  if (!rows.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:#aaa;font-size:13px">Nenhum resultado.</div>';
+    return;
+  }
+
+  var colStyle = 'padding:10px 12px;font-size:12px;border-bottom:1px solid #f0efeb;vertical-align:middle;';
+  var hStyle   = 'padding:9px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aaa;background:#f5f4f0;border-bottom:1px solid #e0deda;';
+  var html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;white-space:nowrap">'
+    + '<thead><tr>'
+    + '<th style="' + hStyle + '">Codigo</th>'
+    + '<th style="' + hStyle + '">Filme</th>'
+    + '<th style="' + hStyle + '">HD</th>'
+    + '<th style="' + hStyle + '">Tipo</th>'
+    + '<th style="' + hStyle + '">De</th>'
+    + '<th style="' + hStyle + '">Para</th>'
+    + '<th style="' + hStyle + '">Transportadora</th>'
+    + '<th style="' + hStyle + '">Data Saida</th>'
+    + '<th style="' + hStyle + '">Prazo</th>'
+    + '<th style="' + hStyle + '">Recebimento</th>'
+    + '<th style="' + hStyle + '">Status</th>'
+    + '<th style="' + hStyle + '">Responsavel</th>'
+    + '</tr></thead><tbody>';
+
+  rows.forEach(function(r) {
+    var isDone  = r.status === 'ok';
+    var isRota  = r.status === 'em rota';
+    var stColor = isDone ? '#1a8a4a' : isRota ? '#e65100' : '#996a00';
+    var stBg    = isDone ? '#e5f5ec'  : isRota ? '#fff2e8'  : '#fdf4df';
+    var rowBg   = isDone ? '#fafdf9'  : '#fff';
+    var decor   = isDone ? 'text-decoration:line-through;color:#bbb;' : '';
+
+    html += '<tr style="background:' + rowBg + '">'
+      + '<td style="' + colStyle + '"><span style="font-family:monospace;font-weight:700;color:#1a4fff;background:#e8edff;padding:2px 7px;border-radius:4px;font-size:11px">#' + r.code + '</span></td>'
+      + '<td style="' + colStyle + decor + 'max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.titulo + '</td>'
+      + '<td style="' + colStyle + 'font-family:monospace">#' + r.material + '</td>'
+      + '<td style="' + colStyle + '">' + (r.tipo === 'Saida' ? '<span style="background:#1c1c1a;color:#fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">SAIDA</span>' : '<span style="background:#eef1ff;color:#1a4fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600">' + r.tipo + '</span>') + '</td>'
+      + '<td style="' + colStyle + decor + 'max-width:140px;overflow:hidden;text-overflow:ellipsis">' + r.de + '</td>'
+      + '<td style="' + colStyle + decor + 'max-width:140px;overflow:hidden;text-overflow:ellipsis"><strong>' + r.para + '</strong><div style="font-size:10px;color:#aaa">' + r.cidade + (r.uf ? '/' + r.uf : '') + '</div></td>'
+      + '<td style="' + colStyle + '">' + r.transp + '</td>'
+      + '<td style="' + colStyle + '">' + (r.saida ? fmtDate(r.saida) : '--') + '</td>'
+      + '<td style="' + colStyle + '">' + (r.prazo ? fmtDate(r.prazo) : '--') + '</td>'
+      + '<td style="' + colStyle + 'font-size:11px">' + (r.recHora ? r.recHora.replace('T',' ').slice(0,16) : '--') + (r.recNome ? '<br><span style="color:#555">' + r.recNome + '</span>' : '') + '</td>'
+      + '<td style="' + colStyle + '"><span style="background:' + stBg + ';color:' + stColor + ';padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600">' + r.status + '</span></td>'
+      + '<td style="' + colStyle + '">' + (r.responsavel || '--') + '</td>'
+      + '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+function limparFiltrosHist() {
+  ['hist-search','hist-date-from','hist-date-to'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
+  var sel = document.getElementById('hist-status'); if(sel) sel.value = 'all';
+  renderHist();
+}
+
+function exportarHistorico() {
+  // Build CSV data
+  var rows = [];
+  SAVED.forEach(function(s) {
+    var originCode = (s.stepCodes && s.stepCodes[0]) || s.progCode || '';
+    var originSt   = (s.stepData && s.stepData[-1] && s.stepData[-1].status) || 'pendente';
+    rows.push([
+      originCode, s.titulo||'', s.material||'', 'Saida', 'ETC Filmes',
+      (s.origin && s.origin.name)||'', s.transpSaida||'',
+      s.saida||'', s.prazo||'', '', '', originSt, s.responsavel||'', s.cliente||''
+    ]);
+    (s.route||[]).forEach(function(r, i) {
+      var sc  = (s.stepCodes && s.stepCodes[i+1]) || '';
+      var sd  = (s.stepData && s.stepData[i]) || {};
+      var st  = sd.status || r.status || 'pendente';
+      var from = i===0 ? ((s.origin && s.origin.name)||'') : (s.route[i-1]&&s.route[i-1].name||'');
+      rows.push([
+        sc, s.titulo||'', s.material||'', 'Remanejamento '+(i+1), from,
+        r.name, r.transp||'', s.saida||'', s.prazo||'',
+        (sd.recHora||'').replace('T',' '), sd.recNome||'', st, s.responsavel||'', s.cliente||''
+      ]);
+    });
+  });
+
+  var header = ['Codigo','Filme','HD','Tipo','De','Para','Transportadora','Data Saida','Prazo','Horario Recebimento','Recebido Por','Status','Responsavel','Cliente'];
+  var csv = [header].concat(rows).map(function(row) {
+    return row.map(function(v) {
+      var s = String(v||'').replace(/"/g,'""');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s + '"' : s;
+    }).join(',');
+  }).join('\n');
+
+  var bom = '\uFEFF'; // BOM for Excel UTF-8
+  var blob = new Blob([bom + csv], {type:'text/csv;charset=utf-8;'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href   = url;
+  a.download = 'historico_etcfilmes_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Exportado! Abra o arquivo no Excel.', 'ok');
 }
 
 // Check login last (after all functions defined)
