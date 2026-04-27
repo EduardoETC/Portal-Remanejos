@@ -5038,21 +5038,34 @@ function promptLoggiForStep(schedIdx, stepIdx) {
 }
 
 function showLoggiSimModal(schedIdx, stepIdx, from, para, mat, titulo) {
-  var instrText = 'Retirar HD ' + mat + ' do filme ' + titulo + ' com o gerente do ' + from + ' - a pedido da ETC Filmes. Entregar no ' + para + ', para gerente do cinema, HD ' + mat + ' do filme ' + titulo + '.';
+  var instrText = 'Retirar HD ' + mat + ' do filme ' + titulo
+    + ' com o gerente do ' + from
+    + ' - a pedido da ETC Filmes. Entregar no ' + para
+    + ', para gerente do cinema, HD ' + mat + ' do filme ' + titulo + '.';
+
   var fakeTracking = 'SIM-' + Date.now().toString(36).toUpperCase();
   var fakeETA = new Date(Date.now() + (2 + Math.random()*3)*3600000);
   var etaStr  = fakeETA.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
 
   var modal = document.createElement('div');
+  modal.className = 'loggi-sim-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:3000;display:flex;align-items:center;justify-content:center';
-  modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
-    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
-    + '<span style="font-size:24px">&#128230;</span>'
-    + '<div><div style="font-size:16px;font-weight:700">Loggi — SIMULACAO</div>'
-    + '<div style="font-size:11px;background:#e5f5ec;color:#1a8a4a;padding:1px 8px;border-radius:8px;display:inline-block;margin-top:2px">Pedido simulado com sucesso</div></div>'
-    + '</div>'
-    + '<div style="background:#f5f4f0;border-radius:8px;padding:14px;margin-bottom:16px;font-size:12px">'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'
+
+  var box = document.createElement('div');
+  box.style.cssText = 'background:#fff;border-radius:12px;padding:24px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)';
+
+  // Header
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:16px';
+  hdr.innerHTML = '<span style="font-size:24px">&#128230;</span>'
+    + '<div><div style="font-size:16px;font-weight:700">Loggi - SIMULACAO</div>'
+    + '<div style="font-size:11px;background:#e5f5ec;color:#1a8a4a;padding:1px 8px;border-radius:8px;display:inline-block;margin-top:2px">Pedido simulado com sucesso</div></div>';
+  box.appendChild(hdr);
+
+  // Info grid
+  var grid = document.createElement('div');
+  grid.style.cssText = 'background:#f5f4f0;border-radius:8px;padding:14px;margin-bottom:12px;font-size:12px';
+  grid.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'
     + '<div><div style="color:#888;font-size:10px">De</div><div style="font-weight:600">' + from + '</div></div>'
     + '<div><div style="color:#888;font-size:10px">Para</div><div style="font-weight:600">' + para + '</div></div>'
     + '<div><div style="color:#888;font-size:10px">HD</div><div style="font-weight:600;font-family:monospace">#' + mat + '</div></div>'
@@ -5061,22 +5074,44 @@ function showLoggiSimModal(schedIdx, stepIdx, from, para, mat, titulo) {
     + '<div style="border-top:1px solid #e0deda;padding-top:10px">'
     + '<div style="color:#888;font-size:10px;margin-bottom:4px">Instrucoes ao portador</div>'
     + '<div style="font-size:12px;color:#333;line-height:1.5">' + instrText + '</div>'
-    + '</div></div>'
-    + '<div style="background:#eef1ff;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:12px">'
-    + '<div style="color:#888;font-size:10px;margin-bottom:2px">Codigo de rastreio (simulado)</div>'
-    + '<div style="font-family:monospace;font-weight:700;color:#1a4fff;font-size:14px">' + fakeTracking + '</div>'
-    + '</div>'
-    + '<div style="display:flex;gap:8px">'
-    + '<button onclick="confirmLoggiSim(' + schedIdx + ',' + stepIdx + ','' + fakeTracking + '',this.closest('.loggi-sim-modal'))" class="btn" style="flex:1">Confirmar despacho</button>'
-    + '<button onclick="this.closest('.loggi-sim-modal').remove()" style="padding:8px 16px;border:1px solid #d0cec9;border-radius:6px;background:none;cursor:pointer;font-family:inherit">Cancelar</button>'
-    + '</div>'
     + '</div>';
-  modal.className = 'loggi-sim-modal';
+  box.appendChild(grid);
+
+  // Tracking
+  var track = document.createElement('div');
+  track.style.cssText = 'background:#eef1ff;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:12px';
+  track.innerHTML = '<div style="color:#888;font-size:10px;margin-bottom:2px">Codigo de rastreio (simulado)</div>'
+    + '<div style="font-family:monospace;font-weight:700;color:#1a4fff;font-size:14px">' + fakeTracking + '</div>';
+  box.appendChild(track);
+
+  // Buttons
+  var btns = document.createElement('div');
+  btns.style.cssText = 'display:flex;gap:8px';
+
+  var btnOk = document.createElement('button');
+  btnOk.className = 'btn';
+  btnOk.style.flex = '1';
+  btnOk.textContent = 'Confirmar despacho';
+  btnOk.onclick = function() {
+    modal.remove();
+    confirmLoggiSim(schedIdx, stepIdx, fakeTracking);
+  };
+
+  var btnCancel = document.createElement('button');
+  btnCancel.style.cssText = 'padding:8px 16px;border:1px solid #d0cec9;border-radius:6px;background:none;cursor:pointer;font-family:inherit';
+  btnCancel.textContent = 'Cancelar';
+  btnCancel.onclick = function() { modal.remove(); };
+
+  btns.appendChild(btnOk);
+  btns.appendChild(btnCancel);
+  box.appendChild(btns);
+
+  modal.appendChild(box);
   document.body.appendChild(modal);
 }
 
-function confirmLoggiSim(schedIdx, stepIdx, tracking, modalEl) {
-  if (modalEl) modalEl.remove();
+
+function confirmLoggiSim(schedIdx, stepIdx, tracking) {
   var s = SAVED[schedIdx]; if (!s) return;
   if (!s.stepData) s.stepData = {};
   if (!s.stepData[stepIdx]) s.stepData[stepIdx] = {};
