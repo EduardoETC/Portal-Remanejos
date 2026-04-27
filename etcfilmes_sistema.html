@@ -1986,11 +1986,17 @@ function renderDash() {
   SAVED.forEach(function(s){ if(s.responsavel) respSet[s.responsavel] = (respSet[s.responsavel]||0)+1; });
   var respChips = document.getElementById('dash-resp-filter');
   if (respChips && Object.keys(respSet).length > 1) {
-    var chipsHtml = '<button onclick="setDashResp('all')" style="padding:3px 10px;border-radius:9px;border:1px solid ' + (dashResp==='all'?'#1a4fff':'#d0cec9') + ';background:' + (dashResp==='all'?'#eaedff':'none') + ';color:' + (dashResp==='all'?'#1a4fff':'#666') + ';font-size:11px;cursor:pointer;font-family:inherit">Todos</button>';
-    Object.keys(respSet).forEach(function(r){
-      chipsHtml += '<button onclick="setDashResp('' + r + '')" style="padding:3px 10px;border-radius:9px;border:1px solid ' + (dashResp===r?'#1a4fff':'#d0cec9') + ';background:' + (dashResp===r?'#eaedff':'none') + ';color:' + (dashResp===r?'#1a4fff':'#666') + ';font-size:11px;cursor:pointer;font-family:inherit">&#128100; ' + r + ' (' + respSet[r] + ')</button>';
-    });
-    respChips.innerHTML = chipsHtml;
+    var chipsHtml = '';
+    respChips.innerHTML = '';
+    var makeChip = function(label, val) {
+      var btn = document.createElement('button');
+      btn.textContent = label;
+      btn.style.cssText = 'padding:3px 10px;border-radius:9px;border:1px solid ' + (dashResp===val?'#1a4fff':'#d0cec9') + ';background:' + (dashResp===val?'#eaedff':'none') + ';color:' + (dashResp===val?'#1a4fff':'#666') + ';font-size:11px;cursor:pointer;font-family:inherit';
+      btn.onclick = (function(v){ return function(){ setDashResp(v); }; })(val);
+      respChips.appendChild(btn);
+    };
+    makeChip('Todos', 'all');
+    Object.keys(respSet).forEach(function(r){ makeChip(String.fromCodePoint(128100)+' '+r+' ('+respSet[r]+')', r); });
     respChips.style.display = 'flex';
   } else if (respChips) {
     respChips.style.display = 'none';
