@@ -5022,11 +5022,7 @@ function promptLoggiForStep(schedIdx, stepIdx) {
 
   // Real Loggi: check credentials
   if (!LOGGI.token && !LOGGI.clientId) {
-    if (confirm('Cinema liberou HD para coleta!
-
-Deseja acionar a Loggi agora para coletar em "' + from + '" e entregar em "' + r.name + '"?
-
-(Configure credenciais Loggi para ativar)')) {
+    if (confirm('Cinema ' + from + ' liberou o HD! Acionar Loggi agora para coletar e entregar em ' + r.name + '? (Configure credenciais Loggi para ativar)')) {
       goTo('loggi');
     }
     return;
