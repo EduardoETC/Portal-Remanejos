@@ -178,6 +178,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .step-drag-over{border-top:3px solid #1a4fff !important;}
 .drag-handle{cursor:grab;color:#ccc;font-size:16px;padding:0 4px;flex-shrink:0;user-select:none;line-height:1}
 .drag-handle:hover{color:#888}
+
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -211,7 +213,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <button class="nav-btn" id="nb-loggi" onclick="goTo('loggi')">
     <span class="icon">&#128230;</span> Loggi
   </button>
-  <div class="sidebar-footer" id="sidebar-footer">
+  <div id="sim-banner" style="display:none;background:#e65100;color:#fff;font-size:11px;font-weight:700;text-align:center;padding:6px 14px;letter-spacing:.04em">
+  &#9888; MODO SIMULACAO ATIVO
+</div>
+<div class="sidebar-footer" id="sidebar-footer">
   <div id="sf-user" style="color:rgba(255,255,255,.7);font-size:12px;margin-bottom:3px"></div>
   <div id="sf-envios">0 envios carregados</div>
   <div id="sf-online" style="margin-top:8px;display:none"></div>
@@ -440,6 +445,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <h3>Modo Simulacao Loggi</h3>
       <p style="font-size:12px;color:#888;margin-bottom:12px">Ative para testar o fluxo completo sem acionar a API real da Loggi. Ao marcar um cinema como "Liberado", o sistema mostrara um modal simulando o despacho com numero de rastreio ficticio.</p>
       <button id="btn-loggi-sim" class="btn" onclick="toggleLoggiSim()" style="transition:all .2s">Simulacao: desativada</button>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e0deda">
+        <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:6px">
+          E-mail de teste <span style="font-size:11px;font-weight:400;color:#aaa">(quando simulacao ativa, todos os emails vao para este endereco)</span>
+        </label>
+        <div style="display:flex;gap:8px">
+          <input id="sim-email" class="inp" placeholder="seu@email.com.br" style="flex:1;font-size:13px">
+          <button class="btn btn-dark" onclick="salvarSimEmail()">Salvar</button>
+        </div>
+        <div id="sim-email-status" style="font-size:11px;color:#aaa;margin-top:4px"></div>
+      </div>
     </div>
 
     <!-- Firebase section -->
@@ -571,6 +586,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <div>
         <label style="font-size:12px;font-weight:500;color:#555;margin-bottom:4px;display:block">Mensagem</label>
         <textarea id="email-corpo" rows="9" style="width:100%;padding:7px 10px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;font-family:inherit;outline:none;resize:vertical;line-height:1.6"></textarea>
+      </div>
+      <!-- CC + test -->
+      <div style="background:#f5f4f0;border-radius:6px;padding:10px 12px;margin-top:4px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <label style="display:block;font-size:11px;font-weight:500;color:#888;margin-bottom:3px">Copia para (seu e-mail)</label>
+            <input id="email-cc" type="email" placeholder="seu@email.com.br" style="width:100%;padding:6px 10px;border:1px solid #d0cec9;border-radius:6px;font-size:12px;font-family:inherit;outline:none;box-sizing:border-box">
+          </div>
+          <button onclick="enviarEmailTeste()" class="btn" style="white-space:nowrap;background:#f5f0ff;color:#6b21a8;border-color:#d8b4fe;font-size:12px;padding:7px 14px;margin-top:14px">
+            &#9993; Enviar teste para mim
+          </button>
+        </div>
       </div>
     </div>
     <div class="modal-foot">
@@ -1645,6 +1672,9 @@ function gerarRota() {
   routeSt = {}; routeTr = {}; routeIncl = {};
   renderRoute();
 
+  // After initial render, refine with real OSRM road distances
+  refineRouteWithOSRM();
+
   // Background geocoding for any route step missing coords
   route.forEach(function(c, i) {
     if (!c.lat || !c.lon) {
@@ -1745,8 +1775,9 @@ function renderRoute() {
       var d0 = haversine(origin.lat, origin.lon, c.lat, c.lon);
       distFromOrigin = ' (' + d0.toFixed(1) + 'km da origem)';
     }
+    var distBadge = c._osrmDist !== undefined ? ' <span style="font-size:9px;background:#e5f5ec;color:#1a8a4a;padding:1px 5px;border-radius:3px" title="Distancia real via estrada">&#128640;</span>' : '';
     conn.innerHTML = '<div class="conn-line"></div>'
-      + '<div class="conn-lbl">remanejar' + ((c.legDist||0) > 0 && incl ? ' - ' + c.legDist.toFixed(1) + 'km' + distFromOrigin : (distFromOrigin ? distFromOrigin.trim() : '')) + '</div>'
+      + '<div class="conn-lbl">remanejar' + ((c.legDist||0) > 0 && incl ? ' - ' + c.legDist.toFixed(1) + 'km' + distBadge + distFromOrigin : (distFromOrigin ? distFromOrigin.trim() : '')) + '</div>'
       + '<div class="conn-line"></div>';
     stepsWrap.appendChild(conn);
 
@@ -1979,7 +2010,13 @@ function abrirModalEmail(idx) {
       || (origem.length > 8 && c.n.toLowerCase().includes(origem.toLowerCase().substring(0,10)));
   });
   var autoEmail = cinemaMatch && cinemaMatch.em && cinemaMatch.em.length ? cinemaMatch.em.join('; ') : '';
-  document.getElementById('email-para').value = autoEmail;
+  // In simulation mode, redirect all emails to test address
+  if (LOGGI_SIM && SIM_EMAIL) {
+    document.getElementById('email-para').value = SIM_EMAIL;
+    document.getElementById('me-sub').textContent = 'SIMULACAO - Para: ' + SIM_EMAIL + ' (real: ' + origem + ')';
+  } else {
+    document.getElementById('email-para').value = autoEmail;
+  }
 
   var corpo = 'Ola, equipe ' + origem + '! Tudo bem?\n\n'
     + 'Enviamos para voces o HD ' + mat + ' do filme ' + titulo + ' e precisamos movimenta-lo para outro cinema. '
@@ -1990,6 +2027,10 @@ function abrirModalEmail(idx) {
     + 'Abs.';
 
   document.getElementById('email-corpo').value = corpo;
+  // Pre-fill CC with saved test email
+  var savedCC = localStorage.getItem('etc_test_email') || '';
+  var ccEl = document.getElementById('email-cc');
+  if (ccEl && savedCC) ccEl.value = savedCC;
   openModal('modal-email');
 }
 
@@ -1997,17 +2038,30 @@ function abrirEmailCliente() {
   var para    = document.getElementById('email-para').value.trim();
   var assunto = document.getElementById('email-assunto').value;
   var corpo   = document.getElementById('email-corpo').value;
+
+  // Simulation mode: force test email, prepend [SIMULACAO] to subject
+  if (LOGGI_SIM) {
+    if (!SIM_EMAIL) {
+      toast('Simulacao ativa: configure o e-mail de teste em Configuracao.', 'err');
+      return;
+    }
+    para    = SIM_EMAIL;
+    assunto = '[SIMULACAO] ' + assunto;
+    corpo   = '*** ESTE E-MAIL E UMA SIMULACAO - NAO TOMAR NENHUMA ACAO ***\n\n' + corpo;
+    toast('Simulacao: e-mail redirecionado para ' + SIM_EMAIL, 'info');
+  }
+
   var uri = 'mailto:' + encodeURIComponent(para)
     + '?subject=' + encodeURIComponent(assunto)
     + '&body='    + encodeURIComponent(corpo);
   window.open(uri);
-  // Mark as aguardando
   if (SAVED[_emailSchedIdx]) {
     SAVED[_emailSchedIdx].progStatus = 'aguardando';
     localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+    if (typeof fbPushSaved === 'function') fbPushSaved();
   }
   closeModal('modal-email');
-  toast('E-mail aberto! Programacao aguardando liberacao.', 'ok');
+  toast(LOGGI_SIM ? '[SIM] E-mail de teste enviado!' : 'E-mail aberto!', 'ok');
   renderDash();
 }
 
@@ -2118,6 +2172,32 @@ async function dispatchOne(idx) {
   var st  = document.getElementById('lgst-'  + idx);
   btn.disabled = true; btn.textContent = '...';
   st.className = 'lg-st lg-sn'; st.textContent = 'enviando...';
+
+  // SIMULATION MODE: fake a successful Loggi response
+  if (LOGGI_SIM) {
+    await new Promise(function(r){ setTimeout(r, 800 + Math.random()*600); }); // fake delay
+    var fakeKey = 'SIM-' + Date.now().toString(36).toUpperCase();
+    lgSt[idx] = 'ok';
+    st.className = 'lg-st lg-ok'; st.textContent = 'OK (SIM)';
+    btn.textContent = 'OK'; btn.style.background = '#1a8a4a'; btn.style.color = '#fff';
+    if (_activeSchedIdx !== null && SAVED[_activeSchedIdx]) {
+      SAVED[_activeSchedIdx].progStatus = 'em andamento';
+      localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+    }
+    var trackEl = document.createElement('a');
+    trackEl.className = 'lg-track';
+    trackEl.href = '#';
+    trackEl.textContent = '[SIM] Rastreio #' + fakeKey;
+    trackEl.style.color = '#1a8a4a';
+    var infoEl = document.querySelector('#lgrow-' + idx + ' .lg-info');
+    if (infoEl) infoEl.appendChild(trackEl);
+    toast('[SIM] Pedido Loggi simulado com sucesso!', 'ok');
+    var done = Object.values(lgSt).filter(function(v){ return v === 'ok'; }).length;
+    document.getElementById('ml-count').textContent = done + ' de ' + lgOrders.length + ' enviados';
+    document.getElementById('ml-prog').style.width = Math.round(done/lgOrders.length*100) + '%';
+    return;
+  }
+
   try {
     var fromA = o.from&&o.from.addressId ? {addressId:o.from.addressId} : {rawAddress:o.from&&o.from.rawAddress||o.fromName};
     var toA   = o.to&&o.to.addressId     ? {addressId:o.to.addressId}   : {rawAddress:o.to&&o.to.rawAddress||o.toName};
@@ -2512,6 +2592,14 @@ function _renderDetailSteps(schedIdx, wrap) {
     var selWrap = document.createElement('div');
     selWrap.innerHTML = buildStatusSel(schedIdx, i);
     topRow.appendChild(selWrap);
+
+    // Email button for this step
+    var emailBtn = document.createElement('button');
+    emailBtn.title = 'Enviar e-mail de liberacao para este cinema';
+    emailBtn.innerHTML = '&#9993;';
+    emailBtn.style.cssText = 'padding:3px 8px;border:1px solid #996a00;color:#996a00;background:none;border-radius:5px;font-size:13px;cursor:pointer;margin-left:4px;flex-shrink:0';
+    emailBtn.onclick = (function(si, ri){ return function(){ abrirEmailStep(si, ri); }; })(schedIdx, i);
+    topRow.appendChild(emailBtn);
 
     row.appendChild(topRow);
 
@@ -4184,6 +4272,9 @@ function updateUserDisplay() {
   var sfEnvios = document.getElementById('sf-envios');
   if (sfUser && CURRENT_USER) sfUser.textContent = String.fromCodePoint(128100) + ' ' + CURRENT_USER;
   if (sfEnvios) sfEnvios.textContent = ENVIOS.length + ' envios carregados';
+  // Show/hide simulation banner
+  var simBanner = document.getElementById('sim-banner');
+  if (simBanner) simBanner.style.display = LOGGI_SIM ? 'block' : 'none';
   // Update prog user bar
   var progName = document.getElementById('prog-user-name');
   var progDt   = document.getElementById('prog-datetime');
@@ -5004,7 +5095,9 @@ function toggleLoggiSim() {
     btn.style.background = LOGGI_SIM ? '#1a8a4a' : '';
     btn.style.color = LOGGI_SIM ? '#fff' : '';
   }
-  toast(LOGGI_SIM ? 'Modo simulacao Loggi ATIVO' : 'Modo simulacao desativado', LOGGI_SIM ? 'ok' : 'info');
+  var banner = document.getElementById('sim-banner');
+  if (banner) banner.style.display = LOGGI_SIM ? 'block' : 'none';
+  toast(LOGGI_SIM ? 'MODO SIMULACAO ATIVO - nenhum dado real sera enviado' : 'Simulacao desativada - modo real', LOGGI_SIM ? 'ok' : 'info');
 }
 
 function promptLoggiForStep(schedIdx, stepIdx) {
@@ -5126,7 +5219,7 @@ function confirmLoggiSim(schedIdx, stepIdx, tracking) {
 }
 
 // Check login last (after all functions defined)
-// Init simulation button state
+// Init simulation state on load
 (function() {
   var btn = document.getElementById('btn-loggi-sim');
   if (btn && LOGGI_SIM) {
@@ -5134,7 +5227,177 @@ function confirmLoggiSim(schedIdx, stepIdx, tracking) {
     btn.style.background = '#1a8a4a';
     btn.style.color = '#fff';
   }
+  var banner = document.getElementById('sim-banner');
+  if (banner) banner.style.display = LOGGI_SIM ? 'block' : 'none';
 })();
+
+// --- OSRM REAL ROAD DISTANCES ------------------------------------------
+async function osrmTable(oLat, oLon, dests) {
+  var valid = dests.filter(function(d){ return d.lat && d.lon; });
+  if (!valid.length) return {};
+  var results = {};
+  var chunks = [];
+  for (var i = 0; i < valid.length; i += 99) chunks.push(valid.slice(i, i + 99));
+  for (var c = 0; c < chunks.length; c++) {
+    var chunk = chunks[c];
+    var coords = oLon + ',' + oLat;
+    chunk.forEach(function(d){ coords += ';' + d.lon + ',' + d.lat; });
+    var dstList = chunk.map(function(_, i){ return i + 1; }).join(';');
+    var url = 'https://router.project-osrm.org/table/v1/driving/' + coords
+      + '?sources=0&destinations=' + dstList + '&annotations=distance';
+    try {
+      var resp = await fetch(url);
+      var data = await resp.json();
+      if (data && data.code === 'Ok' && data.distances && data.distances[0]) {
+        var dists = data.distances[0];
+        chunk.forEach(function(d, i) {
+          if (dists[i] !== null) results[d.idx] = dists[i] / 1000;
+        });
+      }
+    } catch(e) {}
+  }
+  return results;
+}
+
+async function refineRouteWithOSRM() {
+  if (!origin || !origin.lat || !origin.lon || !route.length) return;
+
+  var loadEl = document.getElementById('prog-right');
+  var notice = document.createElement('div');
+  notice.id = 'osrm-loading';
+  notice.style.cssText = 'background:#eef1ff;border-radius:6px;padding:8px 14px;font-size:12px;color:#1a4fff;margin-bottom:10px;display:flex;align-items:center;gap:8px';
+  notice.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block">&#8635;</span> Calculando distancias reais pela malha viaria...';
+  if (loadEl && loadEl.firstChild) loadEl.insertBefore(notice, loadEl.firstChild);
+
+  var dests = route.map(function(c, i){ return {lat:c.lat, lon:c.lon, idx:i}; })
+                   .filter(function(d){ return d.lat && d.lon; });
+
+  var distMap = await osrmTable(origin.lat, origin.lon, dests);
+
+  // Apply real distances and resort
+  var updated = 0;
+  route.forEach(function(c, i) {
+    if (distMap[i] !== undefined) {
+      c._osrmDist = distMap[i];
+      updated++;
+    }
+  });
+
+  if (updated > 1) {
+    // Re-sort by real road distance from origin
+    route.sort(function(a, b) {
+      var dA = a._osrmDist !== undefined ? a._osrmDist : (a.legDist || 9999);
+      var dB = b._osrmDist !== undefined ? b._osrmDist : (b.legDist || 9999);
+      return dA - dB;
+    });
+    // Set legDist = road distance from origin (shown in UI)
+    route.forEach(function(c) {
+      if (c._osrmDist !== undefined) c.legDist = c._osrmDist;
+    });
+  }
+
+  var old = document.getElementById('osrm-loading');
+  if (old) old.remove();
+
+  renderRoute();
+  if (updated > 0) toast(updated + ' distancias reais (via estrada) calculadas', 'ok');
+}
+
+
+function enviarEmailTeste() {
+  var cc      = document.getElementById('email-cc').value.trim();
+  var assunto = document.getElementById('email-assunto').value;
+  var corpo   = document.getElementById('email-corpo').value;
+
+  if (!cc) {
+    toast('Preencha o campo "Copia para" com seu e-mail.', 'err');
+    document.getElementById('email-cc').focus();
+    return;
+  }
+
+  // Save for next time
+  localStorage.setItem('etc_test_email', cc);
+
+  // Build mailto with TO = your own email, subject prefixed with [TESTE]
+  var assuntoTeste = '[TESTE] ' + assunto;
+  var corpoTeste   = '--- ESTE E UM EMAIL DE TESTE ---\n\n' + corpo
+    + '\n\n--- Enviado via Portal ETC Filmes (modo teste) ---';
+
+  var uri = 'mailto:' + encodeURIComponent(cc)
+    + '?subject=' + encodeURIComponent(assuntoTeste)
+    + '&body='    + encodeURIComponent(corpoTeste);
+
+  window.open(uri);
+  toast('Abrindo cliente de e-mail com teste para ' + cc, 'ok');
+}
+
+
+var SIM_EMAIL = localStorage.getItem('etc_sim_email') || '';
+
+function salvarSimEmail() {
+  var val = (document.getElementById('sim-email') && document.getElementById('sim-email').value || '').trim();
+  SIM_EMAIL = val;
+  localStorage.setItem('etc_sim_email', val);
+  var st = document.getElementById('sim-email-status');
+  if (st) st.textContent = val ? 'Salvo! Emails de teste vao para: ' + val : 'Limpo.';
+  toast(val ? 'E-mail de teste salvo.' : 'E-mail de teste removido.', 'ok');
+}
+
+
+// Send liberation email for a specific route step
+function abrirEmailStep(schedIdx, stepIdx) {
+  var s = SAVED[schedIdx]; if (!s) return;
+  var r = s.route && s.route[stepIdx]; if (!r) return;
+
+  // Previous stop = who delivers TO this cinema
+  var from = stepIdx === 0
+    ? ((s.origin && s.origin.name) || 'ETC Filmes')
+    : (s.route[stepIdx - 1] && s.route[stepIdx - 1].name || '--');
+
+  // Next stop = where the HD goes after this cinema
+  var next = s.route[stepIdx + 1] ? s.route[stepIdx + 1].name : null;
+
+  var mat    = s.material  || '--';
+  var titulo = s.titulo    || '--';
+  var prazo  = s.prazo ? new Date(s.prazo + 'T12:00').toLocaleDateString('pt-BR') : '--';
+
+  var assunto = (LOGGI_SIM ? '[SIMULACAO] ' : '')
+    + 'HD #' + mat + ' - ' + titulo + ' - Ingeste e Liberacao';
+
+  // Auto-fill email from CINEMA_DB
+  var cinemaMatch = CINEMA_DB && CINEMA_DB.find(function(c) {
+    return c.n === r.name || c.n.toLowerCase() === r.name.toLowerCase();
+  });
+  var autoEmail = (LOGGI_SIM && SIM_EMAIL)
+    ? SIM_EMAIL
+    : (cinemaMatch && cinemaMatch.em && cinemaMatch.em.length ? cinemaMatch.em.join('; ') : '');
+
+  var corpo = 'Ola, equipe ' + r.name + '! Tudo bem?\n\n'
+    + 'O HD ' + mat + ' do filme ' + titulo + ' ja esta com voces.\n\n'
+    + 'Por gentileza, realizem o ingest do filme na sala e, apos os testes, liberem o HD para coleta.'
+    + (next ? '\n\nO HD seguira para: ' + next + '.' : '')
+    + (s.prazo ? '\n\nPrazo de liberacao: ' + prazo + '.' : '')
+    + '\n\nFicamos no aguardo da liberacao. Obrigada!\n\nEquipe ETC Filmes';
+
+  if (LOGGI_SIM) {
+    corpo = '*** SIMULACAO - NAO TOMAR NENHUMA ACAO ***\n\n' + corpo;
+  }
+
+  // Open pre-filled email modal
+  document.getElementById('email-assunto').value = assunto;
+  document.getElementById('email-para').value    = autoEmail;
+  document.getElementById('email-corpo').value   = corpo;
+
+  if (LOGGI_SIM && SIM_EMAIL) {
+    document.getElementById('me-sub').textContent = 'SIMULACAO - Para: ' + SIM_EMAIL + ' (real: ' + r.name + ')';
+  } else {
+    document.getElementById('me-sub').textContent = 'Para: ' + r.name + (next ? ' -> ' + next : '');
+  }
+
+  _emailSchedIdx = schedIdx;
+  openModal('modal-email');
+}
+
 checkLogin();
 </script>
 </body>
