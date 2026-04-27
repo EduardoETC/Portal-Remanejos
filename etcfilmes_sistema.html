@@ -200,9 +200,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     <span class="icon">&#128202;</span> Dashboard
     <span class="nav-badge" id="badge-dash" style="display:none;background:#e65100">0</span>
   </button>
-  <button class="nav-btn" id="nb-circuito" onclick="goTo('circuito')">
-    <span class="icon">&#127917;</span> Pre Circuito
-  </button>
+
   <button class="nav-btn" id="nb-hist" onclick="goTo('hist')">
     <span class="icon">&#128197;</span> Historico
   </button>
@@ -216,6 +214,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <div class="sidebar-footer" id="sidebar-footer">
   <div id="sf-user" style="color:rgba(255,255,255,.7);font-size:12px;margin-bottom:3px"></div>
   <div id="sf-envios">0 envios carregados</div>
+  <div id="sf-online" style="margin-top:8px;display:none"></div>
 </div>
 </nav>
 
@@ -1093,6 +1092,8 @@ function goTo(v) {
   document.getElementById('view-' + v).classList.add('active');
   if (v === 'hist') renderHist();
   if (v === 'dash') renderDash();
+  var telaNames = {envios:'Primeiros Envios',prog:'Programar',dash:'Dashboard',hist:'Historico',upload:'Upload',loggi:'Configuracao'};
+  updatePresenceTela(telaNames[v] || v);
   document.getElementById('nb-' + v).classList.add('active');
   if (v === 'envios') renderTable();
   if (v === 'prog')   renderImportList();
@@ -1236,9 +1237,10 @@ function renderTable() {
 
   var q = (document.getElementById('search-q').value || '').toLowerCase();
   var list = ENVIOS.filter(function(r) {
-    return !q || r.titulo.toLowerCase().includes(q) || r.tituloPN.toLowerCase().includes(q)
-      || r.cinema.toLowerCase().includes(q) || r.material.includes(q)
-      || r.exibidor.toLowerCase().includes(q) || r.cliente.toLowerCase().includes(q);
+    return !q || (r.titulo||'').toLowerCase().includes(q) || (r.tituloPN||'').toLowerCase().includes(q)
+      || (r.cinema||'').toLowerCase().includes(q) || (r.material||'').toString().includes(q)
+      || (r.exibidor||'').toLowerCase().includes(q) || (r.cliente||'').toLowerCase().includes(q)
+      || (r.uf||'').toLowerCase().includes(q) || (r.cidade||'').toLowerCase().includes(q);
   });
 
   if (!list.length) {
@@ -1246,32 +1248,85 @@ function renderTable() {
     return;
   }
 
+  // Group by UF then city
+  var groups = {};
+  list.forEach(function(r) {
+    var uf   = (r.uf   || 'Sem UF').toUpperCase();
+    var city = (r.cidade || 'Sem cidade').toUpperCase();
+    var key  = uf + '||' + city;
+    if (!groups[key]) groups[key] = { uf: uf, city: city, items: [] };
+    groups[key].items.push(r);
+  });
+
+  // Sort groups: by UF then city
+  var sortedKeys = Object.keys(groups).sort(function(a, b) {
+    var ga = groups[a], gb = groups[b];
+    if (ga.uf   !== gb.uf)   return ga.uf.localeCompare(gb.uf);
+    return ga.city.localeCompare(gb.city);
+  });
+
+  // Group UFs for section headers
+  var ufOrder = [];
+  var ufSeen  = {};
+  sortedKeys.forEach(function(k) {
+    var uf = groups[k].uf;
+    if (!ufSeen[uf]) { ufSeen[uf] = true; ufOrder.push(uf); }
+  });
+
   var cols = '85px 1fr 160px 1fr 105px 90px 40px';
   var html = '<div class="table-wrap">'
     + '<div class="th" style="grid-template-columns:' + cols + '">'
     + '<div>HD</div><div>Filme</div><div>Cinema</div><div>Endereco</div><div>Status</div><div>Saida</div><div></div>'
     + '</div>';
 
-  list.forEach(function(r) {
-    var idx = ENVIOS.indexOf(r);
-    var stCls = r.status.toLowerCase().includes('andamento') ? 'badge-amber'
-              : r.status.toLowerCase().includes('entregue')  ? 'badge-green'
-              : r.status.toLowerCase().includes('pendente')  ? 'badge-red' : 'badge-gray';
-    var trCls = r.transp.toLowerCase().includes('loggi')  ? 'badge-orange'
-              : r.transp.toLowerCase().includes('stm')    ? 'badge-blue'
-              : r.transp.toLowerCase().includes('bem')    ? 'badge-amber' : 'badge-gray';
-    var end30 = r.endereco ? r.endereco.substring(0,30) + (r.endereco.length>30?'...':'') : '--';
-    html += '<div class="tr" style="grid-template-columns:' + cols + '" onclick="abrirProg(' + idx + ')">'
-      + '<div><span class="badge badge-dark" style="font-family:monospace;font-size:11px">#' + (r.material||'--') + '</span></div>'
-      + '<div><div class="cell-name">' + (r.tituloPN||r.titulo||'--') + '</div><div class="cell-sub">' + r.cliente + '</div></div>'
-      + '<div><div class="cell-name">' + r.cinema + '</div><div class="cell-sub">' + (r.cidade||'') + (r.uf?' - '+r.uf:'') + '</div></div>'
-      + '<div><div class="cell-name" title="' + r.endereco + '">' + end30 + '</div>'
-      + '<div class="cell-sub"><span class="badge ' + trCls + '" style="font-size:10px">' + (r.transp||'--') + '</span></div></div>'
-      + '<div><span class="badge ' + stCls + '">' + (r.status||'--') + '</span></div>'
-      + '<div style="font-size:12px;color:#555">' + fmtDate(r.saida) + '</div>'
-      + '<div><button class="btn" style="padding:4px 8px;font-size:12px" onclick="event.stopPropagation();abrirProg(' + idx + ')">-&gt;</button></div>'
+  var prevUF = null;
+  sortedKeys.forEach(function(key) {
+    var grp  = groups[key];
+    var uf   = grp.uf;
+    var city = grp.city;
+
+    // UF section header (only when UF changes)
+    if (uf !== prevUF) {
+      var ufCount = 0;
+      sortedKeys.forEach(function(k){ if(groups[k].uf === uf) ufCount += groups[k].items.length; });
+      var ufCities = sortedKeys.filter(function(k){ return groups[k].uf === uf; }).length;
+      html += '<div style="grid-column:1/-1;padding:12px 16px 8px;background:#1a4fff;display:flex;align-items:center;gap:10px;margin-top:2px">'
+        + '<span style="font-size:13px;font-weight:800;color:#fff;letter-spacing:.06em">' + uf + '</span>'
+        + '<span style="font-size:11px;color:rgba(255,255,255,.6)">' + ufCount + ' pedido' + (ufCount!==1?'s':'') + ' &mdash; ' + ufCities + ' cidade' + (ufCities!==1?'s':'') + '</span>'
+        + '</div>';
+      prevUF = uf;
+    }
+
+    // City sub-header
+    html += '<div style="grid-column:1/-1;padding:7px 16px 7px 18px;font-size:11px;font-weight:700;color:#333;background:#f0efeb;border-top:1px solid #dedad4;display:flex;align-items:center;gap:8px">'
+      + '<span style="color:#1a4fff;font-size:13px">&#9679;</span>'
+      + '<span>' + city + '</span>'
+      + '<span style="background:#e0deda;color:#888;font-weight:500;font-size:10px;padding:1px 7px;border-radius:8px;margin-left:2px">' + grp.items.length + '</span>'
       + '</div>';
+
+    // Rows
+    grp.items.forEach(function(r) {
+      var idx  = ENVIOS.indexOf(r);
+      var stCls = (r.status||'').toLowerCase().includes('andamento') ? 'badge-amber'
+                : (r.status||'').toLowerCase().includes('entregue')  ? 'badge-green'
+                : (r.status||'').toLowerCase().includes('pendente')  ? 'badge-red' : 'badge-gray';
+      var trCls = (r.transp||'').toLowerCase().includes('loggi')  ? 'badge-orange'
+                : (r.transp||'').toLowerCase().includes('stm')    ? 'badge-blue'
+                : (r.transp||'').toLowerCase().includes('bem')    ? 'badge-amber' : 'badge-gray';
+      var end30 = r.endereco ? r.endereco.substring(0,30) + (r.endereco.length>30?'...':'') : '--';
+      html += '<div class="tr" style="grid-template-columns:' + cols + ';padding-left:8px" onclick="abrirProg(' + idx + ')">'
+        + '<div><span class="badge badge-dark" style="font-family:monospace;font-size:11px">#' + (r.material||'--') + '</span></div>'
+        + '<div><div class="cell-name">' + (r.tituloPN||r.titulo||'--') + '</div><div class="cell-sub">' + (r.cliente||'') + '</div></div>'
+        + '<div><div class="cell-name">' + r.cinema + '</div><div class="cell-sub">' + city + (uf?' - '+uf:'') + '</div></div>'
+        + '<div><div class="cell-name" title="' + (r.endereco||'') + '">' + end30 + '</div>'
+        + '<div class="cell-sub"><span class="badge ' + trCls + '" style="font-size:10px">' + (r.transp||'--') + '</span></div></div>'
+        + '<div><span class="badge ' + stCls + '">' + (r.status||'--') + '</span></div>'
+        + '<div style="font-size:12px;color:#555">' + fmtDate(r.saida) + '</div>'
+        + '<div><button class="btn" style="padding:4px 8px;font-size:12px" onclick="event.stopPropagation();abrirProg(' + idx + ')">-&gt;</button></div>'
+        + '</div>';
+    });
   });
+
   html += '</div>';
   document.getElementById('table-area').innerHTML = html;
 }
@@ -3675,6 +3730,8 @@ function fazerLogin() {
   document.getElementById('login-screen').style.display = 'none';
   // Show user in sidebar
   updateUserDisplay();
+  // Start presence if Firebase already connected
+  if (_fbDb) startPresence();
   toast('Bem-vindo, ' + nome + '!', 'ok');
 }
 
@@ -3897,11 +3954,53 @@ function initFirebase() {
       _fbDb  = firebase.database();
       _fbRef = _fbDb.ref('programacoes');
       startFirebaseSync();
+      startPresence();
       updateFbStatus('Conectado', '#1a8a4a');
     } catch(e) {
       updateFbStatus('Erro: ' + e.message, '#c0392b');
     }
   }
+}
+
+// --- Presence / supervisor mode ---
+var _presenceRef = null;
+
+function startPresence() {
+  if (!_fbDb || !CURRENT_USER) return;
+  var userKey = CURRENT_USER.replace(/[^a-zA-Z0-9_-]/g, '_');
+  _presenceRef = _fbDb.ref('presenca/' + userKey);
+
+  // Write presence on connect, remove on disconnect
+  _presenceRef.onDisconnect().remove();
+  _presenceRef.set({
+    nome: CURRENT_USER,
+    tela: 'Dashboard',
+    at:   new Date().toISOString()
+  });
+
+  // Listen to all connected users
+  _fbDb.ref('presenca').on('value', function(snap) {
+    var data = snap.val() || {};
+    var users = Object.values(data).filter(function(u){ return u.nome && u.nome !== CURRENT_USER; });
+    var sfOnline = document.getElementById('sf-online');
+    if (!sfOnline) return;
+    if (!users.length) { sfOnline.style.display = 'none'; return; }
+    sfOnline.style.display = 'block';
+    sfOnline.innerHTML = '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);margin-bottom:5px">Online agora</div>'
+      + users.map(function(u) {
+          var mins = Math.round((Date.now() - new Date(u.at).getTime()) / 60000);
+          return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">'
+            + '<span style="width:6px;height:6px;border-radius:50%;background:#4cff91;flex-shrink:0"></span>'
+            + '<span style="font-size:11px;color:rgba(255,255,255,.6);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + u.nome + '</span>'
+            + '<span style="font-size:10px;color:rgba(255,255,255,.3)">' + (u.tela || '') + '</span>'
+            + '</div>';
+        }).join('');
+  });
+}
+
+function updatePresenceTela(tela) {
+  if (!_presenceRef || !CURRENT_USER) return;
+  _presenceRef.update({ tela: tela, at: new Date().toISOString() });
 }
 
 function startFirebaseSync() {
