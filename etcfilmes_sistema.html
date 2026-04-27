@@ -478,8 +478,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <span>&#128196;</span> Exportar Excel
     </button>
   </div>
-  <div style="padding:0 22px 22px;max-width:100%">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+  <div style="padding:0 0 22px 0">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;padding:0 22px">
       <input id="hist-search" class="search-input" placeholder="Buscar por filme, HD, cinema, codigo..." oninput="renderHist()" style="flex:1;min-width:200px;max-width:360px;margin-bottom:0">
       <select id="hist-status" onchange="renderHist()" style="padding:8px 12px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;background:#fff;font-family:inherit">
         <option value="all">Todos os status</option>
@@ -491,7 +491,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <input id="hist-date-to" type="date" onchange="renderHist()" style="padding:8px 10px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;font-family:inherit" title="Ate">
       <button onclick="limparFiltrosHist()" style="padding:8px 12px;border:1px solid #d0cec9;border-radius:6px;font-size:12px;background:none;cursor:pointer;font-family:inherit;color:#888">Limpar filtros</button>
     </div>
-    <div id="hist-kpis" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap"></div>
+    <div id="hist-kpis" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;padding:0 22px"></div>
     <div id="hist-table" style="background:#fff;border-radius:8px;border:1px solid #e0deda;overflow:hidden;width:100%"></div>
   </div>
 </div>
@@ -1321,9 +1321,9 @@ function renderTable() {
       var ufCount = 0;
       sortedKeys.forEach(function(k){ if(groups[k].uf === uf) ufCount += groups[k].items.length; });
       var ufCities = sortedKeys.filter(function(k){ return groups[k].uf === uf; }).length;
-      html += '<div style="grid-column:1/-1;padding:12px 16px 8px;background:#1a4fff;display:flex;align-items:center;gap:10px;margin-top:2px">'
-        + '<span style="font-size:13px;font-weight:800;color:#fff;letter-spacing:.06em">' + uf + '</span>'
-        + '<span style="font-size:11px;color:rgba(255,255,255,.6)">' + ufCount + ' pedido' + (ufCount!==1?'s':'') + ' &mdash; ' + ufCities + ' cidade' + (ufCities!==1?'s':'') + '</span>'
+      html += '<div style="grid-column:1/-1;padding:8px 16px;background:#f0f2ff;border-left:4px solid #1a4fff;border-bottom:1px solid #dde3ff;display:flex;align-items:center;gap:10px;margin-top:' + (prevUF ? '12' : '0') + 'px">'
+        + '<span style="font-size:12px;font-weight:800;color:#1a4fff;letter-spacing:.08em">' + uf + '</span>'
+        + '<span style="font-size:11px;color:#8898d4">' + ufCount + ' pedido' + (ufCount!==1?'s':'') + ' &middot; ' + ufCities + ' cidade' + (ufCities!==1?'s':'') + '</span>'
         + '</div>';
       prevUF = uf;
     }
@@ -1706,8 +1706,23 @@ function renderRoute() {
     // Connector
     var conn = document.createElement('div');
     conn.className = 'conn';
+    // Calculate distance if not set
+    if ((!c.legDist || c.legDist === 0) && c.lat && c.lon) {
+      var prevStop = i === 0 ? origin : route[i-1];
+      if (prevStop && prevStop.lat && prevStop.lon) {
+        c.legDist = haversine(prevStop.lat, prevStop.lon, c.lat, c.lon);
+      } else if (origin && origin.lat && origin.lon) {
+        c.legDist = haversine(origin.lat, origin.lon, c.lat, c.lon);
+      }
+    }
+    // Also compute distance from origin for reference
+    var distFromOrigin = '';
+    if (origin && origin.lat && origin.lon && c.lat && c.lon && i > 0) {
+      var d0 = haversine(origin.lat, origin.lon, c.lat, c.lon);
+      distFromOrigin = ' (' + d0.toFixed(1) + 'km da origem)';
+    }
     conn.innerHTML = '<div class="conn-line"></div>'
-      + '<div class="conn-lbl">remanejar' + ((c.legDist||0) > 0 && incl ? ' - ' + c.legDist.toFixed(1) + 'km' : '') + '</div>'
+      + '<div class="conn-lbl">remanejar' + ((c.legDist||0) > 0 && incl ? ' - ' + c.legDist.toFixed(1) + 'km' + distFromOrigin : (distFromOrigin ? distFromOrigin.trim() : '')) + '</div>'
       + '<div class="conn-line"></div>';
     stepsWrap.appendChild(conn);
 
@@ -4581,8 +4596,8 @@ function renderHist() {
     return;
   }
 
-  var colStyle = 'padding:10px 12px;font-size:12px;border-bottom:1px solid #f0efeb;vertical-align:middle;';
-  var hStyle   = 'padding:9px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aaa;background:#f5f4f0;border-bottom:1px solid #e0deda;';
+  var colStyle = 'padding:10px 14px;font-size:12px;border-bottom:1px solid #f0efeb;vertical-align:middle;';
+  var hStyle   = 'padding:9px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aaa;background:#f5f4f0;border-bottom:1px solid #e0deda;text-align:left';
   var html = '<div style="overflow-x:auto;width:100%"><table style="width:100%;border-collapse:collapse;white-space:nowrap">'
     + '<thead><tr>'
     + '<th style="' + hStyle + '">Codigo</th>'
@@ -4636,46 +4651,111 @@ function limparFiltrosHist() {
 }
 
 function exportarHistorico() {
-  // Build CSV data
+  // Collect filtered rows matching current hist filters
+  var q      = (document.getElementById('hist-search')  && document.getElementById('hist-search').value  || '').toLowerCase();
+  var stFilt = (document.getElementById('hist-status')  && document.getElementById('hist-status').value  || 'all');
+
   var rows = [];
   SAVED.forEach(function(s) {
+    var ps = getProgStatus(s);
+    if (stFilt !== 'all' && ps !== stFilt) return;
+
+    var fmtD = function(d) {
+      if (!d) return '';
+      var p = d.split('-');
+      if (p.length === 3) return p[2] + '/' + p[1] + '/' + p[0];
+      return d;
+    };
+
     var originCode = (s.stepCodes && s.stepCodes[0]) || s.progCode || '';
     var originSt   = (s.stepData && s.stepData[-1] && s.stepData[-1].status) || 'pendente';
-    rows.push([
-      originCode, s.titulo||'', s.material||'', 'Saida', 'ETC Filmes',
-      (s.origin && s.origin.name)||'', s.transpSaida||'',
-      s.saida||'', s.prazo||'', '', '', originSt, s.responsavel||'', s.cliente||''
+
+    var addRow = function(r) {
+      var match = !q || [r[0],r[1],r[2],r[4],r[5],r[12],r[13]].some(function(v){ return (v||'').toLowerCase().includes(q); });
+      if (match) rows.push(r);
+    };
+
+    addRow([
+      originCode,
+      s.titulo || '',
+      s.material || '',
+      'Saida',
+      'ETC Filmes',
+      (s.origin && s.origin.name) || '',
+      (s.origin && s.origin.city) || '',
+      (s.origin && s.origin.uf)   || '',
+      s.transpSaida || '',
+      fmtD(s.saida),
+      fmtD(s.prazo),
+      '',
+      '',
+      originSt,
+      s.responsavel || '',
+      s.cliente || '',
+      s.exibidor || '',
     ]);
+
     (s.route||[]).forEach(function(r, i) {
-      var sc  = (s.stepCodes && s.stepCodes[i+1]) || '';
-      var sd  = (s.stepData && s.stepData[i]) || {};
-      var st  = sd.status || r.status || 'pendente';
-      var from = i===0 ? ((s.origin && s.origin.name)||'') : (s.route[i-1]&&s.route[i-1].name||'');
-      rows.push([
-        sc, s.titulo||'', s.material||'', 'Remanejamento '+(i+1), from,
-        r.name, r.transp||'', s.saida||'', s.prazo||'',
-        (sd.recHora||'').replace('T',' '), sd.recNome||'', st, s.responsavel||'', s.cliente||''
+      var sc   = (s.stepCodes && s.stepCodes[i+1]) || '';
+      var sd   = (s.stepData && s.stepData[i]) || {};
+      var st   = sd.status || r.status || 'pendente';
+      var from = i === 0 ? ((s.origin && s.origin.name) || '') : ((s.route[i-1] && s.route[i-1].name) || '');
+      var recHora = (sd.recHora || '').replace('T', ' ').slice(0, 16);
+      // Format recHora to dd/mm/yyyy hh:mm
+      if (recHora && recHora.includes('-')) {
+        var parts = recHora.split(' ');
+        var dp = parts[0].split('-');
+        recHora = dp[2]+'/'+dp[1]+'/'+dp[0] + (parts[1] ? ' ' + parts[1] : '');
+      }
+      addRow([
+        sc,
+        s.titulo || '',
+        s.material || '',
+        'Remanejamento ' + (i+1),
+        from,
+        r.name,
+        r.city || '',
+        r.uf   || '',
+        r.transp || '',
+        fmtD(s.saida),
+        fmtD(s.prazo),
+        recHora,
+        sd.recNome || '',
+        st,
+        s.responsavel || '',
+        s.cliente || '',
+        s.exibidor || '',
       ]);
     });
   });
 
-  var header = ['Codigo','Filme','HD','Tipo','De','Para','Transportadora','Data Saida','Prazo','Horario Recebimento','Recebido Por','Status','Responsavel','Cliente'];
-  var csv = [header].concat(rows).map(function(row) {
-    return row.map(function(v) {
-      var s = String(v||'').replace(/"/g,'""');
-      return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s + '"' : s;
-    }).join(',');
-  }).join('\n');
+  var header = [
+    'Codigo','Filme','Num HD','Tipo','De','Para Cinema',
+    'Cidade','UF','Transportadora',
+    'Data Saida','Prazo Retorno',
+    'Horario Recebimento','Recebido Por',
+    'Status','Responsavel','Cliente','Exibidor'
+  ];
 
-  var bom = '\uFEFF'; // BOM for Excel UTF-8
+  var esc = function(v) {
+    var s = String(v === null || v === undefined ? '' : v);
+    // Always quote to guarantee column separation in Excel
+    return '"' + s.replace(/"/g, '""') + '"';
+  };
+
+  var csv = [header.map(esc)].concat(rows.map(function(r){ return r.map(esc); })).join('\r\n');
+
+  var bom  = '\uFEFF';
   var blob = new Blob([bom + csv], {type:'text/csv;charset=utf-8;'});
   var url  = URL.createObjectURL(blob);
   var a    = document.createElement('a');
   a.href   = url;
   a.download = 'historico_etcfilmes_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  toast('Exportado! Abra o arquivo no Excel.', 'ok');
+  toast('Exportado! ' + rows.length + ' linhas.', 'ok');
 }
 
 // Geocoding: get lat/lon for origin when not in DB
