@@ -2171,7 +2171,6 @@ function loggiFromDetail() {
 document.getElementById('f-saida').value = new Date().toISOString().split('T')[0];
 updateBadges();
 renderTable();
-checkLogin();
 
 // --- CIRCUITS DATA -----------------------------------------------------
 const CINEMA_DB = [
@@ -3810,6 +3809,9 @@ gerarRota = function() {
 // --- STATUS FIX: update renderDash to use getProgStatus -----------------
 // Patch the filter functions to use getProgStatus instead of progStatus field
 
+
+// Check login last (after all functions defined)
+checkLogin();
 </script>
 </body>
 </html>
