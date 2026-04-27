@@ -4666,7 +4666,7 @@ function renderHist() {
       recTxt = rd[2]+'/'+rd[1]+'/'+rd[0] + (rp[1] ? ' ' + rp[1] : '');
     }
 
-    html += '<tr style="background:' + rowBg + ';transition:background .1s" onmouseover="this.style.background=\'#f5f4f0\'" onmouseout="this.style.background=\'' + rowBg + '\'">'
+    html += '<tr style="background:' + rowBg + ';transition:background .1s">'
       + '<td style="' + cs + ';white-space:nowrap"><span style="font-family:monospace;font-weight:700;color:#1a4fff;font-size:11px">#' + r.code + '</span></td>'
       + '<td style="' + cs + decor + ';max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + r.titulo + '">' + r.titulo + '</td>'
       + '<td style="' + cs + ';font-family:monospace;color:#555">' + r.material + '</td>'
@@ -4872,8 +4872,7 @@ function suggestManualCinema(q) {
       }
     }
     return '<div data-idx="' + i + '" onclick="selectManualCinema(' + i + ')" '
-      + 'style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f5f4f0;display:flex;align-items:center;justify-content:space-between" '
-      + 'onmouseover="this.style.background='#f5f4f0'" onmouseout="this.style.background=''">'
+      + 'style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0efeb;display:flex;align-items:center;justify-content:space-between">'
       + '<div>'
       + '<div style="font-size:12px;font-weight:500">' + c.n + '</div>'
       + '<div style="font-size:10px;color:#aaa">' + (c.ci||'') + (c.uf ? '/' + c.uf : '') + ' &middot; ' + (c.ex||'') + '</div>'
