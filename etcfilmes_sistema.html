@@ -1034,6 +1034,19 @@ const DB = [
 var LOGGI   = JSON.parse(localStorage.getItem('etc_loggi')   || '{}');
 var EMPRESA = JSON.parse(localStorage.getItem('etc_empresa') || '{"nome":"ETC Filmes","addr":"Av. Escola Politecnica, 1700, Jaguare, Sao Paulo, SP, 05319-000","cep":"05319-000","contato":"ETC Filmes - Expedicao"}');
 var SAVED   = JSON.parse(localStorage.getItem('etc_saved')   || '[]');
+
+// Codigo de programacao unico (padrao sistema legado: 113854, 113995...)
+function getNextProgCode() {
+  var maxCode = 113853;
+  SAVED.forEach(function(s) {
+    if (s.progCode && parseInt(s.progCode) > maxCode) maxCode = parseInt(s.progCode);
+  });
+  var stored = parseInt(localStorage.getItem('etc_last_code') || '0');
+  if (stored > maxCode) maxCode = stored;
+  var next = maxCode + 1;
+  localStorage.setItem('etc_last_code', next);
+  return String(next);
+}
 var ENVIOS  = JSON.parse(localStorage.getItem('etc_envios')  || '[]');
 
 var origin     = null;
@@ -1383,19 +1396,26 @@ function gerarRota() {
   var dbNames = {};
   (CINEMA_DB||[]).forEach(function(c){ dbNames[c.n] = c; });
 
-  // Use DB (has lat/lon) but don't filter by pct - use all
+  var RADIUS_KM = 15;
+
+  // Use DB (has lat/lon) - same city/UF OR within 15km radius
   var cands = DB.filter(function(c) {
-    return c.id !== (origin.id || -1)
-      && c.uf.toUpperCase()   === uf
-      && c.city.toUpperCase() === cityUF
-      && c.lat && c.lon;
+    if (c.id === (origin.id || -1)) return false;
+    if (!c.lat || !c.lon) return false;
+    var sameCity = c.uf.toUpperCase() === uf && c.city.toUpperCase() === cityUF;
+    if (sameCity) return true;
+    // Check radius if origin has lat/lon
+    if (origin.lat && origin.lon) {
+      return haversine(origin.lat, origin.lon, c.lat, c.lon) <= RADIUS_KM;
+    }
+    return false;
   });
 
-  // Also add cinemas from CINEMA_DB that aren't in DB (no lat/lon - add at end)
+  // Also add cinemas from CINEMA_DB that aren't in DB (no lat/lon)
+  // Same city/UF only (no radius for these since we don't have their coords)
   var dbCityNames = cands.map(function(c){ return c.name; });
   (CINEMA_DB||[]).forEach(function(c){
-    if (c.uf.toUpperCase() === uf
-      && c.ci.toUpperCase() === cityUF
+    if ((c.uf.toUpperCase() === uf && c.ci.toUpperCase() === cityUF)
       && !dbCityNames.includes(c.n)
       && c.n !== (origin.name||'')) {
       cands.push({ id: -Math.random(), name: c.n, city: c.ci, uf: c.uf, pct: 0, lat: null, lon: null });
@@ -1608,6 +1628,7 @@ function buildSchedObj() {
   var fr = filteredRoute();
   return {
     id: Date.now(), savedAt: new Date().toISOString(),
+    progCode: getNextProgCode(),
     titulo:      document.getElementById('f-titulo').value,
     cliente:     document.getElementById('f-cliente').value,
     material:    document.getElementById('f-material').value,
@@ -1684,7 +1705,7 @@ function abrirModalEmail(idx) {
   var mat     = s.material || '--';
   var origem  = (s.origin && s.origin.name) || '--';
 
-  document.getElementById('email-assunto').value = 'HD #' + mat + ' - ' + titulo + ' - Ingeste e Liberacao';
+  document.getElementById('email-assunto').value = (s.progCode ? '[' + s.progCode + '] ' : '') + 'HD #' + mat + ' - ' + titulo + ' - Ingeste e Liberacao';
   document.getElementById('me-sub').textContent  = 'Para: ' + origem;
   // Auto-fill email from cinema database
   var cinemaMatch = CINEMA_DB && CINEMA_DB.find(function(c) {
@@ -2037,7 +2058,7 @@ function renderDash() {
       // Header row
       + '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">'
       + '<div style="flex:1;min-width:0">'
-      + '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (s.titulo||'--') + '</div>'
+      + '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (s.titulo||'--') + (s.progCode ? ' <span style="font-size:11px;font-weight:700;color:#1a4fff;font-family:monospace;margin-left:6px">#' + s.progCode + '</span>' : '') + '</div>'
       + '<div style="font-size:11px;color:#888;margin-top:2px">' + city + ' - HD #' + (s.material||'--') + ' - ' + dt + (s.responsavel ? ' - <span style="color:#555">&#128100; ' + s.responsavel + '</span>' : '') + '</div>'
       + '</div>'
       + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
@@ -2089,7 +2110,7 @@ function abrirDetalhe(idx) {
   var s = SAVED[idx]; if (!s) return;
   _detailIdx = idx;
   document.getElementById('mpd-title').textContent = s.titulo || '--';
-  document.getElementById('mpd-sub').textContent = (s.origin&&s.origin.city||'') + '/' + (s.origin&&s.origin.uf||'') + ' - HD #' + (s.material||'--');
+  document.getElementById('mpd-sub').textContent = (s.progCode ? 'Cod. ' + s.progCode + ' | ' : '') + (s.origin&&s.origin.city||'') + '/' + (s.origin&&s.origin.uf||'') + ' - HD #' + (s.material||'--');
   var body = '<div style="background:#f5f4f0;border-radius:6px;padding:12px 14px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px">'
     + '<div><div style="color:#888;font-size:10px">Cliente</div><div style="font-weight:500">' + (s.cliente||'--') + '</div></div>'
     + '<div><div style="color:#888;font-size:10px">Material</div><div style="font-weight:500;font-family:monospace">#' + (s.material||'--') + '</div></div>'
@@ -3815,6 +3836,143 @@ gerarRota = function() {
 // --- STATUS FIX: update renderDash to use getProgStatus -----------------
 // Patch the filter functions to use getProgStatus instead of progStatus field
 
+
+// --- FIREBASE SYNC -------------------------------------------------------
+// Config: set via Configuracao > Firebase tab
+var FB_CONFIG = JSON.parse(localStorage.getItem('etc_firebase') || 'null');
+var _fbDb = null;
+var _fbRef = null;
+var _fbListening = false;
+
+function initFirebase() {
+  if (!FB_CONFIG || !FB_CONFIG.apiKey || !FB_CONFIG.projectId) return;
+  if (typeof firebase !== 'undefined' && !_fbDb) {
+    try {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(FB_CONFIG);
+      }
+      _fbDb  = firebase.database();
+      _fbRef = _fbDb.ref('programacoes');
+      startFirebaseSync();
+      updateFbStatus('Conectado', '#1a8a4a');
+    } catch(e) {
+      updateFbStatus('Erro: ' + e.message, '#c0392b');
+    }
+  }
+}
+
+function startFirebaseSync() {
+  if (_fbListening || !_fbRef) return;
+  _fbListening = true;
+  _fbRef.on('value', function(snap) {
+    var data = snap.val();
+    if (!data) return;
+    // Merge remote data - remote wins for items not locally edited recently
+    var remote = Object.values(data);
+    // Build map by id
+    var localMap = {};
+    SAVED.forEach(function(s){ localMap[s.id] = s; });
+    remote.forEach(function(s) {
+      if (!localMap[s.id]) {
+        SAVED.push(s);
+      } else {
+        // Use whichever was saved more recently
+        var lTime = new Date(localMap[s.id].savedAt||0).getTime();
+        var rTime = new Date(s.savedAt||0).getTime();
+        if (rTime > lTime) {
+          var idx = SAVED.findIndex(function(x){ return x.id === s.id; });
+          if (idx >= 0) SAVED[idx] = s;
+        }
+      }
+    });
+    localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+    updateBadges();
+    renderDash();
+    updateFbStatus('Sincronizado ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}), '#1a8a4a');
+  });
+}
+
+function fbPushSaved() {
+  if (!_fbRef) return;
+  SAVED.forEach(function(s) {
+    _fbRef.child(String(s.id)).set(s).catch(function(e){
+      console.warn('Firebase push error:', e.message);
+    });
+  });
+}
+
+function fbDeleteSaved(id) {
+  if (!_fbRef) return;
+  _fbRef.child(String(id)).remove();
+}
+
+function updateFbStatus(msg, color) {
+  var el = document.getElementById('fb-status');
+  if (el) { el.textContent = msg; el.style.color = color || '#888'; }
+}
+
+// Patch salvarProg to also push to Firebase
+var _origSalvarProg = salvarProg;
+salvarProg = function() {
+  _origSalvarProg();
+  setTimeout(fbPushSaved, 300);
+};
+
+// Patch excluirAtividade to also delete from Firebase
+var _origExcluir = excluirAtividade;
+excluirAtividade = function(idx) {
+  var s = SAVED[idx];
+  if (!confirm('Excluir esta programacao?')) return;
+  if (s && _fbRef) fbDeleteSaved(s.id);
+  SAVED.splice(idx, 1);
+  localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+  updateBadges();
+  renderDash();
+  toast('Excluido.', 'info');
+};
+
+function salvarFbConfig() {
+  var cfg = {
+    apiKey:            document.getElementById('fb-api-key').value.trim(),
+    authDomain:        document.getElementById('fb-auth-domain').value.trim(),
+    databaseURL:       document.getElementById('fb-db-url').value.trim(),
+    projectId:         document.getElementById('fb-project-id').value.trim(),
+    storageBucket:     document.getElementById('fb-storage-bucket').value.trim(),
+    messagingSenderId: document.getElementById('fb-msg-id').value.trim(),
+    appId:             document.getElementById('fb-app-id').value.trim(),
+  };
+  FB_CONFIG = cfg;
+  localStorage.setItem('etc_firebase', JSON.stringify(cfg));
+  updateFbStatus('Salvando...', '#888');
+  // Load Firebase SDK dynamically if needed
+  if (typeof firebase === 'undefined') {
+    var s1 = document.createElement('script');
+    s1.src = 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js';
+    s1.onload = function() {
+      var s2 = document.createElement('script');
+      s2.src = 'https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js';
+      s2.onload = function() { initFirebase(); };
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s1);
+  } else {
+    initFirebase();
+  }
+  toast('Config Firebase salva!', 'ok');
+}
+
+// Auto-init on load if config exists
+if (FB_CONFIG && FB_CONFIG.apiKey) {
+  var _s1 = document.createElement('script');
+  _s1.src = 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js';
+  _s1.onload = function() {
+    var _s2 = document.createElement('script');
+    _s2.src = 'https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js';
+    _s2.onload = function() { initFirebase(); };
+    document.head.appendChild(_s2);
+  };
+  document.head.appendChild(_s1);
+}
 
 // Check login last (after all functions defined)
 checkLogin();
