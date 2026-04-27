@@ -1637,6 +1637,25 @@ function gerarRota() {
 
   routeSt = {}; routeTr = {}; routeIncl = {};
   renderRoute();
+
+  // Background geocoding for any route step missing coords
+  route.forEach(function(c, i) {
+    if (!c.lat || !c.lon) {
+      var addr = c.name + ', ' + (c.city||'') + ', ' + (c.uf||'') + ', Brasil';
+      geocodeCinema(addr, function(lat, lon) {
+        if (lat && lon) {
+          route[i].lat = lat;
+          route[i].lon = lon;
+          // Recalculate legDist
+          var prevStop = i === 0 ? origin : route[i-1];
+          if (prevStop && prevStop.lat && prevStop.lon) {
+            route[i].legDist = haversine(prevStop.lat, prevStop.lon, lat, lon);
+          }
+          renderRoute();
+        }
+      });
+    }
+  });
 }
 
 
@@ -1813,6 +1832,20 @@ function renderRoute() {
   });
 
   right.appendChild(header);
+
+  // Manual cinema search box
+  var addBox = document.createElement('div');
+  addBox.style.cssText = 'background:#fff;border:1px solid #e0deda;border-radius:8px;padding:12px 14px;margin-bottom:14px';
+  addBox.innerHTML = '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Adicionar cinema na rota</div>'
+    + '<div style="display:flex;gap:8px;align-items:center">'
+    + '<div style="position:relative;flex:1">'
+    + '<input id="manual-cinema-q" placeholder="Digitar nome do cinema..." autocomplete="off" oninput="suggestManualCinema(this.value)" style="width:100%;padding:7px 10px;border:1px solid #d0cec9;border-radius:6px;font-size:12px;font-family:inherit;outline:none;box-sizing:border-box">'
+    + '<div id="manual-cinema-sug" style="position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d0cec9;border-radius:0 0 6px 6px;max-height:200px;overflow-y:auto;z-index:50;display:none;box-shadow:0 4px 12px rgba(0,0,0,.08)"></div>'
+    + '</div>'
+    + '<button onclick="addManualCinema()" class="btn" style="white-space:nowrap;padding:7px 14px;font-size:12px">Adicionar</button>'
+    + '</div>';
+  right.appendChild(addBox);
+
   right.appendChild(stepsWrap);
 
   if (!route.length) {
@@ -4596,22 +4629,22 @@ function renderHist() {
     return;
   }
 
-  var colStyle = 'padding:10px 14px;font-size:12px;border-bottom:1px solid #f0efeb;vertical-align:middle;';
-  var hStyle   = 'padding:9px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aaa;background:#f5f4f0;border-bottom:1px solid #e0deda;text-align:left';
-  var html = '<div style="overflow-x:auto;width:100%"><table style="width:100%;border-collapse:collapse;white-space:nowrap">'
+  var cs  = 'padding:10px 12px;font-size:12px;border-bottom:1px solid #f0efeb;vertical-align:top;';
+  var hs  = 'padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;background:#f5f4f0;border-bottom:2px solid #e0deda;text-align:left;white-space:nowrap';
+  var html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
     + '<thead><tr>'
-    + '<th style="' + hStyle + '">Codigo</th>'
-    + '<th style="' + hStyle + '">Filme</th>'
-    + '<th style="' + hStyle + '">HD</th>'
-    + '<th style="' + hStyle + '">Tipo</th>'
-    + '<th style="' + hStyle + '">De</th>'
-    + '<th style="' + hStyle + '">Para</th>'
-    + '<th style="' + hStyle + '">Transportadora</th>'
-    + '<th style="' + hStyle + '">Data Saida</th>'
-    + '<th style="' + hStyle + '">Prazo</th>'
-    + '<th style="' + hStyle + '">Recebimento</th>'
-    + '<th style="' + hStyle + '">Status</th>'
-    + '<th style="' + hStyle + '">Responsavel</th>'
+    + '<th style="' + hs + ';width:90px">Codigo</th>'
+    + '<th style="' + hs + ';min-width:140px">Filme</th>'
+    + '<th style="' + hs + ';width:60px">HD</th>'
+    + '<th style="' + hs + ';width:130px">Tipo</th>'
+    + '<th style="' + hs + ';min-width:130px">De</th>'
+    + '<th style="' + hs + ';min-width:150px">Para</th>'
+    + '<th style="' + hs + ';min-width:110px">Transportadora</th>'
+    + '<th style="' + hs + ';width:90px">Saida</th>'
+    + '<th style="' + hs + ';width:90px">Prazo</th>'
+    + '<th style="' + hs + ';min-width:130px">Recebimento</th>'
+    + '<th style="' + hs + ';width:90px">Status</th>'
+    + '<th style="' + hs + ';width:90px">Resp.</th>'
     + '</tr></thead><tbody>';
 
   rows.forEach(function(r) {
@@ -4622,19 +4655,30 @@ function renderHist() {
     var rowBg   = isDone ? '#fafdf9'  : '#fff';
     var decor   = isDone ? 'text-decoration:line-through;color:#bbb;' : '';
 
-    html += '<tr style="background:' + rowBg + '">'
-      + '<td style="' + colStyle + '"><span style="font-family:monospace;font-weight:700;color:#1a4fff;background:#e8edff;padding:2px 7px;border-radius:4px;font-size:11px">#' + r.code + '</span></td>'
-      + '<td style="' + colStyle + decor + 'max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.titulo + '</td>'
-      + '<td style="' + colStyle + 'font-family:monospace">#' + r.material + '</td>'
-      + '<td style="' + colStyle + '">' + (r.tipo === 'Saida' ? '<span style="background:#1c1c1a;color:#fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">SAIDA</span>' : '<span style="background:#eef1ff;color:#1a4fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600">' + r.tipo + '</span>') + '</td>'
-      + '<td style="' + colStyle + decor + 'max-width:140px;overflow:hidden;text-overflow:ellipsis">' + r.de + '</td>'
-      + '<td style="' + colStyle + decor + 'max-width:140px;overflow:hidden;text-overflow:ellipsis"><strong>' + r.para + '</strong><div style="font-size:10px;color:#aaa">' + r.cidade + (r.uf ? '/' + r.uf : '') + '</div></td>'
-      + '<td style="' + colStyle + '">' + r.transp + '</td>'
-      + '<td style="' + colStyle + '">' + (r.saida ? fmtDate(r.saida) : '--') + '</td>'
-      + '<td style="' + colStyle + '">' + (r.prazo ? fmtDate(r.prazo) : '--') + '</td>'
-      + '<td style="' + colStyle + 'font-size:11px">' + (r.recHora ? r.recHora.replace('T',' ').slice(0,16) : '--') + (r.recNome ? '<br><span style="color:#555">' + r.recNome + '</span>' : '') + '</td>'
-      + '<td style="' + colStyle + '"><span style="background:' + stBg + ';color:' + stColor + ';padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600">' + r.status + '</span></td>'
-      + '<td style="' + colStyle + '">' + (r.responsavel || '--') + '</td>'
+    var tipoHtml = r.tipo === 'Saida'
+      ? '<span style="background:#1c1c1a;color:#fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap">SAIDA</span>'
+      : '<span style="background:#eef1ff;color:#1a4fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap">' + r.tipo + '</span>';
+
+    var recTxt = r.recHora ? r.recHora.replace('T',' ').slice(0,16) : '--';
+    if (recTxt !== '--' && recTxt.includes('-')) {
+      var rp = recTxt.split(' ');
+      var rd = rp[0].split('-');
+      recTxt = rd[2]+'/'+rd[1]+'/'+rd[0] + (rp[1] ? ' ' + rp[1] : '');
+    }
+
+    html += '<tr style="background:' + rowBg + ';transition:background .1s" onmouseover="this.style.background=\'#f5f4f0\'" onmouseout="this.style.background=\'' + rowBg + '\'">'
+      + '<td style="' + cs + ';white-space:nowrap"><span style="font-family:monospace;font-weight:700;color:#1a4fff;font-size:11px">#' + r.code + '</span></td>'
+      + '<td style="' + cs + decor + ';max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + r.titulo + '">' + r.titulo + '</td>'
+      + '<td style="' + cs + ';font-family:monospace;color:#555">' + r.material + '</td>'
+      + '<td style="' + cs + '">' + tipoHtml + '</td>'
+      + '<td style="' + cs + decor + ';max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#666" title="' + r.de + '">' + r.de + '</td>'
+      + '<td style="' + cs + decor + ';max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><div style="font-weight:600;color:' + (isDone?'#aaa':'#1c1c1a') + '" title="' + r.para + '">' + r.para + '</div><div style="font-size:10px;color:#aaa">' + r.cidade + (r.uf?'/'+r.uf:'') + '</div></td>'
+      + '<td style="' + cs + ';white-space:nowrap;color:#555">' + r.transp + '</td>'
+      + '<td style="' + cs + ';white-space:nowrap">' + (r.saida ? fmtDate(r.saida) : '<span style="color:#ccc">--</span>') + '</td>'
+      + '<td style="' + cs + ';white-space:nowrap">' + (r.prazo ? fmtDate(r.prazo) : '<span style="color:#ccc">--</span>') + '</td>'
+      + '<td style="' + cs + ';white-space:nowrap;font-size:11px">' + (recTxt !== '--' ? recTxt + (r.recNome ? '<div style="color:#555;font-size:10px">' + r.recNome + '</div>' : '') : '<span style="color:#ccc">--</span>') + '</td>'
+      + '<td style="' + cs + ';white-space:nowrap"><span style="background:' + stBg + ';color:' + stColor + ';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">' + r.status + '</span></td>'
+      + '<td style="' + cs + ';white-space:nowrap;color:#666">' + (r.responsavel || '--') + '</td>'
       + '</tr>';
   });
 
@@ -4743,7 +4787,11 @@ function exportarHistorico() {
     return '"' + s.replace(/"/g, '""') + '"';
   };
 
-  var csv = [header.map(esc)].concat(rows.map(function(r){ return r.map(esc); })).join('\r\n');
+  // Use semicolon for Excel Brazil (pt-BR) compatibility
+  var SEP = ';';
+  var csv = [header.map(esc).join(SEP)]
+    .concat(rows.map(function(r){ return r.map(esc).join(SEP); }))
+    .join('\r\n');
 
   var bom  = '\uFEFF';
   var blob = new Blob([bom + csv], {type:'text/csv;charset=utf-8;'});
@@ -4756,6 +4804,22 @@ function exportarHistorico() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   toast('Exportado! ' + rows.length + ' linhas.', 'ok');
+}
+
+// Geocode a cinema name/address via OpenStreetMap Nominatim
+async function geocodeCinema(address, callback) {
+  try {
+    var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q='
+      + encodeURIComponent(address)
+      + '&countrycodes=br';
+    var resp = await fetch(url, {
+      headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'ETCFilmesPortal/1.0' }
+    });
+    var data = await resp.json();
+    if (data && data.length > 0) {
+      callback(parseFloat(data[0].lat), parseFloat(data[0].lon));
+    }
+  } catch(e) { /* silent fail */ }
 }
 
 // Geocoding: get lat/lon for origin when not in DB
@@ -4779,6 +4843,109 @@ async function geocodeOrigin(address) {
     console.warn('Geocode error:', e.message);
   }
 }
+
+// --- MANUAL CINEMA SEARCH IN ROUTE ------------------------------------
+var _manualSelected = null;
+
+function suggestManualCinema(q) {
+  var sug = document.getElementById('manual-cinema-sug');
+  if (!sug) return;
+  if (!q || q.length < 2) { sug.style.display = 'none'; _manualSelected = null; return; }
+  var ql = q.toLowerCase();
+
+  // Search CINEMA_DB
+  var matches = (CINEMA_DB || []).filter(function(c) {
+    return c.n.toLowerCase().includes(ql)
+      || (c.ci && c.ci.toLowerCase().includes(ql));
+  }).slice(0, 15);
+
+  if (!matches.length) { sug.innerHTML = '<div style="padding:10px 12px;color:#aaa;font-size:12px">Nenhum cinema encontrado</div>'; sug.style.display = 'block'; return; }
+
+  sug.innerHTML = matches.map(function(c, i) {
+    // Get distance from origin if available
+    var distTxt = '';
+    if (origin && origin.lat && origin.lon) {
+      var coords = getCinemaCoords(c.n, c.ci, c.uf);
+      if (coords) {
+        var d = haversine(origin.lat, origin.lon, coords.lat, coords.lon);
+        distTxt = '<span style="color:#1a4fff;font-size:10px;margin-left:6px">' + d.toFixed(1) + 'km</span>';
+      }
+    }
+    return '<div data-idx="' + i + '" onclick="selectManualCinema(' + i + ')" '
+      + 'style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f5f4f0;display:flex;align-items:center;justify-content:space-between" '
+      + 'onmouseover="this.style.background='#f5f4f0'" onmouseout="this.style.background=''">'
+      + '<div>'
+      + '<div style="font-size:12px;font-weight:500">' + c.n + '</div>'
+      + '<div style="font-size:10px;color:#aaa">' + (c.ci||'') + (c.uf ? '/' + c.uf : '') + ' &middot; ' + (c.ex||'') + '</div>'
+      + '</div>'
+      + distTxt
+      + '</div>';
+  }).join('');
+
+  // Store matches for selectManualCinema
+  sug._matches = matches;
+  sug.style.display = 'block';
+}
+
+function selectManualCinema(idx) {
+  var sug = document.getElementById('manual-cinema-sug');
+  var inp = document.getElementById('manual-cinema-q');
+  if (!sug || !sug._matches) return;
+  var c = sug._matches[idx];
+  _manualSelected = c;
+  inp.value = c.n;
+  sug.style.display = 'none';
+}
+
+function addManualCinema() {
+  var inp = document.getElementById('manual-cinema-q');
+  if (!_manualSelected && inp && inp.value.trim()) {
+    // Try to find in CINEMA_DB
+    var ql = inp.value.toLowerCase().trim();
+    var found = (CINEMA_DB||[]).find(function(c){ return c.n.toLowerCase() === ql; });
+    if (found) _manualSelected = found;
+  }
+  if (!_manualSelected) { toast('Selecione um cinema da lista.', 'err'); return; }
+
+  var c = _manualSelected;
+  var coords = getCinemaCoords(c.n, c.ci, c.uf);
+  var dist = 0;
+  if (origin && origin.lat && origin.lon && coords) {
+    dist = haversine(origin.lat, origin.lon, coords.lat, coords.lon);
+  }
+
+  // Add to route
+  route.push({
+    id:      -Math.random(),
+    name:    c.n,
+    city:    c.ci || '',
+    uf:      c.uf || '',
+    pct:     100,
+    lat:     coords ? coords.lat : null,
+    lon:     coords ? coords.lon : null,
+    legDist: dist,
+    email:   c.em,
+    exibidor:c.ex,
+  });
+
+  // Reset
+  _manualSelected = null;
+  if (inp) inp.value = '';
+  var sug = document.getElementById('manual-cinema-sug');
+  if (sug) sug.style.display = 'none';
+
+  renderRoute();
+  toast(c.n + ' adicionado a rota!', 'ok');
+}
+
+// Close suggestions when clicking outside
+document.addEventListener('click', function(e) {
+  var sug = document.getElementById('manual-cinema-sug');
+  var inp = document.getElementById('manual-cinema-q');
+  if (sug && inp && !inp.contains(e.target) && !sug.contains(e.target)) {
+    sug.style.display = 'none';
+  }
+});
 
 // Check login last (after all functions defined)
 checkLogin();
