@@ -605,6 +605,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     <div class="modal-body" id="mpd-body"></div>
     <div class="modal-foot">
       <button class="btn" onclick="closeModal('modal-prog-detail')">Fechar</button>
+      <button class="btn" id="mpd-update-btn" onclick="atualizarStatusLoggi()" style="background:#f0f7ff;color:#1a4fff;border-color:#b0caff;font-size:12px" title="Consultar Loggi e atualizar horario/recebedor automaticamente">&#8635; Atualizar Loggi</button>
       <button class="btn btn-primary" id="mpd-load-btn" onclick="loadFromDetail()">Abrir no editor</button>
       <button class="btn btn-orange" id="mpd-loggi-btn" onclick="loggiFromDetail()">Loggi</button>
     </div>
@@ -1788,7 +1789,6 @@ function renderRoute() {
     + '</div>'
     + '<div class="rh-actions">'
     + '<button class="btn" style="padding:5px 10px;font-size:12px" onclick="buildConfirm()">Salvar</button>'
-    + '<button class="btn btn-orange" style="padding:5px 10px;font-size:12px" onclick="abrirLoggi()">Loggi</button>'
     + '</div></div>';
 
   // Route steps
@@ -2089,11 +2089,10 @@ function abrirModalEmail(idx) {
 
   var corpo = 'Ola, equipe ' + origem + '! Tudo bem?\n\n'
     + 'Enviamos para voces o HD ' + mat + ' do filme ' + titulo + ' e precisamos movimenta-lo para outro cinema. '
-    + 'Peco, por gentileza, que realizem o ingeste, testem o filme na sala e, apos esses procedimentos, liberem o HD para coleta.\n'
+    + 'Peco, por gentileza, que realizem o ingest, testem o filme na sala e, apos esses procedimentos, liberem o HD para coleta.\n'
     + 'Ficamos no aguardo da liberacao. Obrigada!\n\n'
     + 'Equipe ETC Filmes, por favor, assim que o pessoal do ' + origem + ' liberar o HD, coletar e entregar no ' + destino
-    + (s.prazo ? ' ate ' + prazo : '') + '. Por favor nos avise da movimentacao.\n'
-    + 'Abs.';
+    + (s.prazo ? ' ate ' + prazo : '') + '.';
 
   document.getElementById('email-corpo').value = corpo;
   // Pre-fill CC with saved test email
@@ -2349,14 +2348,16 @@ async function dispatchOne(idx) {
       var infoEl2 = document.querySelector('#lgrow-' + idx + ' .lg-info');
       if (infoEl2) infoEl2.appendChild(a);
     }
-    // Auto-update step status to Em Andamento
+    // Auto-update step status to Em Andamento + persist orderId/tracking
     if (_activeSchedIdx !== null && o.seq !== undefined) {
       var stepI = o.seq - 1;
       var ss = SAVED[_activeSchedIdx];
       if (ss) {
         if (!ss.stepData) ss.stepData = {};
         if (!ss.stepData[stepI]) ss.stepData[stepI] = {};
-        ss.stepData[stepI].status = 'Em Andamento';
+        ss.stepData[stepI].status   = 'Em Andamento';
+        ss.stepData[stepI].orderId  = orderId;
+        ss.stepData[stepI].tracking = tracking !== '?' ? tracking : (ss.stepData[stepI].tracking || '');
         if (ss.route && ss.route[stepI]) ss.route[stepI].status = 'Em Andamento';
         localStorage.setItem('etc_saved', JSON.stringify(SAVED));
         if (typeof fbPushSaved === 'function') fbPushSaved();
@@ -2805,6 +2806,104 @@ function updDel(schedIdx, stepIdx, field, val) {
 function loadFromDetail() {
   if (_detailIdx === null) return;
   loadSaved(_detailIdx); closeModal('modal-prog-detail'); goTo('prog');
+}
+
+async function atualizarStatusLoggi() {
+  if (_detailIdx === null) return;
+  var s = SAVED[_detailIdx];
+  if (!s) return;
+
+  var apiKey = LOGGI && (LOGGI.apiKey || LOGGI.token);
+  var compId = LOGGI && (LOGGI.shopPk || '33552');
+
+  if (!apiKey) {
+    toast('Configure a API Key da Loggi primeiro.', 'err');
+    return;
+  }
+
+  var btn = document.getElementById('mpd-update-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Consultando...'; }
+
+  var steps = s.route || [];
+  var updated = 0;
+  var errors  = 0;
+
+  for (var i = 0; i < steps.length; i++) {
+    var sd = (s.stepData && s.stepData[i]) || {};
+    var oid = sd.orderId;
+    if (!oid || sd.status === 'Entregue') continue; // skip if no order or already delivered
+
+    try {
+      var res = await fetch('https://api.loggi.com/v2/company/' + compId + '/orders/' + oid + '/', {
+        headers: { 'Authorization': 'ApiKey ' + apiKey }
+      });
+
+      if (!res.ok) { errors++; continue; }
+
+      var data = await res.json();
+
+      // Loggi statuses: pending, going_to_origin, arrived_at_origin, going_to_destination, arrived_at_destination, delivered, returned
+      var loggiStatus = (data.status || data.orderStatus || '').toLowerCase();
+      var isDelivered = loggiStatus === 'delivered' || loggiStatus === 'arrived_at_destination';
+
+      if (!isDelivered) continue;
+
+      // Extract delivery info from Loggi response
+      var deliveredAt = data.deliveredAt || data.delivered_at || data.updatedAt || data.updated_at || '';
+      var recipientName = (data.recipient && data.recipient.name)
+        || (data.deliveryInfo && data.deliveryInfo.receiverName)
+        || data.receiverName
+        || data.recipientName
+        || '';
+
+      if (!s.stepData) s.stepData = {};
+      if (!s.stepData[i]) s.stepData[i] = {};
+
+      // Only update if not already filled
+      var changed = false;
+
+      if (isDelivered && s.stepData[i].status !== 'Entregue') {
+        s.stepData[i].status = 'Entregue';
+        if (s.route && s.route[i]) s.route[i].status = 'Entregue';
+        changed = true;
+      }
+
+      if (deliveredAt && !s.stepData[i].recHora) {
+        try {
+          var d = new Date(deliveredAt);
+          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+          s.stepData[i].recHora = d.toISOString().slice(0, 16);
+        } catch(e) {}
+        changed = true;
+      }
+
+      if (recipientName && !s.stepData[i].recNome) {
+        s.stepData[i].recNome = recipientName;
+        changed = true;
+      }
+
+      if (changed) updated++;
+
+    } catch(e) {
+      errors++;
+    }
+  }
+
+  if (updated > 0 || errors === 0) {
+    localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+    if (typeof fbPushSaved === 'function') fbPushSaved();
+  }
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '&#8635; Atualizar Loggi'; }
+
+  if (updated > 0) {
+    toast(updated + ' trecho(s) atualizado(s) via Loggi!', 'ok');
+    abrirDetalhe(_detailIdx); // re-render with new data
+  } else if (errors > 0) {
+    toast('Erro ao consultar ' + errors + ' pedido(s) na Loggi.', 'err');
+  } else {
+    toast('Nenhuma atualizacao pendente na Loggi.', 'ok');
+  }
 }
 
 function loggiFromDetail() {
@@ -5560,11 +5659,12 @@ function abrirEmailStep(schedIdx, stepIdx) {
     : (cinemaMatch && cinemaMatch.em && cinemaMatch.em.length ? cinemaMatch.em.join('; ') : '');
 
   var corpo = 'Ola, equipe ' + r.name + '! Tudo bem?\n\n'
-    + 'O HD ' + mat + ' do filme ' + titulo + ' ja esta com voces.\n\n'
-    + 'Por gentileza, realizem o ingest do filme na sala e, apos os testes, liberem o HD para coleta.'
-    + (next ? '\n\nO HD seguira para: ' + next + '.' : '')
-    + (s.prazo ? '\n\nPrazo de liberacao: ' + prazo + '.' : '')
-    + '\n\nFicamos no aguardo da liberacao. Obrigada!\n\nEquipe ETC Filmes';
+    + 'Enviamos para voces o HD ' + mat + ' do filme ' + titulo + ' e precisamos movimenta-lo para outro cinema.\n\n'
+    + 'Peco, por gentileza, que realizem o ingest, testem o filme na sala e, apos esses procedimentos, liberem o HD para coleta.\n'
+    + 'Ficamos no aguardo da liberacao. Obrigada!\n\n'
+    + 'Equipe ETC Filmes'
+    + (next ? ', por favor, assim que o pessoal do ' + r.name + ' liberar o HD, coletar e entregar no ' + next + '.' : '.')
+    + (s.prazo ? '\n\nPrazo de liberacao: ' + prazo + '.' : '');
 
   if (LOGGI_SIM) {
     corpo = '*** SIMULACAO - NAO TOMAR NENHUMA ACAO ***\n\n' + corpo;
