@@ -2071,7 +2071,7 @@ function abrirModalEmail(idx) {
   var mat     = s.material || '--';
   var origem  = (s.origin && s.origin.name) || '--';
 
-  document.getElementById('email-assunto').value = (s.progCode ? '[' + s.progCode + '] ' : '') + 'HD #' + mat + ' - ' + titulo + ' - Ingeste e Liberacao';
+  document.getElementById('email-assunto').value = (s.progCode ? '[' + s.progCode + '] ' : '') + 'HD #' + mat + ' - ' + titulo + ' - Ingest e Liberação';
   document.getElementById('me-sub').textContent  = 'Para: ' + origem;
   // Auto-fill email from cinema database
   var cinemaMatch = CINEMA_DB && CINEMA_DB.find(function(c) {
@@ -2087,12 +2087,12 @@ function abrirModalEmail(idx) {
     document.getElementById('email-para').value = autoEmail;
   }
 
-  var corpo = 'Ola, equipe ' + origem + '! Tudo bem?\n\n'
-    + 'Enviamos para voces o HD ' + mat + ' do filme ' + titulo + ' e precisamos movimenta-lo para outro cinema. '
-    + 'Peco, por gentileza, que realizem o ingest, testem o filme na sala e, apos esses procedimentos, liberem o HD para coleta.\n'
-    + 'Ficamos no aguardo da liberacao. Obrigada!\n\n'
+  var corpo = 'Olá, equipe ' + origem + '! Tudo bem?\n\n'
+    + 'Enviamos para vocês o HD ' + mat + ' do filme ' + titulo + ' e precisamos movimentá-lo para outro cinema. '
+    + 'Peço, por gentileza, que realizem o ingest, testem o filme na sala e, após esses procedimentos, liberem o HD para coleta.\n'
+    + 'Ficamos no aguardo da liberação. Obrigada!\n\n'
     + 'Equipe ETC Filmes, por favor, assim que o pessoal do ' + origem + ' liberar o HD, coletar e entregar no ' + destino
-    + (s.prazo ? ' ate ' + prazo : '') + '.';
+    + (s.prazo ? ' até ' + prazo : '') + '.';
 
   document.getElementById('email-corpo').value = corpo;
   // Pre-fill CC with saved test email
@@ -5648,7 +5648,7 @@ function abrirEmailStep(schedIdx, stepIdx) {
   var prazo  = s.prazo ? new Date(s.prazo + 'T12:00').toLocaleDateString('pt-BR') : '--';
 
   var assunto = (LOGGI_SIM ? '[SIMULACAO] ' : '')
-    + 'HD #' + mat + ' - ' + titulo + ' - Ingeste e Liberacao';
+    + 'HD #' + mat + ' - ' + titulo + ' - Ingest e Liberação';
 
   // Auto-fill email from CINEMA_DB
   var cinemaMatch = CINEMA_DB && CINEMA_DB.find(function(c) {
@@ -5658,13 +5658,13 @@ function abrirEmailStep(schedIdx, stepIdx) {
     ? SIM_EMAIL
     : (cinemaMatch && cinemaMatch.em && cinemaMatch.em.length ? cinemaMatch.em.join('; ') : '');
 
-  var corpo = 'Ola, equipe ' + r.name + '! Tudo bem?\n\n'
-    + 'Enviamos para voces o HD ' + mat + ' do filme ' + titulo + ' e precisamos movimenta-lo para outro cinema.\n\n'
-    + 'Peco, por gentileza, que realizem o ingest, testem o filme na sala e, apos esses procedimentos, liberem o HD para coleta.\n'
-    + 'Ficamos no aguardo da liberacao. Obrigada!\n\n'
+  var corpo = 'Olá, equipe ' + r.name + '! Tudo bem?\n\n'
+    + 'Enviamos para vocês o HD ' + mat + ' do filme ' + titulo + ' e precisamos movimentá-lo para outro cinema.\n\n'
+    + 'Peço, por gentileza, que realizem o ingest, testem o filme na sala e, após esses procedimentos, liberem o HD para coleta.\n'
+    + 'Ficamos no aguardo da liberação. Obrigada!\n\n'
     + 'Equipe ETC Filmes'
     + (next ? ', por favor, assim que o pessoal do ' + r.name + ' liberar o HD, coletar e entregar no ' + next + '.' : '.')
-    + (s.prazo ? '\n\nPrazo de liberacao: ' + prazo + '.' : '');
+    + (s.prazo ? '\n\nPrazo de liberação: ' + prazo + '.' : '');
 
   if (LOGGI_SIM) {
     corpo = '*** SIMULACAO - NAO TOMAR NENHUMA ACAO ***\n\n' + corpo;
