@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ETC Filmes</title>
 <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -470,6 +471,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <div class="field"><label>Contato</label><input id="cfg-emp-contato" value="ETC Filmes - Expedicao"></div>
       </div>
       <button class="btn btn-dark" style="margin-top:6px" onclick="salvarEmpresa()">Salvar empresa</button>
+    </div>
+
+    <!-- EmailJS Config -->
+    <div class="fsec" style="margin-top:14px">
+      <h3>EmailJS — Envio automatico de e-mails</h3>
+      <div style="background:#f5f4f0;border-radius:6px;padding:10px 14px;font-size:12px;color:#555;margin-bottom:12px">
+        Configure para enviar e-mails automaticamente sem abrir o Outlook. Acesse <strong>emailjs.com</strong> para obter as credenciais.
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Service ID</label><input id="ejs-service" class="inp" placeholder="service_..." style="font-family:monospace;font-size:12px"></div>
+        <div class="field"><label>Template ID</label><input id="ejs-template" class="inp" placeholder="template_..." style="font-family:monospace;font-size:12px"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Public Key</label><input id="ejs-pubkey" class="inp" placeholder="3wML..." style="font-family:monospace;font-size:12px"></div>
+      </div>
+      <button class="btn" onclick="salvarEmailJS()" style="margin-top:6px">Salvar e Testar</button>
+      <span id="ejs-msg" style="font-size:12px;margin-left:10px;color:#888"></span>
     </div>
 
     <!-- Loggi Simulation -->
@@ -1189,6 +1207,20 @@ function goTo(v) {
   document.getElementById('view-' + v).classList.add('active');
   if (v === 'hist') renderHist();
   if (v === 'dash') renderDash();
+  if (v === 'loggi') {
+    // Pre-fill Loggi fields
+    var akEl = document.getElementById('cfg-apikey');  if (akEl && LOGGI.apiKey) akEl.value = LOGGI.apiKey;
+    var ciEl = document.getElementById('cfg-compid');  if (ciEl && LOGGI.shopPk) ciEl.value = LOGGI.shopPk;
+    var phEl = document.getElementById('cfg-phone');   if (phEl && LOGGI.phone)  phEl.value = LOGGI.phone;
+    // Pre-fill EmailJS fields
+    var ejsS = document.getElementById('ejs-service');  if (ejsS) ejsS.value = EMAILJS_SERVICE_ID  || '';
+    var ejsT = document.getElementById('ejs-template'); if (ejsT) ejsT.value = EMAILJS_TEMPLATE_ID || '';
+    var ejsP = document.getElementById('ejs-pubkey');   if (ejsP) ejsP.value = EMAILJS_PUBLIC_KEY  || '';
+    // Pre-fill sim email
+    var simEl = document.getElementById('sim-email'); if (simEl && SIM_EMAIL) simEl.value = SIM_EMAIL;
+    // Init EmailJS
+    if (!_ejsReady && typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY) initEmailJS();
+  }
   var telaNames = {envios:'Primeiros Envios',prog:'Programar',dash:'Dashboard',hist:'Historico',upload:'Upload',loggi:'Configuracao'};
   updatePresenceTela(telaNames[v] || v);
   document.getElementById('nb-' + v).classList.add('active');
@@ -1630,10 +1662,19 @@ function gerarRota() {
     var inRadius = false;
 
     if (oLat && oLon && cLat && cLon) {
-      inRadius = haversine(oLat, oLon, cLat, cLon) <= RADIUS_KM;
+      var dist = haversine(oLat, oLon, cLat, cLon);
+      inRadius = dist <= RADIUS_KM;
     }
 
+    // Strict rule: must be same city/UF OR within 15km radius
+    // Never include cinemas from completely different states/cities without coords proof
     if (!sameCity && !inRadius) return;
+    // Extra guard: if different city AND coords are city-level generic (same as oLat/oLon exactly),
+    // only allow if same UF and distance makes geographic sense
+    if (!sameCity && inRadius && cLat && cLon && oLat && oLon) {
+      // If coords are suspiciously identical to a city center far away, skip
+      if (cUF !== uf) return; // different state = never in 15km radius (Brazil geography)
+    }
 
     // pct filter (optional - only if > 0)
     // pct is only available for DB cinemas; skip filter for CINEMA_DB-only cinemas
@@ -2066,34 +2107,45 @@ function abrirModalEmail(idx) {
   openModal('modal-email');
 }
 
-function abrirEmailCliente() {
+async function abrirEmailCliente() {
   var para    = document.getElementById('email-para').value.trim();
   var assunto = document.getElementById('email-assunto').value;
   var corpo   = document.getElementById('email-corpo').value;
 
-  // Simulation mode: force test email, prepend [SIMULACAO] to subject
-  if (LOGGI_SIM) {
-    if (!SIM_EMAIL) {
-      toast('Simulacao ativa: configure o e-mail de teste em Configuracao.', 'err');
-      return;
+  // Disable button during send
+  var btn = document.querySelector('#modal-email .btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+
+  var enviado = false;
+
+  // Try EmailJS first (auto-send)
+  if (EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && EMAILJS_PUBLIC_KEY) {
+    enviado = await enviarEmailJS(para, assunto, corpo);
+    if (enviado) {
+      toast(LOGGI_SIM ? '[SIM] E-mail enviado para ' + (SIM_EMAIL||para) : 'E-mail enviado para ' + para + '!', 'ok');
     }
-    para    = SIM_EMAIL;
-    assunto = '[SIMULACAO] ' + assunto;
-    corpo   = '*** ESTE E-MAIL E UMA SIMULACAO - NAO TOMAR NENHUMA ACAO ***\n\n' + corpo;
-    toast('Simulacao: e-mail redirecionado para ' + SIM_EMAIL, 'info');
   }
 
-  var uri = 'mailto:' + encodeURIComponent(para)
-    + '?subject=' + encodeURIComponent(assunto)
-    + '&body='    + encodeURIComponent(corpo);
-  window.open(uri);
+  // Fallback: open mailto
+  if (!enviado) {
+    var destino = LOGGI_SIM && SIM_EMAIL ? SIM_EMAIL : para;
+    var subj    = LOGGI_SIM ? '[SIMULACAO] ' + assunto : assunto;
+    var bod     = LOGGI_SIM ? '*** SIMULACAO ***\n\n' + corpo : corpo;
+    var uri = 'mailto:' + encodeURIComponent(destino)
+      + '?subject=' + encodeURIComponent(subj)
+      + '&body='    + encodeURIComponent(bod);
+    window.open(uri);
+    toast('E-mail aberto no seu cliente de e-mail.', 'info');
+  }
+
   if (SAVED[_emailSchedIdx]) {
     SAVED[_emailSchedIdx].progStatus = 'aguardando';
     localStorage.setItem('etc_saved', JSON.stringify(SAVED));
     if (typeof fbPushSaved === 'function') fbPushSaved();
   }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Enviar e-mail'; }
   closeModal('modal-email');
-  toast(LOGGI_SIM ? '[SIM] E-mail de teste enviado!' : 'E-mail aberto!', 'ok');
   renderDash();
 }
 
@@ -5305,6 +5357,14 @@ function confirmLoggiSim(schedIdx, stepIdx, tracking) {
 }
 
 // Check login last (after all functions defined)
+// Init EmailJS on load
+(function() {
+  if (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY) {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+    _ejsReady = true;
+  }
+})();
+
 // Init simulation state on load
 (function() {
   var btn = document.getElementById('btn-loggi-sim');
@@ -5386,7 +5446,37 @@ async function refineRouteWithOSRM() {
   if (old) old.remove();
 
   renderRoute();
-  if (updated > 0) toast(updated + ' distancias reais (via estrada) calculadas', 'ok');
+  if (updated > 0) toast(updated + ' distancias reais calculadas', 'ok');
+
+  // For cinemas still showing 0km (same generic coords as origin),
+  // geocode them individually via Nominatim to get precise coords
+  route.forEach(function(c, i) {
+    if ((c.legDist === 0 || !c.legDist) && c.name && c.city) {
+      var addr = c.name + ', ' + c.city + ', ' + (c.uf||'') + ', Brasil';
+      geocodeCinema(addr, function(lat, lon) {
+        if (!lat || !lon) return;
+        // Check it's different from origin coords
+        if (origin && Math.abs(lat - origin.lat) < 0.0001 && Math.abs(lon - origin.lon) < 0.0001) return;
+        // Validate: must still be within 15km of origin (prevents bad geocoding results)
+        if (origin && origin.lat && origin.lon) {
+          var distCheck = haversine(origin.lat, origin.lon, lat, lon);
+          if (distCheck > 50) return; // reject if geocoding returned coords >50km away
+        }
+        route[i].lat = lat;
+        route[i].lon = lon;
+        if (origin && origin.lat && origin.lon) {
+          // Get real road distance for this cinema now that we have coords
+          osrmTable(origin.lat, origin.lon, [{lat:lat, lon:lon, idx:0}]).then(function(dm) {
+            if (dm[0] !== undefined) {
+              route[i].legDist = dm[0];
+              route[i]._osrmDist = dm[0];
+              renderRoute();
+            }
+          });
+        }
+      });
+    }
+  });
 }
 
 
@@ -5481,6 +5571,13 @@ function abrirEmailStep(schedIdx, stepIdx) {
   }
 
   _emailSchedIdx = schedIdx;
+
+  // Show send button label based on EmailJS availability
+  var sendBtn = document.getElementById('btn-send-email');
+  if (sendBtn) {
+    sendBtn.textContent = (EMAILJS_SERVICE_ID && EMAILJS_PUBLIC_KEY) ? 'Enviar e-mail' : 'Abrir no e-mail';
+  }
+
   openModal('modal-email');
 }
 
@@ -5527,6 +5624,69 @@ function salvarCfgLoggi() {
 function setCfgLoggiMsg(msg, color) {
   var el = document.getElementById('cfg-loggi-msg');
   if (el) { el.textContent = msg; el.style.color = color || '#888'; }
+}
+
+
+// --- EMAILJS CONFIG ------------------------------------------------------
+var EMAILJS_SERVICE_ID  = localStorage.getItem('etc_ejs_service')  || 'service_l5cqlda';
+var EMAILJS_TEMPLATE_ID = localStorage.getItem('etc_ejs_template') || 'template_gkbqjtd';
+var EMAILJS_PUBLIC_KEY  = localStorage.getItem('etc_ejs_pubkey')   || '3wMLBifFITtMZiS7U';
+var _ejsReady = false;
+
+function initEmailJS() {
+  if (typeof emailjs === 'undefined') return;
+  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+  _ejsReady = true;
+}
+
+// Auto-send email via EmailJS
+async function enviarEmailJS(toEmail, subject, message) {
+  if (!_ejsReady) initEmailJS();
+  if (!_ejsReady) { toast('EmailJS nao carregado.', 'err'); return false; }
+  try {
+    var params = {
+      to_email: LOGGI_SIM && SIM_EMAIL ? SIM_EMAIL : toEmail,
+      subject:  LOGGI_SIM ? '[SIMULACAO] ' + subject : subject,
+      message:  LOGGI_SIM ? '*** SIMULACAO ***\n\n' + message : message,
+    };
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
+    return true;
+  } catch(e) {
+    console.error('EmailJS error:', e);
+    toast('Erro ao enviar e-mail: ' + (e.text || e.message || 'desconhecido'), 'err');
+    return false;
+  }
+}
+
+
+function salvarEmailJS() {
+  var svc  = (document.getElementById('ejs-service')  && document.getElementById('ejs-service').value.trim())  || '';
+  var tpl  = (document.getElementById('ejs-template') && document.getElementById('ejs-template').value.trim()) || '';
+  var pub  = (document.getElementById('ejs-pubkey')   && document.getElementById('ejs-pubkey').value.trim())   || '';
+  if (!svc || !tpl || !pub) {
+    var el = document.getElementById('ejs-msg');
+    if (el) { el.textContent = 'Preencha todos os campos.'; el.style.color = '#c0392b'; }
+    return;
+  }
+  EMAILJS_SERVICE_ID  = svc;
+  EMAILJS_TEMPLATE_ID = tpl;
+  EMAILJS_PUBLIC_KEY  = pub;
+  localStorage.setItem('etc_ejs_service',  svc);
+  localStorage.setItem('etc_ejs_template', tpl);
+  localStorage.setItem('etc_ejs_pubkey',   pub);
+  // Re-init EmailJS with new key
+  _ejsReady = false;
+  initEmailJS();
+  // Send test email to sim email or show success
+  var msgEl = document.getElementById('ejs-msg');
+  if (msgEl) { msgEl.textContent = 'Testando...'; msgEl.style.color = '#888'; }
+  var testDest = SIM_EMAIL || 'teste@etcfilmes.com.br';
+  enviarEmailJS(testDest, 'Teste ETC Filmes Portal', 'E-mail de teste do Portal ETC Filmes. Se recebeu, esta funcionando!').then(function(ok) {
+    if (msgEl) {
+      msgEl.textContent = ok ? 'Enviado! Verifique a caixa de entrada de ' + testDest : 'Salvo (sem envio de teste).';
+      msgEl.style.color = ok ? '#1a8a4a' : '#996a00';
+    }
+  });
 }
 
 checkLogin();
