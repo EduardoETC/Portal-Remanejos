@@ -408,6 +408,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 
 <!-- VIEW: LOGGI CONFIG -->
 <div class="view" id="view-loggi">
+  <!-- Admin lock overlay -->
+  <div id="loggi-lock" style="position:absolute;inset:0;background:#f0efeb;z-index:10;display:flex;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:12px;padding:32px;max-width:320px;width:90%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)">
+      <div style="font-size:32px;margin-bottom:12px">&#128274;</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">Area restrita</div>
+      <div style="font-size:12px;color:#888;margin-bottom:20px">Somente administradores podem acessar esta area.</div>
+      <input id="loggi-lock-pwd" type="password" placeholder="Senha de administrador" style="width:100%;padding:9px 12px;border:1px solid #d0cec9;border-radius:6px;font-size:13px;font-family:inherit;outline:none;margin-bottom:10px;box-sizing:border-box">
+      <button onclick="unlockLoggi()" class="btn" style="width:100%">Entrar</button>
+      <div id="loggi-lock-err" style="font-size:11px;color:#c0392b;margin-top:8px;display:none">Senha incorreta.</div>
+    </div>
+  </div>
   <div class="ph"><div><h1>Integracao Loggi</h1><p>Credenciais da API corporativa</p></div></div>
   <div class="fsec" style="margin-bottom:0">
     <h3>Loggi Corp API</h3>
@@ -441,39 +452,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     <button class="btn" onclick="salvarCfgLoggi()" style="margin-top:6px">Salvar e Testar conexao</button>
     <span id="cfg-loggi-msg" style="font-size:12px;margin-left:10px"></span>
   </div>
-  <div style="padding:20px 22px;max-width:520px">
-    <div class="notice notice-info"><span>i</span><div>Acesse <strong>developers.loggi.com</strong> para obter o <code>client_id</code> e <code>client_secret</code>.</div></div>
-    <div style="background:#fff;border-radius:8px;border:1px solid #e0deda;padding:18px;margin-bottom:14px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Credenciais</div>
-      <div class="field-row">
-        <div class="field"><label>Client ID</label><input id="cfg-cid" placeholder="client_id"></div>
-        <div class="field"><label>Client Secret</label><input type="password" id="cfg-cs" placeholder="client_secret"></div>
-      </div>
-      <div class="field"><label>Bearer Token</label><input type="password" id="cfg-token" placeholder="Token gerado ou cole direto"></div>
-      <div class="field-row">
-        <div class="field"><label>Shop PK</label><input id="cfg-shopk" placeholder="33552"></div>
-        <div class="field"><label>Telefone remetente</label><input id="cfg-phone" placeholder="11999990000"></div>
-      </div>
-      <div class="field"><label>Address ID - ETC Filmes</label><input id="cfg-etc-id" placeholder="ID do seu endereco na Loggi"></div>
-      <div style="display:flex;gap:8px;margin-top:6px">
-        <button class="btn btn-primary" onclick="autenticarOAuth()">Autenticar OAuth</button>
-        <button class="btn" onclick="testarConexao()">Testar conexao</button>
-        <button class="btn btn-dark" onclick="salvarCfg()">Salvar</button>
-      </div>
-      <div id="cfg-msg" style="font-size:12px;margin-top:10px;display:none"></div>
-    </div>
-    <div style="background:#fff;border-radius:8px;border:1px solid #e0deda;padding:18px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Empresa remetente</div>
-      <div class="field"><label>Nome</label><input id="cfg-emp-nome" value="ETC Filmes"></div>
-      <div class="field"><label>Endereco</label><input id="cfg-emp-addr" value="Av. Escola Politecnica, 1700, Jaguare, Sao Paulo, SP, 05319-000"></div>
-      <div class="field-row">
-        <div class="field"><label>CEP</label><input id="cfg-emp-cep" value="05319-000"></div>
-        <div class="field"><label>Contato</label><input id="cfg-emp-contato" value="ETC Filmes - Expedicao"></div>
-      </div>
-      <button class="btn btn-dark" style="margin-top:6px" onclick="salvarEmpresa()">Salvar empresa</button>
-    </div>
-
-    <!-- EmailJS Config -->
+  <div style="padding:20px 22px;max-width:520px">    <!-- EmailJS Config -->
     <div class="fsec" style="margin-top:14px">
       <h3>EmailJS — Envio automatico de e-mails</h3>
       <div style="background:#f5f4f0;border-radius:6px;padding:10px 14px;font-size:12px;color:#555;margin-bottom:12px">
@@ -505,6 +484,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         </div>
         <div id="sim-email-status" style="font-size:11px;color:#aaa;margin-top:4px"></div>
       </div>
+    </div>
+
+
+    <!-- Empresa remetente -->
+    <div class="fsec" style="margin-top:14px">
+      <h3>Empresa remetente</h3>
+      <div class="field-row">
+        <div class="field"><label>Nome</label><input id="e-nome" class="inp" value="ETC Filmes"></div>
+        <div class="field"><label>CEP</label><input id="e-cep" class="inp" value="05319-000"></div>
+      </div>
+      <div class="field"><label>Endereco</label><input id="e-end" class="inp" value="Av. Escola Politecnica 1700, Jaguare, Sao Paulo, SP, 05319-000"></div>
+      <div class="field-row">
+        <div class="field"><label>Contato</label><input id="e-contato" class="inp" value="ETC Filmes - Expedicao"></div>
+      </div>
+      <button class="btn btn-dark" style="margin-top:6px" onclick="salvarEmpresa()">Salvar empresa</button>
     </div>
 
     <!-- Firebase section -->
@@ -1202,6 +1196,8 @@ var lgSt       = {};
 
 // NAV
 function goTo(v) {
+  // Lock loggi when leaving
+  if (v !== 'loggi') lockLoggi();
   document.querySelectorAll('.view').forEach(function(el){ el.classList.remove('active'); });
   document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
   document.getElementById('view-' + v).classList.add('active');
@@ -2118,9 +2114,11 @@ async function abrirEmailCliente() {
 
   var enviado = false;
 
+  var cc = document.getElementById('email-cc') ? document.getElementById('email-cc').value.trim() : '';
+
   // Try EmailJS first (auto-send)
   if (EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && EMAILJS_PUBLIC_KEY) {
-    enviado = await enviarEmailJS(para, assunto, corpo);
+    enviado = await enviarEmailJS(para, assunto, corpo, cc);
     if (enviado) {
       toast(LOGGI_SIM ? '[SIM] E-mail enviado para ' + (SIM_EMAIL||para) : 'E-mail enviado para ' + para + '!', 'ok');
     }
@@ -2351,6 +2349,19 @@ async function dispatchOne(idx) {
       var infoEl2 = document.querySelector('#lgrow-' + idx + ' .lg-info');
       if (infoEl2) infoEl2.appendChild(a);
     }
+    // Auto-update step status to Em Andamento
+    if (_activeSchedIdx !== null && o.seq !== undefined) {
+      var stepI = o.seq - 1;
+      var ss = SAVED[_activeSchedIdx];
+      if (ss) {
+        if (!ss.stepData) ss.stepData = {};
+        if (!ss.stepData[stepI]) ss.stepData[stepI] = {};
+        ss.stepData[stepI].status = 'Em Andamento';
+        if (ss.route && ss.route[stepI]) ss.route[stepI].status = 'Em Andamento';
+        localStorage.setItem('etc_saved', JSON.stringify(SAVED));
+        if (typeof fbPushSaved === 'function') fbPushSaved();
+      }
+    }
     toast('Pedido Loggi criado!', 'ok');
 
   } catch(err) {
@@ -2405,15 +2416,15 @@ async function testarConexao() {
 }
 
 function salvarCfg() {
-  var tok = document.getElementById('cfg-token').value.trim();
+  
   var apiKeyField = document.getElementById('cfg-apikey');
   LOGGI = Object.assign({}, LOGGI, {
     apiKey: apiKeyField ? apiKeyField.value.trim() : (tok !== '****************' ? tok : LOGGI.apiKey),
     token:  tok === '****************' ? LOGGI.token : tok,
     shopPk: document.getElementById('cfg-shopk').value.trim() || '33552',
     phone:  document.getElementById('cfg-phone').value.trim().replace(/[^0-9]/g,'') || '11968730097',
-    etcId:  document.getElementById('cfg-etc-id') ? document.getElementById('cfg-etc-id').value.trim() : '',
-    clientId: document.getElementById('cfg-cid') ? document.getElementById('cfg-cid').value.trim() : '',
+    
+    
   });
   localStorage.setItem('etc_loggi', JSON.stringify(LOGGI));
   setCfgMsg('Salvo!', '#1a8a4a'); toast('Configuracao salva!', 'ok');
@@ -5640,15 +5651,18 @@ function initEmailJS() {
 }
 
 // Auto-send email via EmailJS
-async function enviarEmailJS(toEmail, subject, message) {
+async function enviarEmailJS(toEmail, subject, message, ccEmail) {
   if (!_ejsReady) initEmailJS();
   if (!_ejsReady) { toast('EmailJS nao carregado.', 'err'); return false; }
   try {
+    var dest = LOGGI_SIM && SIM_EMAIL ? SIM_EMAIL : toEmail;
     var params = {
-      to_email: LOGGI_SIM && SIM_EMAIL ? SIM_EMAIL : toEmail,
+      to_email: dest,
       subject:  LOGGI_SIM ? '[SIMULACAO] ' + subject : subject,
-      message:  LOGGI_SIM ? '*** SIMULACAO ***\n\n' + message : message,
+      message:  LOGGI_SIM ? '*** SIMULACAO - NAO TOMAR NENHUMA ACAO ***\n\n' + message : message,
     };
+    // Add CC if provided (EmailJS passes as cc field in template)
+    if (ccEmail) params.cc_email = ccEmail;
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
     return true;
   } catch(e) {
@@ -5687,6 +5701,39 @@ function salvarEmailJS() {
       msgEl.style.color = ok ? '#1a8a4a' : '#996a00';
     }
   });
+}
+
+
+// Admin password for Loggi config (set in localStorage)
+var ADMIN_PWD = localStorage.getItem('etc_admin_pwd') || 'etcfilmes2024';
+
+function unlockLoggi() {
+  var pwd = document.getElementById('loggi-lock-pwd');
+  if (!pwd) return;
+  if (pwd.value === ADMIN_PWD) {
+    var lock = document.getElementById('loggi-lock');
+    if (lock) lock.style.display = 'none';
+    pwd.value = '';
+  } else {
+    var err = document.getElementById('loggi-lock-err');
+    if (err) err.style.display = 'block';
+    pwd.value = '';
+  }
+}
+
+// Allow Enter key on password field
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'loggi-lock-pwd') {
+    unlockLoggi();
+  }
+});
+
+// Lock loggi page when navigating away
+function lockLoggi() {
+  var lock = document.getElementById('loggi-lock');
+  if (lock) lock.style.display = 'flex';
+  var pwd = document.getElementById('loggi-lock-pwd');
+  if (pwd) pwd.value = '';
 }
 
 checkLogin();
