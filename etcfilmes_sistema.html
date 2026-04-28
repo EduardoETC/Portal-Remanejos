@@ -5656,14 +5656,20 @@ async function enviarEmailJS(toEmail, subject, message, ccEmail) {
   if (!_ejsReady) { toast('EmailJS nao carregado.', 'err'); return false; }
   try {
     var dest = LOGGI_SIM && SIM_EMAIL ? SIM_EMAIL : toEmail;
+    var finalSubject = LOGGI_SIM ? '[SIMULACAO] ' + subject : subject;
+    var finalMessage = LOGGI_SIM ? '*** SIMULACAO - NAO TOMAR NENHUMA ACAO ***\n\n' + message : message;
+
+    // In sim mode: send to test email, CC others if provided
+    // In real mode: send to cinema email, CC if provided
     var params = {
       to_email: dest,
-      subject:  LOGGI_SIM ? '[SIMULACAO] ' + subject : subject,
-      message:  LOGGI_SIM ? '*** SIMULACAO - NAO TOMAR NENHUMA ACAO ***\n\n' + message : message,
+      subject:  finalSubject,
+      message:  finalMessage,
+      cc_email: ccEmail || '',
     };
-    // Add CC if provided (EmailJS passes as cc field in template)
-    if (ccEmail) params.cc_email = ccEmail;
-    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
+    console.log('[EmailJS] Sending to:', dest, '| CC:', ccEmail || 'none', '| SIM:', LOGGI_SIM);
+    var result = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
+    console.log('[EmailJS] Result:', result);
     return true;
   } catch(e) {
     console.error('EmailJS error:', e);
